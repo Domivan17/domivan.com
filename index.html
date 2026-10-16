@@ -3,27 +3,149 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Domivan</title>
-<meta name="description" content="Door-to-door van trips between Eastern and Western Europe.">
-<link rel="stylesheet" href="/style.css">
+<title>Domivan | Door-to-door van trips across Europe</title>
+<meta name="description" content="Book a seat in a van from your door in Poland, Romania, Bulgaria or Hungary to your door in Western Europe, and back. Fixed price, pay in the app, follow your van.">
+<meta property="og:title" content="Domivan | Door-to-door van trips across Europe">
+<meta property="og:description" content="From your door to theirs. Book a van seat between Eastern and Western Europe in a few taps.">
+<meta property="og:url" content="https://domivan.com/">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/landing.css">
 </head>
 <body>
-<main>
-<header><span class="logo"></span><a href="/">Domivan</a></header>
 
-<h1>Door-to-door van trips across Europe</h1>
-<p class="meta">Book a seat in a van from your door in Poland, Romania, Bulgaria or Hungary to your door in Germany, France, Belgium, the Netherlands, the UK, Spain, Italy or Switzerland, and back. Pay in the app, follow your van, chat with your driver.</p>
-<p>Transport companies join for free with the Domivan Driver app.</p>
-<p><span class="fill">[App Store and Google Play links once the apps are live]</span></p>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 100 100">
+    <path d="M18 8h30a42 42 0 0 1 0 84H18a6 6 0 0 1-6-6V14a6 6 0 0 1 6-6Zm9 15v54h21a27 27 0 0 0 0-54Z" fill="currentColor"/>
+    <path d="M36 46.5h7.5V35L62 50 43.5 65V53.5H36a3.5 3.5 0 0 1 0-7Z" fill="var(--arrow, currentColor)"/>
+  </symbol>
+</svg>
 
-<div class="cards">
-<a href="/terms"><strong>Terms for travellers</strong>Booking, payment, cancellations and refunds</a>
-<a href="/transporter-terms"><strong>Terms for transporters</strong>Joining, offers, payouts and conduct</a>
-<a href="/privacy"><strong>Privacy Policy</strong>What data we collect and why</a>
-<a href="/delete-account"><strong>Delete your account</strong>How to ask and what we keep</a>
-</div>
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="/"><span class="logo"><svg><use href="#mark"/></svg></span>Domivan</a>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#vans">Vans</a>
+      <a href="#drivers">For transporters</a>
+      <a class="btn small" href="#download">Get the app</a>
+    </nav>
+  </div>
+</header>
 
-<p class="meta" style="margin-top:32px">Domivan is run by StepsNest B.V., the Netherlands. Help is in the app under Help and support.</p>
-</main>
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">Eastern Europe ⇄ Western Europe</p>
+      <h1>From your door<br>to theirs.</h1>
+      <p class="lead">Book a seat in a van from your home in Poland, Romania, Bulgaria or Hungary straight to your address in Germany, the Netherlands, the UK and beyond. One fixed price, paid in the app. No phone calls, no Facebook groups.</p>
+      <div class="stores" id="download">
+        <span class="store"><svg viewBox="0 0 24 24"><path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.1ZM13.9 5c.7-.8 1.2-2 1-3.2-1 0-2.3.7-3 1.5-.7.8-1.2 1.9-1.1 3.1 1.2.1 2.3-.6 3.1-1.4Z" fill="currentColor"/></svg><span><small>Coming soon on the</small>App Store</span></span>
+        <span class="store"><svg viewBox="0 0 24 24"><path d="M3.6 1.8 13.5 12l-9.9 10.2c-.4-.2-.6-.6-.6-1.1V2.9c0-.5.2-.9.6-1.1Zm10.7 11 2.6 2.6-11.2 6.4 8.6-9Zm3.6-3.4 3 1.7c.8.5.8 1.3 0 1.8l-3 1.7-2.8-2.8 2.8-2.4ZM5.7 2.2l11.2 6.4-2.6 2.6-8.6-9Z" fill="currentColor"/></svg><span><small>Coming soon on</small>Google Play</span></span>
+      </div>
+      <p class="note">Both apps are launching soon.</p>
+    </div>
+
+    <div class="phone" aria-hidden="true">
+      <div class="screen">
+        <p class="p-title">New trip</p>
+        <div class="p-card">
+          <div class="p-row"><span class="dot"></span><span><small>Pickup</small>Str. Florilor 12, Cluj-Napoca</span></div>
+          <div class="p-line"></div>
+          <div class="p-row"><span class="dot end"></span><span><small>Destination</small>Keizersgracht 80, Amsterdam</span></div>
+        </div>
+        <div class="p-chips"><span class="on">Booking</span><span>Live</span></div>
+        <div class="p-card p-van">
+          <span class="p-ic">🚐</span><span><b>Standard van</b><small>2 seats · Fri 24 Oct, 06:00</small></span>
+        </div>
+        <div class="p-total"><span>Total</span><b>€170</b></div>
+        <div class="p-btn">Pay and book</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="how">
+  <h2>How it works</h2>
+  <p class="sub">Three steps, all in the Domivan app.</p>
+  <div class="steps">
+    <div class="step"><span class="num">1</span><h3>Enter both doors</h3><p>Add your pickup address and where you're going, the date, and how many seats you need.</p></div>
+    <div class="step"><span class="num">2</span><h3>Pay one fixed price</h3><p>You see the full price before you pay. Your booking goes straight out to vetted transporters on that route.</p></div>
+    <div class="step"><span class="num">3</span><h3>Get picked up at home</h3><p>Before pickup you see your driver and van, can chat or call them, and follow the van live on the day.</p></div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <h2>Book ahead or go today</h2>
+    <div class="two">
+      <div class="tile"><span class="tag">Booking</span><h3>Plan your trip</h3><p>Pick a date and time that suits you. Transporters on your route claim the trip well ahead of pickup.</p></div>
+      <div class="tile"><span class="tag live">Live</span><h3>Need to leave now</h3><p>Urgent trip? Live orders reach drivers on your route right away.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="vans">
+  <h2>Choose your van</h2>
+  <p class="sub">From a seat for one to a whole van for the family.</p>
+  <div class="vans">
+    <div class="van"><h3>Standard</h3><p class="cap">Up to 8 passengers</p><p>Comfortable minivans for most trips.</p></div>
+    <div class="van"><h3>Large</h3><p class="cap">9 to 20 seats</p><p>Sprinter-type vans for groups and lots of luggage.</p></div>
+    <div class="van lux"><h3>Luxury</h3><p class="cap">V-Class and VIP Sprinter</p><p>Premium vans from approved transporters only.</p></div>
+  </div>
+</section>
+
+<section class="wrap" id="routes">
+  <h2>Where we go</h2>
+  <p class="sub">Trips run both ways between these countries.</p>
+  <div class="routes">
+    <div><h3>From</h3><p class="flags">🇵🇱 Poland<br>🇷🇴 Romania<br>🇧🇬 Bulgaria<br>🇭🇺 Hungary</p></div>
+    <div class="arrow" aria-hidden="true">⇄</div>
+    <div><h3>To</h3><p class="flags">🇩🇪 Germany · 🇫🇷 France<br>🇧🇪 Belgium · 🇳🇱 Netherlands<br>🇬🇧 United Kingdom · 🇪🇸 Spain<br>🇮🇹 Italy · 🇨🇭 Switzerland</p></div>
+  </div>
+</section>
+
+<section class="drivers" id="drivers">
+  <div class="wrap drivers-grid">
+    <div>
+      <span class="logo dark"><svg><use href="#mark"/></svg></span>
+      <h2>Drive with Domivan</h2>
+      <p class="lead">Run a van between East and West? Get paid trips sent straight to your phone with the Domivan Driver app.</p>
+      <ul class="checks">
+        <li><b>Free to join.</b> No subscription, no sign-up fee.</li>
+        <li><b>Trips already paid.</b> The client pays upfront, so no chasing money.</li>
+        <li><b>You choose.</b> Accept the trips that fit your route and schedule.</li>
+        <li><b>Paid to your bank.</b> Your payout is sent once the trip is done.</li>
+      </ul>
+      <p class="note light">Domivan Driver is coming to the App Store and Google Play. For vans with 6 to 20 seats.</p>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="faq">
+  <h2>Questions</h2>
+  <details><summary>How is the price set?</summary><p>The app works out the price from your pickup and destination, the van class and the number of seats. You see the full price before you pay, and it doesn't change afterwards.</p></details>
+  <details><summary>When do I see who's driving?</summary><p>Ahead of your pickup the app shows your driver, the van and its number plate, and you can chat or call them. On the day you can follow the van on the map once it's heading your way.</p></details>
+  <details><summary>What if no transporter takes my trip?</summary><p>You get your money back in full, automatically.</p></details>
+  <details><summary>Can I cancel?</summary><p>Yes. How much you get back depends on how close to pickup you cancel. See the <a href="/terms">terms for travellers</a>.</p></details>
+  <details><summary>How do I get help?</summary><p>Open the app and go to Help and support. Our team answers there.</p></details>
+</section>
+
+<footer class="foot">
+  <div class="wrap foot-grid">
+    <div>
+      <a class="brand" href="/"><span class="logo"><svg><use href="#mark"/></svg></span>Domivan</a>
+      <p>Domivan is run by StepsNest B.V., Weert, the Netherlands.<br>KvK 42105882</p>
+    </div>
+    <nav>
+      <a href="/terms">Terms for travellers</a>
+      <a href="/transporter-terms">Terms for transporters</a>
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/delete-account">Delete your account</a>
+    </nav>
+  </div>
+  <p class="wrap copy">© 2026 Domivan</p>
+</footer>
+
 </body>
 </html>
