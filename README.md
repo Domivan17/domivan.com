@@ -40,3 +40,19 @@ in `scripts/build-site.py` or the layout in `scripts/site-template.html`, then r
 
 The night map (`img/europe-night.webp`) is drawn by `scripts/make-night-map.py` from GeoNames
 city populations (CC BY 4.0) and Natural Earth coastlines (public domain).
+
+## Booking on the website (`/book`)
+
+https://domivan.com/book is the Domivan client app built for the web: the same New trip,
+sign-in (email code) and pay flow, on the same Supabase project and Stripe account. Don't edit
+`book/`, `404.html` or `.nojekyll` by hand; rebuild them with `npm run build-web` after app
+changes, then publish this folder as usual.
+
+- Payment uses Stripe's Payment Element (cards, Apple Pay / Google Pay where the browser
+  supports them, plus other methods the Stripe account has on). Bank redirects come back to
+  `/book/order/<id>`.
+- Addresses are looked up with OpenStreetMap Nominatim (free, no key, light use only). Switch to
+  a paid geocoder before heavy traffic.
+- `404.html` is a copy of the app so reloads on `/book/...` work on GitHub Pages; any other
+  missing page goes to the home page. `.nojekyll` stops Pages from hiding the `_expo` folder.
+- The booking screens are in English for now, like the apps.
