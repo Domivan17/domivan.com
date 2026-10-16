@@ -82,31 +82,20 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .van.lux .cap { color: var(--amber); }
 .van.lux p { color: #CBD5E1; }
 
-/* Night map of Europe with live routes */
-.night { position: relative; background: #050B18; color: #fff; padding: 80px 0 64px; overflow: hidden; }
-.night::before { content: ""; position: absolute; inset: 0; background: radial-gradient(60% 50% at 60% 55%, #1838D633, transparent 70%); pointer-events: none; }
-.night-head { position: relative; text-align: center; }
-.night h2 { font-size: clamp(30px, 5vw, 48px); background: linear-gradient(90deg, #FFD27A, #fff 45%, #A9BFFF); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.night .sub { color: #94A3B8; }
-.map { position: relative; max-width: 1240px; margin: 8px auto 0; -webkit-mask-image: radial-gradient(75% 75% at 50% 50%, #000 62%, transparent 100%); mask-image: radial-gradient(75% 75% at 50% 50%, #000 62%, transparent 100%); }
-.map svg { display: block; width: 100%; height: auto; }
+/* Night map of Europe with moving lines between cities */
+.night { position: relative; background: #050B18; overflow: hidden; padding: 24px 0; }
+.night::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(#050B18, transparent 18%, transparent 82%, #050B18), radial-gradient(70% 60% at 50% 50%, transparent 55%, #050B18 100%); }
+.map { max-width: 1400px; margin: 0 auto; overflow: hidden; }
+.map svg { display: block; width: 100%; height: auto; transform-origin: 58% 50%; animation: drift 40s ease-in-out infinite alternate; will-change: transform; }
+@keyframes drift { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.12) translate(-2%, 1%); } }
 .arcs path { fill: none; stroke: url(#arc); stroke-linecap: round; }
-.base path { stroke-width: 2.5; stroke-opacity: .45; }
-.glow path { stroke: #FFC861; stroke-width: 14; stroke-opacity: .3; stroke-dasharray: .12 1.08; stroke-dashoffset: 1.1; animation: run var(--d) linear var(--t) infinite; }
-.spark path { stroke: #FFF3D6; stroke-width: 3.5; stroke-dasharray: .07 1.13; stroke-dashoffset: 1.1; animation: run var(--d) linear var(--t) infinite; }
-.arcs path.rev { animation-direction: reverse; }
-@keyframes run { from { stroke-dashoffset: 1.1; } to { stroke-dashoffset: -.1; } }
-.hubs circle { fill: #FFF6E0; }
-.hubs .east circle { stroke: #FFB020; stroke-width: 4; animation: beat 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-.hubs .east circle:nth-child(2n) { animation-delay: -1.2s; }
-.hubs .west circle { stroke: #7EA2FF; stroke-width: 4; }
-@keyframes beat { 50% { transform: scale(1.6); stroke-opacity: .4; } }
-.labels text { fill: #E2E8F0; font: 600 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; paint-order: stroke; stroke: #050B18cc; stroke-width: 6px; stroke-linejoin: round; }
-@media (prefers-reduced-motion: reduce) { .hubs circle { animation: none; } .glow, .spark { display: none; } }
-.routes { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; gap: 24px; align-items: center; background: #ffffff0d; border: 1px solid #ffffff1f; border-radius: 22px; padding: 28px; margin-top: 8px; backdrop-filter: blur(8px); }
-.routes h3 { color: #94A3B8; font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; }
-.flags { margin: 0; font-weight: 600; line-height: 1.9; color: #E2E8F0; }
-.routes .arrow { font-size: 36px; color: #FFB020; font-weight: 800; }
+.base path { stroke-width: 1.4; stroke-opacity: .22; }
+.glow path { stroke: #FFC861; stroke-width: 9; stroke-opacity: .22; stroke-dasharray: .09 1.11; stroke-dashoffset: 1.1; animation: run var(--d) cubic-bezier(.45, 0, .55, 1) var(--t) infinite; }
+.spark path { stroke: #FFF6E0; stroke-width: 2.4; stroke-dasharray: .045 1.155; stroke-dashoffset: 1.1; animation: run var(--d) cubic-bezier(.45, 0, .55, 1) var(--t) infinite; }
+@keyframes run { from { stroke-dashoffset: 1.1; } to { stroke-dashoffset: -.12; } }
+.hubs circle { fill: #FFF6E0; stroke: #FFB020; stroke-width: 2.5; animation: twinkle 3s ease-in-out var(--t) infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes twinkle { 50% { transform: scale(1.8); stroke-opacity: .25; fill-opacity: .6; } }
+@media (prefers-reduced-motion: reduce) { .map svg, .hubs circle { animation: none; } .glow, .spark { display: none; } }
 
 /* Language picker */
 .lang { position: relative; }
@@ -153,10 +142,5 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
   .steps, .vans, .two { grid-template-columns: 1fr; }
   .top nav > a:not(.btn) { display: none; }
   .top nav { gap: 10px; }
-  .labels { display: none; }
-  .map { overflow: hidden; -webkit-mask-image: linear-gradient(transparent, #000 14%, #000 82%, transparent); mask-image: linear-gradient(transparent, #000 14%, #000 82%, transparent); }
-  .map svg { width: 140%; margin-left: -24%; }
-  .night { padding-top: 56px; }
-  .routes { grid-template-columns: 1fr; text-align: center; }
-  .routes .arrow { transform: rotate(90deg); }
+  .map svg { width: 150%; margin-left: -28%; }
 }
