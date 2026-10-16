@@ -36,6 +36,8 @@ section.wrap { padding-top: 72px; }
 .top nav a:hover { color: var(--text); }
 .btn { display: inline-block; background: var(--primary); color: #fff !important; border-radius: 14px; padding: 12px 20px; font-weight: 700; text-decoration: none; }
 .btn.small { padding: 8px 14px; border-radius: 12px; }
+.btn.big { padding: 15px 28px; font-size: 18px; border-radius: 16px; }
+.cta { margin: 24px 0 18px; }
 
 /* Hero */
 .hero { background: radial-gradient(900px 500px at 85% 10%, var(--primary-soft), transparent 70%); padding: 64px 0 24px; }
