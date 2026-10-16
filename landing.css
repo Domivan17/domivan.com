@@ -128,7 +128,9 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .lang { position: relative; }
 .lang summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; color: #CBD5E1; padding: 7px 10px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .16); background: rgba(255, 255, 255, .06); }
 .lang summary::-webkit-details-marker { display: none; }
-.lang summary .globe { width: 18px; height: 18px; color: #9DB5FF; }
+.lang summary .earth { width: 20px; height: 20px; border-radius: 50%; flex: none; background: url(/img/earth.webp) 0 50% / auto 100% repeat-x; animation: earth-spin 14s linear infinite; transform: rotate(-18deg); box-shadow: inset -5px -2px 6px rgba(0, 0, 0, .65), inset 2px 1px 3px rgba(255, 255, 255, .35), 0 0 6px rgba(120, 170, 255, .45); }
+@keyframes earth-spin { to { background-position: 40px 50%; } }  /* west to east, like the real one */
+@media (prefers-reduced-motion: reduce) { .lang summary .earth { animation: none; } }
 .flag { width: 22px; height: 15px; border-radius: 3px; flex: none; box-shadow: 0 0 0 1px rgba(15, 23, 42, .15); }
 .lang summary .flag { width: 18px; height: 12px; border-radius: 2px; }
 .lang[open] summary, .lang summary:hover { color: #fff; }
