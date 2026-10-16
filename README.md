@@ -30,3 +30,13 @@ HTML with no build step, so any static host works. Default: a public repo
    Leave MX and TXT records alone (email).
 
 Pages serves `terms.html` at `/terms`, so the app links work without the `.html`.
+
+## Home page and languages
+
+The home page exists in English (`index.html`) and in Romanian, Polish, Bulgarian, Hungarian
+and Spanish (`ro/`, `pl/`, `bg/`, `hu/`, `es/`). Don't edit those files by hand: change the copy
+in `scripts/build-site.py` or the layout in `scripts/site-template.html`, then run
+`python3 scripts/build-site.py`. Styles are in `landing.css`; the legal pages keep `style.css`.
+
+The night map (`img/europe-night.webp`) is drawn by `scripts/make-night-map.py` from GeoNames
+city populations (CC BY 4.0) and Natural Earth coastlines (public domain).
