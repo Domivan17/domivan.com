@@ -37,7 +37,6 @@ section.wrap { padding-top: 72px; }
 .btn { display: inline-block; background: var(--primary); color: #fff !important; border-radius: 14px; padding: 12px 20px; font-weight: 700; text-decoration: none; }
 .btn.small { padding: 8px 14px; border-radius: 12px; }
 .btn.big { padding: 15px 28px; font-size: 18px; border-radius: 16px; }
-.cta { margin: 24px 0 18px; }
 
 /* Hero */
 .hero { background: radial-gradient(900px 500px at 85% 10%, var(--primary-soft), transparent 70%); padding: 64px 0 24px; }
@@ -50,24 +49,43 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .store svg { width: 26px; height: 26px; }
 .store small { display: block; font-weight: 500; font-size: 11px; opacity: 0.8; }
 
-/* Phone mock-up built from the app's look */
-.phone { justify-self: center; width: 290px; border-radius: 44px; padding: 12px; background: #0F172A; box-shadow: 0 40px 80px -30px #1838D666, 0 0 0 1px #ffffff14 inset; }
-.screen { background: #F4F6FA; color: #0F172A; border-radius: 34px; padding: 34px 16px 18px; font-size: 13px; line-height: 1.35; }
-.p-title { font-size: 24px; font-weight: 800; margin: 0 0 14px; letter-spacing: -0.02em; }
-.p-card { background: #fff; border: 1px solid #E6E9F0; border-radius: 18px; padding: 12px 14px; margin-bottom: 10px; }
-.p-row { display: flex; gap: 10px; align-items: center; font-weight: 600; }
-.p-row small, .p-van small { display: block; color: #64748B; font-weight: 500; font-size: 11px; }
-.dot { width: 10px; height: 10px; border-radius: 50%; border: 3px solid #2E5BFF; flex: none; }
-.dot.end { background: #2E5BFF; }
-.p-line { width: 2px; height: 14px; background: #E6E9F0; margin: 3px 0 3px 4px; }
-.p-chips { display: flex; gap: 6px; margin: 0 0 10px; }
-.p-chips span { flex: 1; text-align: center; background: #F1F4F9; border-radius: 12px; padding: 7px; font-weight: 700; color: #64748B; }
-.p-chips .on { background: #E8EEFF; color: #2E5BFF; }
-.p-van { display: flex; gap: 10px; align-items: center; }
-.p-ic { width: 36px; height: 36px; border-radius: 12px; background: #E8EEFF; display: grid; place-items: center; font-size: 18px; }
-.p-total { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 4px 12px; color: #64748B; font-weight: 600; }
-.p-total b { color: #0F172A; font-size: 24px; }
-.p-btn { background: #2E5BFF; color: #fff; text-align: center; border-radius: 16px; padding: 13px; font-weight: 700; font-size: 15px; }
+/* Booking card (hands the trip to /book) */
+.book { background: var(--card); border: 1px solid var(--border); border-radius: 26px; overflow: hidden; box-shadow: 0 40px 80px -36px #1838D655; }
+.book-head { display: flex; align-items: center; gap: 12px; padding: 18px 22px; background: linear-gradient(160deg, var(--navy), var(--navy-dark)); color: #fff; }
+.book-head .logo.dark { width: 38px; height: 38px; border-radius: 12px; margin: 0; }
+.book-head h2 { margin: 0; font-size: 22px; letter-spacing: -0.02em; }
+.book-body { padding: 20px 22px 6px; display: grid; gap: 14px; }
+.book small { display: block; color: var(--muted); font-size: 12.5px; font-weight: 700; margin-bottom: 4px; }
+.book input { font: inherit; font-size: 16px; color: var(--text); background: var(--field); border: 1.5px solid transparent; border-radius: 12px; padding: 10px 12px; width: 100%; box-sizing: border-box; }
+.book input:focus { outline: none; border-color: var(--primary); background: var(--card); }
+.kinds { display: grid; grid-template-columns: 1fr 1fr; background: var(--field); border-radius: 14px; padding: 4px; }
+.kinds input { position: absolute; opacity: 0; pointer-events: none; }
+.kinds span { display: block; text-align: center; padding: 8px; border-radius: 11px; font-weight: 700; font-size: 15px; color: var(--muted); cursor: pointer; }
+.kinds input:checked + span { background: var(--card); color: var(--text); box-shadow: 0 1px 4px #0F172A1F; }
+.kinds input:focus-visible + span { outline: 2px solid var(--primary); }
+.route { display: grid; grid-template-columns: 14px 1fr 40px; gap: 10px; align-items: center; }
+.road { display: grid; justify-items: center; align-content: center; height: 100%; padding: 30px 0 18px; box-sizing: border-box; }
+.road .start { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
+.road .dash { width: 0; flex: 1; min-height: 34px; border-left: 2px dotted var(--faint); margin: 4px 0; }
+.road .ring { width: 8px; height: 8px; border-radius: 50%; border: 3px solid var(--amber); }
+.addr { display: grid; gap: 10px; }
+.swap { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); color: var(--primary); display: grid; place-items: center; cursor: pointer; margin-top: 18px; }
+.swap:hover { background: var(--primary-soft); }
+.swap svg { width: 20px; height: 20px; }
+.live-note { display: none; margin: 0; color: var(--warning); background: var(--warning-soft); border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 600; }
+.book.is-live .when { display: none; }
+.book.is-live .live-note { display: block; }
+.counts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.stepper { display: grid; grid-template-columns: 40px 1fr 40px; background: var(--field); border-radius: 12px; overflow: hidden; }
+.stepper button { border: 0; background: transparent; color: var(--primary); font-size: 22px; font-weight: 700; cursor: pointer; }
+.stepper button:hover { background: var(--primary-soft); }
+.stepper input { text-align: center; background: transparent; padding: 10px 0; -moz-appearance: textfield; }
+.stepper input::-webkit-inner-spin-button, .stepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.bags-note { margin: -6px 0 0; color: var(--faint); font-size: 13px; }
+.book-foot { padding: 14px 22px 20px; }
+.book-foot .btn { width: 100%; border: 0; cursor: pointer; font: inherit; font-weight: 800; font-size: 18px; }
+.book-foot .btn:hover { background: var(--primary-dark); }
+.book-foot p { margin: 10px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; text-align: center; }
 
 /* Steps, tiles, vans */
 .steps, .vans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
