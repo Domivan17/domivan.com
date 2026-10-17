@@ -140,11 +140,11 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 @media (prefers-reduced-motion: reduce) { .btn.shiny::after { animation: none; } }
 
 /* Night map of Europe with moving lines between cities */
-@keyframes drift { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.12) translate(-2%, 1%); } }
+@keyframes drift { from { transform: scale(1) translate(0, 0); } to { transform: scale(1.05) translate(-1%, .5%); } }
 .arcs path { fill: none; stroke: url(#arc); stroke-linecap: round; }
 .base path { stroke-width: 1.4; stroke-opacity: .22; }
-.glow path { stroke: #FFC861; stroke-width: 9; stroke-opacity: .22; stroke-dasharray: .09 1.11; stroke-dashoffset: 1.1; animation: run var(--d) cubic-bezier(.45, 0, .55, 1) var(--t) infinite; }
-.spark path { stroke: #FFF6E0; stroke-width: 2.4; stroke-dasharray: .045 1.155; stroke-dashoffset: 1.1; animation: run var(--d) cubic-bezier(.45, 0, .55, 1) var(--t) infinite; }
+.glow path { stroke: #FFC861; stroke-width: 9; stroke-opacity: .22; stroke-dasharray: .09 1.11; stroke-dashoffset: 1.1; animation: run calc(var(--d) * 2) cubic-bezier(.45, 0, .55, 1) calc(var(--t) * 2) infinite; }
+.spark path { stroke: #FFF6E0; stroke-width: 2.4; stroke-dasharray: .045 1.155; stroke-dashoffset: 1.1; animation: run calc(var(--d) * 2) cubic-bezier(.45, 0, .55, 1) calc(var(--t) * 2) infinite; }
 @keyframes run { from { stroke-dashoffset: 1.1; } to { stroke-dashoffset: -.12; } }
 .hubs circle { fill: #FFF6E0; stroke: #FFB020; stroke-width: 2.5; animation: twinkle 3s ease-in-out var(--t) infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes twinkle { 50% { transform: scale(1.8); stroke-opacity: .25; fill-opacity: .6; } }
@@ -271,3 +271,4 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
   .top nav .short { display: inline; }
 }
 @media (max-width: 380px) { .top .bar { padding: 0 10px; } .top nav { gap: 6px; } .top nav .btn.small { padding: 8px 9px; font-size: 13.5px; } }
+@media (max-width: 1100px) { .top nav .login .long { display: none; } .top nav .login .short { display: inline; } }
