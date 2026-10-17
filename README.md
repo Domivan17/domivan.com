@@ -33,7 +33,7 @@ Pages serves `terms.html` at `/terms`, so the app links work without the `.html`
 
 ## Home page and languages
 
-The home page exists in English (`index.html`) and in Romanian, Polish, Bulgarian, Hungarian
+The home page (`index.html`) and the Join Transporters sign-up page (`join.html`) exist in English and in Romanian, Polish, Bulgarian, Hungarian
 and Spanish (`ro/`, `pl/`, `bg/`, `hu/`, `es/`). Don't edit those files by hand: change the copy
 in `scripts/build-site.py` or the layout in `scripts/site-template.html`, then run
 `python3 scripts/build-site.py`. Styles are in `landing.css`; the legal pages keep `style.css`.
@@ -56,3 +56,12 @@ changes, then publish this folder as usual.
 - `404.html` is a copy of the app so reloads on `/book/...` work on GitHub Pages; any other
   missing page goes to the home page. `.nojekyll` stops Pages from hiding the `_expo` folder.
 - The booking screens are in English for now, like the apps.
+
+## Join Transporters (`/join`)
+
+https://domivan.com/join is the transporter sign-up: one question per frame (country, company
+details, licence, fleet, van classes, routes, insurance, inspection, contact). Copy is in
+`scripts/join_strings.py`, layout and logic in `scripts/join-template.html`; both are built by
+`build-site.py`. Applications go to the Supabase table `transporter_applications`
+(migration `20261017000000_transporter_applications.sql`): anyone can insert, nobody can read
+through the API. Review them in the Supabase dashboard and set `status`.

@@ -19,7 +19,7 @@
 <link rel="alternate" hreflang="x-default" href="https://domivan.com/">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="stylesheet" href="/landing.css?v=740cf6ee">
+<link rel="stylesheet" href="/landing.css?v=35f28bad">
 </head>
 <body>
 
@@ -38,7 +38,7 @@
     <nav>
       <a href="#how">How it works</a>
       <a href="#vans">Vans</a>
-      <a href="#drivers">For transporters</a>
+      <a href="/join">Join Transporters</a>
       <details class="lang">
         <summary aria-label="Language"><span class="earth" aria-hidden="true"></span><svg class="flag" viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><clipPath id="uk-t"><path d="M30 15h30v15zv15H0zH0V0zV0h30z"/></clipPath><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#uk-t)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></svg>EN</summary>
         <div class="menu">
@@ -308,12 +308,36 @@
 </section>
 
 <section class="wrap" id="vans">
-  <h2>Choose your van</h2>
+  <h2>A van for every trip</h2>
   <p class="sub">From a seat for one to a whole van for the family.</p>
   <div class="vans">
-    <div class="van"><h3>Standard</h3><p class="cap">Up to 8 passengers</p><p>Comfortable minivans for most trips.</p></div>
-    <div class="van"><h3>Large</h3><p class="cap">9 to 20 seats</p><p>Sprinter-type vans for groups and lots of luggage.</p></div>
-    <div class="van lux"><h3>Luxury</h3><p class="cap">V-Class and VIP Sprinter</p><p>Premium vans from approved transporters only.</p></div>
+    <article class="van">
+      <div class="stage"><img src="/img/vans/standard.webp" alt="Standard" width="800" height="500" loading="lazy"></div>
+      <div class="van-body">
+        <span class="tag">Everyday trips</span>
+        <h3>Standard</h3><p class="cap">Up to 8 passengers</p><p>Comfortable minivans for most trips.</p>
+        <ul class="feats"><li>Ideal for 1 to 4 travellers</li><li>One large bag per passenger free</li></ul>
+        <div class="van-foot"><span class="price">Base price</span><a class="btn small" href="#book">Book a seat</a></div>
+      </div>
+    </article>
+    <article class="van lg">
+      <div class="stage"><img src="/img/vans/large.webp" alt="Large" width="800" height="500" loading="lazy"></div>
+      <div class="van-body">
+        <span class="tag">Groups and families</span>
+        <h3>Large</h3><p class="cap">9 to 20 seats</p><p>Sprinter-type vans for groups and lots of luggage.</p>
+        <ul class="feats"><li>Room for the whole group</li><li>Extra space for luggage</li></ul>
+        <div class="van-foot"><span class="price">+10% on the base price</span><a class="btn small" href="#book">Book a seat</a></div>
+      </div>
+    </article>
+    <article class="van lux">
+      <div class="stage"><img src="/img/vans/luxury.webp" alt="Luxury" width="800" height="500" loading="lazy"></div>
+      <div class="van-body">
+        <span class="tag">Premium</span>
+        <h3>Luxury</h3><p class="cap">V-Class and VIP Sprinter</p><p>Premium vans from approved transporters only.</p>
+        <ul class="feats"><li>Leather seats and extra legroom</li><li>Vans checked by Domivan</li></ul>
+        <div class="van-foot"><span class="price">+60% on the base price</span><a class="btn small" href="#book">Book a seat</a></div>
+      </div>
+    </article>
   </div>
 </section>
 
@@ -329,6 +353,7 @@
         <li><b>You choose.</b> Accept the trips that fit your route and schedule.</li>
         <li><b>Paid to your bank.</b> Your payout is sent once the trip is done.</li>
       </ul>
+      <p><a class="btn big amber" href="/join">Join Transporters</a></p>
       <p class="note light">Domivan Driver is coming to the App Store and Google Play. For vans with 6 to 20 seats.</p>
     </div>
   </div>

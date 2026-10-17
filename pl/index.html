@@ -19,7 +19,7 @@
 <link rel="alternate" hreflang="x-default" href="https://domivan.com/">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="stylesheet" href="/landing.css?v=740cf6ee">
+<link rel="stylesheet" href="/landing.css?v=35f28bad">
 </head>
 <body>
 
@@ -38,7 +38,7 @@
     <nav>
       <a href="#how">Jak to działa</a>
       <a href="#vans">Busy</a>
-      <a href="#drivers">Dla przewoźników</a>
+      <a href="/pl/join">Dołącz jako przewoźnik</a>
       <details class="lang">
         <summary aria-label="Język"><span class="earth" aria-hidden="true"></span><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="1.000" fill="#FFFFFF"/><rect x="0" y="1.000" width="3" height="1.000" fill="#DC143C"/></svg>PL</summary>
         <div class="menu">
@@ -308,12 +308,36 @@
 </section>
 
 <section class="wrap" id="vans">
-  <h2>Wybierz busa</h2>
+  <h2>Bus na każdą podróż</h2>
   <p class="sub">Od jednego miejsca po całego busa dla rodziny.</p>
   <div class="vans">
-    <div class="van"><h3>Standard</h3><p class="cap">Do 8 pasażerów</p><p>Wygodne busy na większość tras.</p></div>
-    <div class="van"><h3>Duży</h3><p class="cap">Od 9 do 20 miejsc</p><p>Busy typu Sprinter dla grup i z dużą ilością bagażu.</p></div>
-    <div class="van lux"><h3>Luksus</h3><p class="cap">V-Klasa i Sprinter VIP</p><p>Busy premium wyłącznie od zatwierdzonych przewoźników.</p></div>
+    <article class="van">
+      <div class="stage"><img src="/img/vans/standard.webp" alt="Standard" width="800" height="500" loading="lazy"></div>
+      <div class="van-body">
+        <span class="tag">Na co dzień</span>
+        <h3>Standard</h3><p class="cap">Do 8 pasażerów</p><p>Wygodne busy na większość tras.</p>
+        <ul class="feats"><li>Idealny dla 1 do 4 osób</li><li>Jeden duży bagaż na pasażera gratis</li></ul>
+        <div class="van-foot"><span class="price">Cena bazowa</span><a class="btn small" href="#book">Zarezerwuj miejsce</a></div>
+      </div>
+    </article>
+    <article class="van lg">
+      <div class="stage"><img src="/img/vans/large.webp" alt="Duży" width="800" height="500" loading="lazy"></div>
+      <div class="van-body">
+        <span class="tag">Grupy i rodziny</span>
+        <h3>Duży</h3><p class="cap">Od 9 do 20 miejsc</p><p>Busy typu Sprinter dla grup i z dużą ilością bagażu.</p>
+        <ul class="feats"><li>Miejsce dla całej grupy</li><li>Więcej miejsca na bagaż</li></ul>
+        <div class="van-foot"><span class="price">+10% do ceny bazowej</span><a class="btn small" href="#book">Zarezerwuj miejsce</a></div>
+      </div>
+    </article>
+    <article class="van lux">
+      <div class="stage"><img src="/img/vans/luxury.webp" alt="Luksus" width="800" height="500" loading="lazy"></div>
+      <div class="van-body">
+        <span class="tag">Premium</span>
+        <h3>Luksus</h3><p class="cap">V-Klasa i Sprinter VIP</p><p>Busy premium wyłącznie od zatwierdzonych przewoźników.</p>
+        <ul class="feats"><li>Skórzane fotele i więcej miejsca na nogi</li><li>Busy sprawdzone przez Domivan</li></ul>
+        <div class="van-foot"><span class="price">+60% do ceny bazowej</span><a class="btn small" href="#book">Zarezerwuj miejsce</a></div>
+      </div>
+    </article>
   </div>
 </section>
 
@@ -329,6 +353,7 @@
         <li><b>Ty decydujesz.</b> Przyjmujesz przejazdy pasujące do Twojej trasy i grafiku.</li>
         <li><b>Wypłata na konto.</b> Pieniądze wysyłamy po zakończeniu przejazdu.</li>
       </ul>
+      <p><a class="btn big amber" href="/pl/join">Dołącz jako przewoźnik</a></p>
       <p class="note light">Domivan Driver wkrótce w App Store i Google Play. Dla busów od 6 do 20 miejsc.</p>
     </div>
   </div>
