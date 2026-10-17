@@ -19,7 +19,7 @@
 <link rel="alternate" hreflang="x-default" href="https://domivan.com/">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="stylesheet" href="/landing.css?v=740cf6ee">
+<link rel="stylesheet" href="/landing.css?v=581a5307">
 </head>
 <body>
 
@@ -38,7 +38,7 @@
     <nav>
       <a href="#how">Hogyan működik</a>
       <a href="#vans">Kisbuszok</a>
-      <a href="#drivers">Fuvarozóknak</a>
+      <a class="btn small shiny" href="/hu/join"><span class="long">Csatlakozz fuvarozóként</span><span class="short">Fuvarozók</span></a>
       <details class="lang">
         <summary aria-label="Nyelv"><span class="earth" aria-hidden="true"></span><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#CD2A3E"/><rect x="0" y="0.667" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="1.333" width="3" height="0.667" fill="#436F4D"/></svg>HU</summary>
         <div class="menu">
@@ -308,12 +308,36 @@
 </section>
 
 <section class="wrap" id="vans">
-  <h2>Válassz kisbuszt</h2>
+  <h2>Kisbusz minden útra</h2>
   <p class="sub">Egyetlen helytől az egész családnak szóló kisbuszig.</p>
   <div class="vans">
-    <div class="van"><h3>Standard</h3><p class="cap">Legfeljebb 8 utas</p><p>Kényelmes kisbuszok a legtöbb úthoz.</p></div>
-    <div class="van"><h3>Nagy</h3><p class="cap">9–20 ülés</p><p>Sprinter típusú buszok csoportoknak és sok csomaggal.</p></div>
-    <div class="van lux"><h3>Luxus</h3><p class="cap">V-osztály és VIP Sprinter</p><p>Prémium kisbuszok, csak jóváhagyott fuvarozóktól.</p></div>
+    <article class="van">
+      <div class="stage"><img src="/img/vans/standard.webp" alt="Standard" width="800" height="500" loading="lazy"></div>
+      <div class="van-body">
+        <span class="tag">Mindennapi utak</span>
+        <h3>Standard</h3><p class="cap">Legfeljebb 8 utas</p><p>Kényelmes kisbuszok a legtöbb úthoz.</p>
+        <ul class="feats"><li>Ideális 1–4 utasnak</li><li>Utasonként egy nagy bőrönd ingyen</li></ul>
+        <div class="van-foot"><span class="price">Alapár</span><a class="btn small" href="#book">Foglalj helyet</a></div>
+      </div>
+    </article>
+    <article class="van lg">
+      <div class="stage"><img src="/img/vans/large.webp" alt="Nagy" width="800" height="500" loading="lazy"></div>
+      <div class="van-body">
+        <span class="tag">Csoportok és családok</span>
+        <h3>Nagy</h3><p class="cap">9–20 ülés</p><p>Sprinter típusú buszok csoportoknak és sok csomaggal.</p>
+        <ul class="feats"><li>Hely az egész csoportnak</li><li>Több hely a csomagoknak</li></ul>
+        <div class="van-foot"><span class="price">+10% az alapárhoz képest</span><a class="btn small" href="#book">Foglalj helyet</a></div>
+      </div>
+    </article>
+    <article class="van lux">
+      <div class="stage"><img src="/img/vans/luxury.webp" alt="Luxus" width="800" height="500" loading="lazy"></div>
+      <div class="van-body">
+        <span class="tag">Prémium</span>
+        <h3>Luxus</h3><p class="cap">V-osztály és VIP Sprinter</p><p>Prémium kisbuszok, csak jóváhagyott fuvarozóktól.</p>
+        <ul class="feats"><li>Bőrülések és több lábtér</li><li>A Domivan által ellenőrzött kisbuszok</li></ul>
+        <div class="van-foot"><span class="price">+60% az alapárhoz képest</span><a class="btn small" href="#book">Foglalj helyet</a></div>
+      </div>
+    </article>
   </div>
 </section>
 
@@ -329,6 +353,7 @@
         <li><b>Te döntesz.</b> Azokat az utakat vállalod, amelyek illenek az útvonaladhoz és a beosztásodhoz.</li>
         <li><b>Bankszámlára utalva.</b> A kifizetést az út befejezése után küldjük.</li>
       </ul>
+      <p><a class="btn big shiny" href="/hu/join">Csatlakozz fuvarozóként</a></p>
       <p class="note light">A Domivan Driver hamarosan elérhető az App Store-ban és a Google Playen. 6–20 üléses kisbuszokhoz.</p>
     </div>
   </div>
