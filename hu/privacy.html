@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy | Domivan</title>
+<meta name="description" content="How Domivan and Domivan Driver collect and use personal data.">
+<link rel="canonical" href="https://domivan.com/privacy">
+<meta name="theme-color" content="#050B18">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/landing.css?v=70146729">
+<script src="/site.js?v=138a3216" defer></script>
+<script src="/hero-net.js?v=74928e45" defer></script>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 100 100">
+    <path d="M24 22v56" stroke="currentColor" stroke-opacity=".75" stroke-width="9" stroke-linecap="round" stroke-dasharray="1 15"/>
+    <path d="M24 14h20a36 36 0 0 1 0 72H35" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="24" cy="14" r="10" fill="var(--arrow, currentColor)"/>
+    <circle cx="24" cy="86" r="7.25" fill="none" stroke="currentColor" stroke-width="5.5"/>
+  </symbol>
+</svg>
+
+<!-- One night map for every page. Pages slide over it and it is never redrawn (site.js).
+     hero-net.js tilts it into a table and runs the live network of trips across it. The masks
+     fade the image out at its own edges, so the tilted map has no hard border. -->
+<div class="backdrop" aria-hidden="true">
+  <svg viewBox="0 120 1800 1140" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <linearGradient id="fade-y" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1381"><stop offset="0" stop-color="#000"/><stop offset=".1" stop-color="#fff"/><stop offset=".94" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+      <linearGradient id="fade-x" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1800" y2="0"><stop offset="0" stop-color="#000"/><stop offset=".06" stop-color="#fff"/><stop offset=".94" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+      <mask id="fade-v" maskUnits="userSpaceOnUse" x="0" y="0" width="1800" height="1381"><rect width="1800" height="1381" fill="url(#fade-y)"/></mask>
+      <mask id="fade-h" maskUnits="userSpaceOnUse" x="0" y="0" width="1800" height="1381"><rect width="1800" height="1381" fill="url(#fade-x)"/></mask>
+      <!-- brightness(1.22) contrast(1.1) saturate(1.3), applied when the map is drawn (landing.css), not on every frame -->
+      <filter id="lift" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope="1.342" intercept="-.05"/><feFuncG type="linear" slope="1.342" intercept="-.05"/><feFuncB type="linear" slope="1.342" intercept="-.05"/></feComponentTransfer><feColorMatrix type="saturate" values="1.3"/></filter>
+    </defs>
+    <g mask="url(#fade-h)"><image mask="url(#fade-v)" href="/img/europe-night.webp?v=5663e10b" x="0" y="0" width="1800" height="1381" preserveAspectRatio="none"/></g>
+  </svg>
+</div>
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="/hu/"><span class="logo"><svg><use href="#mark"/></svg></span>Domivan</a>
+    <nav>
+      <a href="/hu/#how">Hogyan működik</a>
+      <a href="/hu/#vans">Kisbuszok</a>
+      <a class="btn small shiny" href="/hu/join" data-driver-app><span class="long">Csatlakozz fuvarozóként</span><span class="short">Fuvarozók</span></a>
+      <details class="lang">
+        <summary aria-label="Nyelv"><span class="earth" aria-hidden="true"></span><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#CD2A3E"/><rect x="0" y="0.667" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="1.333" width="3" height="0.667" fill="#436F4D"/></svg>HU</summary>
+        <div class="menu">
+        <a href="/privacy" hreflang="en" lang="en"><svg class="flag" viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><clipPath id="uk-t"><path d="M30 15h30v15zv15H0zH0V0zV0h30z"/></clipPath><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#uk-t)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></svg><span>English</span><b>EN</b></a>
+        <a href="/ro/privacy" hreflang="ro" lang="ro"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0.000" y="0" width="1.000" height="2" fill="#002B7F"/><rect x="1.000" y="0" width="1.000" height="2" fill="#FCD116"/><rect x="2.000" y="0" width="1.000" height="2" fill="#CE1126"/></svg><span>Română</span><b>RO</b></a>
+        <a href="/pl/privacy" hreflang="pl" lang="pl"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="1.000" fill="#FFFFFF"/><rect x="0" y="1.000" width="3" height="1.000" fill="#DC143C"/></svg><span>Polski</span><b>PL</b></a>
+        <a href="/bg/privacy" hreflang="bg" lang="bg"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="0.667" width="3" height="0.667" fill="#00966E"/><rect x="0" y="1.333" width="3" height="0.667" fill="#D62612"/></svg><span>Български</span><b>BG</b></a>
+        <a href="/hu/privacy" hreflang="hu" lang="hu" aria-current="page"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#CD2A3E"/><rect x="0" y="0.667" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="1.333" width="3" height="0.667" fill="#436F4D"/></svg><span>Magyar</span><b>HU</b></a>
+        <a href="/es/privacy" hreflang="es" lang="es"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.500" fill="#AA151B"/><rect x="0" y="0.500" width="3" height="1.000" fill="#F1BF00"/><rect x="0" y="1.500" width="3" height="0.500" fill="#AA151B"/></svg><span>Español</span><b>ES</b></a>
+        </div>
+      </details>
+      <a class="btn small login" href="#login" data-login><span class="long">Belépés / Regisztráció</span><span class="short">Belépés</span></a>
+    </nav>
+  </div>
+</header>
+
+<div id="stage">
+<main id="page" class="page page-legal" data-page="legal">
+<div class="wrap legal-wrap">
+<article class="card legal" lang="en">
+<h1>Privacy Policy</h1>
+<p class="meta">For the Domivan and Domivan Driver apps. Last updated: <span class="fill">[DATE]</span></p>
+
+<p class="draft">Draft. This policy is not yet in force and must be reviewed by a lawyer before Domivan launches. Text marked like <span class="fill">[THIS]</span> still needs to be filled in.</p>
+
+<h2>1. Who is responsible</h2>
+<p>StepsNest B.V., registered in the Netherlands under KvK number 42105882, Sprangstraat 10, 6004 XD Weert, is the controller of your personal data when you use Domivan (for travellers) or Domivan Driver (for transporters). For privacy questions, write to us through <strong>Help and support</strong> in the app or at <a href="mailto:privacy@domivan.com">privacy@domivan.com</a>.</p>
+
+<h2>2. What we collect and why</h2>
+<table>
+<tr class="th"><th>Data</th><th>Who</th><th>Why</th><th>Legal basis (GDPR)</th></tr>
+<tr><td data-label="Data">Email address and one-time sign-in codes</td><td data-label="Who">Everyone with an account</td><td data-label="Why">Create your account and sign you in</td><td data-label="Legal basis (GDPR)">Contract</td></tr>
+<tr><td data-label="Data">Name and phone number</td><td data-label="Who">Everyone with an account</td><td data-label="Why">Shown to the other side of your trip about 24 hours before pickup, so you can find each other</td><td data-label="Legal basis (GDPR)">Contract</td></tr>
+<tr><td data-label="Data">Profile photo (optional)</td><td data-label="Who">Everyone who adds one</td><td data-label="Why">Shown in the app so the other side recognises you</td><td data-label="Legal basis (GDPR)">Consent (remove it any time)</td></tr>
+<tr><td data-label="Data">Company name, van plate number, number of seats, and documents we ask for when checking you</td><td data-label="Who">Transporters</td><td data-label="Why">Check that you may carry passengers, match trips to your van, tell travellers which van to look for</td><td data-label="Legal basis (GDPR)">Contract; legitimate interest in passenger safety</td></tr>
+<tr><td data-label="Data">Trip details: pickup and destination addresses and their map coordinates, date and time, passengers, bags, notes, price, status</td><td data-label="Who">Travellers and their transporter</td><td data-label="Why">Price, book, offer and carry out the trip; keep records</td><td data-label="Legal basis (GDPR)">Contract; legal obligation (bookkeeping)</td></tr>
+<tr><td data-label="Data">Live location of the transporter, from tapping "Towards client" until the traveller is picked up</td><td data-label="Who">Transporters</td><td data-label="Why">Show the traveller where their van is</td><td data-label="Legal basis (GDPR)">Contract; legitimate interest in a smooth pickup</td></tr>
+<tr><td data-label="Data">Chat messages between traveller and transporter</td><td data-label="Who">Both</td><td data-label="Why">Arrange the trip; handle complaints</td><td data-label="Legal basis (GDPR)">Contract; legitimate interest</td></tr>
+<tr><td data-label="Data">Support messages</td><td data-label="Who">Everyone who writes to support</td><td data-label="Why">Answer your questions and complaints</td><td data-label="Legal basis (GDPR)">Contract; legitimate interest</td></tr>
+<tr><td data-label="Data">Payment references (we never see your full card number), refunds, payout amounts</td><td data-label="Who">Travellers and transporters</td><td data-label="Why">Take payments, refund, pay transporters, bookkeeping</td><td data-label="Legal basis (GDPR)">Contract; legal obligation</td></tr>
+<tr><td data-label="Data">Push notification token</td><td data-label="Who">Everyone who allows notifications</td><td data-label="Why">Send alerts about new offers, your trip, chat and support replies</td><td data-label="Legal basis (GDPR)">Consent (turn off in your phone settings)</td></tr>
+<tr><td data-label="Data">Technical data such as IP address and app version in server logs</td><td data-label="Who">Everyone</td><td data-label="Why">Security, preventing fraud and fixing errors</td><td data-label="Legal basis (GDPR)">Legitimate interest</td></tr>
+</table>
+<p>We do not use your data for advertising, we do not sell it, and we do not use automated decision-making that has legal effects on you. Offers are shown to all eligible transporters at the same time and go to whoever accepts first.</p>
+<p><strong>Location.</strong> The traveller app does not track your location. Addresses you type are turned into map coordinates by your phone's built-in map service (Apple on iPhone, Google on Android), which receives the address for that purpose. The Driver app uses your location only while a trip is in the "Towards client" stage and the app is open; it keeps only your latest position for that trip, visible only to you and that traveller.</p>
+
+<h2>3. Who we share it with</h2>
+<ul>
+<li><strong>The other side of your trip.</strong> Your transporter or traveller sees your name, phone number and photo from about 24 hours before pickup (right away for Live trips), plus the trip details and your chat. Transporters see the trip route, date and passengers, without names, when it is offered.</li>
+<li><strong>Service providers who process data for us:</strong>
+<ul>
+<li>Supabase (database, sign-in, file storage and servers), hosted in Frankfurt, Germany.</li>
+<li>Stripe (payments and transporter payouts). For transporter payouts, Stripe also collects identity and bank details itself, as a separate controller under its own <a href="https://stripe.com/privacy">privacy policy</a>.</li>
+<li>Lettermint (sending sign-in code emails).</li>
+<li>Expo (delivering push notifications), with Apple and Google, which deliver notifications to your phone.</li>
+<li>Apple and Google (app stores, and turning addresses into map coordinates on your phone).</li>
+</ul></li>
+<li><strong>Authorities</strong>, when the law requires it, or to protect the safety of passengers.</li>
+</ul>
+
+<h2>4. Transfers outside the EU</h2>
+<p>Our main database is in the EU. Some providers (such as Stripe, Expo, Apple and Google) may process data in the United States or other countries. Where that happens, we rely on the EU-US Data Privacy Framework or the European Commission's standard contractual clauses. <span class="fill">[LAWYER: confirm each provider's transfer mechanism and sign data processing agreements.]</span></p>
+
+<h2>5. How long we keep it</h2>
+<ul>
+<li>Account details: as long as your account exists. Deleting your account in the app removes them right away.</li>
+<li>Trip, payment and payout records: 7 years, as Dutch tax law requires.</li>
+<li>Chat and support messages: <span class="fill">[1 year]</span> after the trip or conversation, unless needed for an open complaint.</li>
+<li>Live location: only the latest position, kept with the trip record. <span class="fill">[DECIDE: delete live location when the trip is completed.]</span></li>
+<li>Transporter documents: as long as you are active, then <span class="fill">[1 year]</span>.</li>
+<li>Server logs: <span class="fill">[90 days]</span>.</li>
+</ul>
+
+<h2>6. Your rights</h2>
+<p>You can ask us to see, correct, delete or export your data, to restrict how we use it, or object to our use based on legitimate interest. Where we rely on consent, you can withdraw it at any time. You can change your name, phone and photo yourself in the app. To use your other rights, write to us through Help and support or at <a href="mailto:privacy@domivan.com">privacy@domivan.com</a>; we answer within one month.</p>
+<p>You can delete your account yourself in the app under Profile, Delete account. See <a href="/hu/delete-account">Delete your account</a>.</p>
+<p>You can complain to the Dutch Data Protection Authority (<a href="https://autoriteitpersoonsgegevens.nl">Autoriteit Persoonsgegevens</a>) or the authority in your own country.</p>
+
+<h2>7. Security</h2>
+<p>Data is encrypted in transit, access to the database is limited by strict per-user rules, sign-in uses one-time codes instead of passwords, and card details are handled only by Stripe. No system is perfectly safe; if a breach puts your data at risk, we will tell you and the authorities as the law requires.</p>
+
+<h2>8. Children</h2>
+<p>You must be 18 or older to have an account. Travellers may book for children travelling with them; we receive only the number of passengers, not their names.</p>
+
+<h2>9. Changes</h2>
+<p>If we change this policy in an important way, we tell you in the app before the change takes effect.</p>
+
+<nav class="links">
+<a href="/hu/">Domivan</a>
+<a href="/hu/terms">Terms for travellers</a>
+<a href="/hu/transporter-terms">Terms for transporters</a>
+<a href="/hu/privacy" aria-current="page">Privacy Policy</a>
+<a href="/hu/delete-account">Delete your account</a>
+</nav>
+</article>
+</div>
+</main>
+</div>
+
+<script type="application/json" id="dv-t">{"acct_h": "A fiókod", "back": "Vissza", "tab_login": "Belépés", "tab_create": "Regisztráció", "google": "Folytatás Google-lal", "apple": "Folytatás Apple-lel", "redirecting": "{provider} megnyitása…", "signing_in": "Bejelentkezés…", "f_name": "Teljes név", "ph_name": "Vezeték- és keresztnév", "f_email": "Email", "ph_email": "te@pelda.hu", "hint": "Emailben küldünk egy egyszer használatos kódot. Jelszó nem kell.", "send": "Kérek egy kódot emailben", "sending": "Küldés…", "code_h": "Nézd meg az emailjeidet", "code_sent": "Kódot küldtünk ide: {email}", "f_code": "A kód az emailből", "verify": "Tovább", "verifying": "Ellenőrzés…", "change_email": "Másik email", "resend": "Új kód küldése", "resend_in": "Új kód {s} mp múlva", "resent": "Új kódot küldtünk.", "legal": "A folytatással elfogadod a <a href=\"/hu/terms\">Feltételeket<\/a> és az <a href=\"/hu/privacy\">Adatvédelmi szabályzatot<\/a>.", "welcome": "Bejelentkeztél", "signed_in_as": "Bejelentkezve:", "my_trips": "Utazásaim", "logout": "Kijelentkezés", "my_account": "Fiókom", "err_email": "Adj meg érvényes email címet.", "err_name": "Kérjük, add meg a neved.", "err_code": "Írd be a kódot az emailből.", "err_bad_code": "A kód hibás vagy lejárt. Nézd meg az emailt, vagy kérj új kódot.", "no_account": "Ezzel az email címmel még nincs fiók.", "create_instead": "Fiók létrehozása", "err_rate": "Túl sok próbálkozás. Várj egy percet, és próbáld újra.", "err_wait": "Várj egy kicsit, mielőtt új kódot kérsz.", "err_network": "Nem értük el a Domivant. Ellenőrizd a kapcsolatot, és próbáld újra.", "err_generic": "Valami hiba történt. Próbáld újra.", "err_oauth": "A belépés nem sikerült ({provider}). Próbáld újra, vagy használd az email címed.", "err_oauth_off": "A belépés ezzel még nem érhető el: {provider}. Használd az email címed.", "lang": "hu", "home": "/hu/", "or": "vagy"}</script>
+</body>
+</html>

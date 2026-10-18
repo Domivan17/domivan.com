@@ -5,12 +5,69 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Transporter Terms | Domivan</title>
 <meta name="description" content="Terms of Service for transport companies using the Domivan Driver app.">
-<link rel="stylesheet" href="/style.css">
+<link rel="canonical" href="https://domivan.com/transporter-terms">
+<meta name="theme-color" content="#050B18">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/landing.css?v=70146729">
+<script src="/site.js?v=138a3216" defer></script>
+<script src="/hero-net.js?v=74928e45" defer></script>
 </head>
 <body>
-<main>
-<header><span class="logo"></span><a href="/">Domivan</a></header>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 100 100">
+    <path d="M24 22v56" stroke="currentColor" stroke-opacity=".75" stroke-width="9" stroke-linecap="round" stroke-dasharray="1 15"/>
+    <path d="M24 14h20a36 36 0 0 1 0 72H35" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="24" cy="14" r="10" fill="var(--arrow, currentColor)"/>
+    <circle cx="24" cy="86" r="7.25" fill="none" stroke="currentColor" stroke-width="5.5"/>
+  </symbol>
+</svg>
+
+<!-- One night map for every page. Pages slide over it and it is never redrawn (site.js).
+     hero-net.js tilts it into a table and runs the live network of trips across it. The masks
+     fade the image out at its own edges, so the tilted map has no hard border. -->
+<div class="backdrop" aria-hidden="true">
+  <svg viewBox="0 120 1800 1140" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <linearGradient id="fade-y" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1381"><stop offset="0" stop-color="#000"/><stop offset=".1" stop-color="#fff"/><stop offset=".94" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+      <linearGradient id="fade-x" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1800" y2="0"><stop offset="0" stop-color="#000"/><stop offset=".06" stop-color="#fff"/><stop offset=".94" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+      <mask id="fade-v" maskUnits="userSpaceOnUse" x="0" y="0" width="1800" height="1381"><rect width="1800" height="1381" fill="url(#fade-y)"/></mask>
+      <mask id="fade-h" maskUnits="userSpaceOnUse" x="0" y="0" width="1800" height="1381"><rect width="1800" height="1381" fill="url(#fade-x)"/></mask>
+      <!-- brightness(1.22) contrast(1.1) saturate(1.3), applied when the map is drawn (landing.css), not on every frame -->
+      <filter id="lift" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope="1.342" intercept="-.05"/><feFuncG type="linear" slope="1.342" intercept="-.05"/><feFuncB type="linear" slope="1.342" intercept="-.05"/></feComponentTransfer><feColorMatrix type="saturate" values="1.3"/></filter>
+    </defs>
+    <g mask="url(#fade-h)"><image mask="url(#fade-v)" href="/img/europe-night.webp?v=5663e10b" x="0" y="0" width="1800" height="1381" preserveAspectRatio="none"/></g>
+  </svg>
+</div>
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="/"><span class="logo"><svg><use href="#mark"/></svg></span>Domivan</a>
+    <nav>
+      <a href="/#how">How it works</a>
+      <a href="/#vans">Vans</a>
+      <a class="btn small shiny" href="/join" data-driver-app><span class="long">Join Transporters</span><span class="short">Transporters</span></a>
+      <details class="lang">
+        <summary aria-label="Language"><span class="earth" aria-hidden="true"></span><svg class="flag" viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><clipPath id="uk-t"><path d="M30 15h30v15zv15H0zH0V0zV0h30z"/></clipPath><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#uk-t)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></svg>EN</summary>
+        <div class="menu">
+        <a href="/transporter-terms" hreflang="en" lang="en" aria-current="page"><svg class="flag" viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><clipPath id="uk-t"><path d="M30 15h30v15zv15H0zH0V0zV0h30z"/></clipPath><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#uk-t)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></svg><span>English</span><b>EN</b></a>
+        <a href="/ro/transporter-terms" hreflang="ro" lang="ro"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0.000" y="0" width="1.000" height="2" fill="#002B7F"/><rect x="1.000" y="0" width="1.000" height="2" fill="#FCD116"/><rect x="2.000" y="0" width="1.000" height="2" fill="#CE1126"/></svg><span>Română</span><b>RO</b></a>
+        <a href="/pl/transporter-terms" hreflang="pl" lang="pl"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="1.000" fill="#FFFFFF"/><rect x="0" y="1.000" width="3" height="1.000" fill="#DC143C"/></svg><span>Polski</span><b>PL</b></a>
+        <a href="/bg/transporter-terms" hreflang="bg" lang="bg"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="0.667" width="3" height="0.667" fill="#00966E"/><rect x="0" y="1.333" width="3" height="0.667" fill="#D62612"/></svg><span>Български</span><b>BG</b></a>
+        <a href="/hu/transporter-terms" hreflang="hu" lang="hu"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#CD2A3E"/><rect x="0" y="0.667" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="1.333" width="3" height="0.667" fill="#436F4D"/></svg><span>Magyar</span><b>HU</b></a>
+        <a href="/es/transporter-terms" hreflang="es" lang="es"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.500" fill="#AA151B"/><rect x="0" y="0.500" width="3" height="1.000" fill="#F1BF00"/><rect x="0" y="1.500" width="3" height="0.500" fill="#AA151B"/></svg><span>Español</span><b>ES</b></a>
+        </div>
+      </details>
+      <a class="btn small login" href="#login" data-login><span class="long">Log In / Create Account</span><span class="short">Log in</span></a>
+    </nav>
+  </div>
+</header>
+
+<div id="stage">
+<main id="page" class="page page-legal" data-page="legal">
+<div class="wrap legal-wrap">
+<article class="card legal" lang="en">
 <h1>Terms of Service for transporters</h1>
 <p class="meta">For the Domivan Driver app. Last updated: <span class="fill">[DATE]</span></p>
 
@@ -47,13 +104,13 @@
 <li>The amount you are offered starts below the top price and rises over time (over 15 minutes for Booking trips, over 2 minutes for Live trips) up to a maximum of 90% of the fare the traveller paid. Trips that nobody has taken stay available at the top price.</li>
 <li>The first transporter to tap <strong>Accept</strong> gets the trip at the amount shown at that moment. That amount is your payout for the trip; it does not change afterwards.</li>
 <li>By accepting, you commit to carrying out the trip yourself, with your own vehicle and driver, at the agreed time. You may not pass the trip to another company without our written consent.</li>
-<li>About 12 hours before pickup (right away for Live trips) you see the traveller's name and phone number and can chat with them in the app. Use these details only for that trip.</li>
+<li>About 24 hours before pickup (right away for Live trips) you see the traveller's name and phone number and can chat with them in the app. Use these details only for that trip.</li>
 </ul>
 
 <h2>6. During the trip</h2>
 <ul>
 <li>When you set off to the traveller, tap <strong>Towards client</strong>. From then until the traveller is picked up, the app shares your location with that traveller, so the app needs location access while it is open.</li>
-<li>Tap <strong>Client picked up</strong> when the traveller is on board and <strong>Complete trip</strong> when you have dropped them off at the destination.</li>
+<li>When the traveller gets in, ask for the 4-digit pickup code shown in their app and enter it to confirm the pickup. Without the code the trip cannot start. Tap <strong>Complete trip</strong> when you have dropped them off at the destination.</li>
 <li>If the traveller is not at the pickup address within <span class="fill">[15]</span> minutes of the agreed time and does not answer, contact us through support before leaving. <span class="fill">[DECIDE: payout for no-shows.]</span></li>
 <li>You may refuse a passenger who is a danger to others, has no valid travel documents, or carries illegal or dangerous items. Tell us through support right away.</li>
 </ul>
@@ -63,11 +120,12 @@
 
 <h2>8. Payment</h2>
 <ul>
-<li>The traveller pays Domivan. After you tap <strong>Complete trip</strong>, Domivan sends your payout for that trip to your Stripe account. Stripe then pays it to your bank account on its normal payout schedule.</li>
+<li>The traveller pays Domivan. Domivan sends your payout for a trip to your Stripe account 24 hours after you tap <strong>Complete trip</strong>, unless the traveller reports a problem in that time; then the payout waits until we have looked into it. Stripe then pays it to your bank account on its normal payout schedule.</li>
 <li>If the traveller cancels after you accepted, you receive the same share of the amount we keep under the traveller terms (50% of the fare when they cancel between 48 and 12 hours before pickup, the full fare within 12 hours) as your payout is of the full fare. Nothing is due if they cancel 48 hours or more before pickup.</li>
-<li>Domivan keeps the difference between the fare and your payout as its fee. You do not pay Domivan anything else.</li>
+<li>Your payout is the amount you accepted. You do not pay Domivan anything.</li>
 <li>If a trip was not carried out, was marked complete by mistake, or a traveller's complaint is upheld (for example the trip was not done or the passenger was left behind), we may withhold or reclaim the payout for that trip, after hearing your side.</li>
-<li>Amounts are in euros. <span class="fill">[ACCOUNTANT: confirm VAT treatment and whether Domivan issues self-billing invoices to transporters.]</span></li>
+<li>You agree to self-billing. For each payout Domivan issues the invoice from you to Domivan, in your name and on your behalf (SB- numbers, in a series of their own). You get it by email and in the app, and you do not send us invoices yourself. You accept these invoices as your own and remain responsible for the VAT on them. Tell us straight away if your company or VAT details change, and tell us within 14 days if an invoice is wrong.</li>
+<li>Amounts are in euros.</li>
 </ul>
 
 <h2>9. Travellers, conduct and fair use</h2>
@@ -96,10 +154,15 @@
 <nav class="links">
 <a href="/">Domivan</a>
 <a href="/terms">Terms for travellers</a>
-<a href="/transporter-terms">Terms for transporters</a>
+<a href="/transporter-terms" aria-current="page">Terms for transporters</a>
 <a href="/privacy">Privacy Policy</a>
 <a href="/delete-account">Delete your account</a>
 </nav>
+</article>
+</div>
 </main>
+</div>
+
+<script type="application/json" id="dv-t">{"acct_h": "Your account", "back": "Back", "tab_login": "Log in", "tab_create": "Create account", "google": "Continue with Google", "apple": "Continue with Apple", "redirecting": "Opening {provider}…", "signing_in": "Signing you in…", "f_name": "Full name", "ph_name": "First and last name", "f_email": "Email", "ph_email": "you@example.com", "hint": "We'll email you a one-time code. No password needed.", "send": "Email me a code", "sending": "Sending…", "code_h": "Check your email", "code_sent": "We sent a code to {email}", "f_code": "Code from the email", "verify": "Continue", "verifying": "Checking…", "change_email": "Change email", "resend": "Send a new code", "resend_in": "New code in {s} s", "resent": "We sent you a new code.", "legal": "By continuing you agree to the <a href=\"/terms\">Terms<\/a> and the <a href=\"/privacy\">Privacy Policy<\/a>.", "welcome": "You're signed in", "signed_in_as": "Signed in as", "my_trips": "My trips", "logout": "Log out", "my_account": "My account", "err_email": "Enter a valid email address.", "err_name": "Please enter your name.", "err_code": "Enter the code from the email.", "err_bad_code": "That code is wrong or has expired. Check the email or send a new code.", "no_account": "No account with this email yet.", "create_instead": "Create an account", "err_rate": "Too many tries. Please wait a minute and try again.", "err_wait": "Please wait a moment before asking for another code.", "err_network": "We couldn't reach Domivan. Check your connection and try again.", "err_generic": "Something went wrong. Please try again.", "err_oauth": "Signing in with {provider} didn't work. Please try again or use your email.", "err_oauth_off": "Signing in with {provider} isn't available yet. Please use your email.", "lang": "en", "home": "/", "or": "or"}</script>
 </body>
 </html>

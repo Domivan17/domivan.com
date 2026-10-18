@@ -5,12 +5,69 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Delete Your Account | Domivan</title>
 <meta name="description" content="How to delete your Domivan or Domivan Driver account and what happens to your data.">
-<link rel="stylesheet" href="/style.css">
+<link rel="canonical" href="https://domivan.com/delete-account">
+<meta name="theme-color" content="#050B18">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/landing.css?v=70146729">
+<script src="/site.js?v=138a3216" defer></script>
+<script src="/hero-net.js?v=74928e45" defer></script>
 </head>
 <body>
-<main>
-<header><span class="logo"></span><a href="/">Domivan</a></header>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 100 100">
+    <path d="M24 22v56" stroke="currentColor" stroke-opacity=".75" stroke-width="9" stroke-linecap="round" stroke-dasharray="1 15"/>
+    <path d="M24 14h20a36 36 0 0 1 0 72H35" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="24" cy="14" r="10" fill="var(--arrow, currentColor)"/>
+    <circle cx="24" cy="86" r="7.25" fill="none" stroke="currentColor" stroke-width="5.5"/>
+  </symbol>
+</svg>
+
+<!-- One night map for every page. Pages slide over it and it is never redrawn (site.js).
+     hero-net.js tilts it into a table and runs the live network of trips across it. The masks
+     fade the image out at its own edges, so the tilted map has no hard border. -->
+<div class="backdrop" aria-hidden="true">
+  <svg viewBox="0 120 1800 1140" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <linearGradient id="fade-y" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1381"><stop offset="0" stop-color="#000"/><stop offset=".1" stop-color="#fff"/><stop offset=".94" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+      <linearGradient id="fade-x" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1800" y2="0"><stop offset="0" stop-color="#000"/><stop offset=".06" stop-color="#fff"/><stop offset=".94" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+      <mask id="fade-v" maskUnits="userSpaceOnUse" x="0" y="0" width="1800" height="1381"><rect width="1800" height="1381" fill="url(#fade-y)"/></mask>
+      <mask id="fade-h" maskUnits="userSpaceOnUse" x="0" y="0" width="1800" height="1381"><rect width="1800" height="1381" fill="url(#fade-x)"/></mask>
+      <!-- brightness(1.22) contrast(1.1) saturate(1.3), applied when the map is drawn (landing.css), not on every frame -->
+      <filter id="lift" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope="1.342" intercept="-.05"/><feFuncG type="linear" slope="1.342" intercept="-.05"/><feFuncB type="linear" slope="1.342" intercept="-.05"/></feComponentTransfer><feColorMatrix type="saturate" values="1.3"/></filter>
+    </defs>
+    <g mask="url(#fade-h)"><image mask="url(#fade-v)" href="/img/europe-night.webp?v=5663e10b" x="0" y="0" width="1800" height="1381" preserveAspectRatio="none"/></g>
+  </svg>
+</div>
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="/"><span class="logo"><svg><use href="#mark"/></svg></span>Domivan</a>
+    <nav>
+      <a href="/#how">How it works</a>
+      <a href="/#vans">Vans</a>
+      <a class="btn small shiny" href="/join" data-driver-app><span class="long">Join Transporters</span><span class="short">Transporters</span></a>
+      <details class="lang">
+        <summary aria-label="Language"><span class="earth" aria-hidden="true"></span><svg class="flag" viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><clipPath id="uk-t"><path d="M30 15h30v15zv15H0zH0V0zV0h30z"/></clipPath><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#uk-t)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></svg>EN</summary>
+        <div class="menu">
+        <a href="/delete-account" hreflang="en" lang="en" aria-current="page"><svg class="flag" viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><clipPath id="uk-t"><path d="M30 15h30v15zv15H0zH0V0zV0h30z"/></clipPath><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#uk-t)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></svg><span>English</span><b>EN</b></a>
+        <a href="/ro/delete-account" hreflang="ro" lang="ro"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0.000" y="0" width="1.000" height="2" fill="#002B7F"/><rect x="1.000" y="0" width="1.000" height="2" fill="#FCD116"/><rect x="2.000" y="0" width="1.000" height="2" fill="#CE1126"/></svg><span>Română</span><b>RO</b></a>
+        <a href="/pl/delete-account" hreflang="pl" lang="pl"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="1.000" fill="#FFFFFF"/><rect x="0" y="1.000" width="3" height="1.000" fill="#DC143C"/></svg><span>Polski</span><b>PL</b></a>
+        <a href="/bg/delete-account" hreflang="bg" lang="bg"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="0.667" width="3" height="0.667" fill="#00966E"/><rect x="0" y="1.333" width="3" height="0.667" fill="#D62612"/></svg><span>Български</span><b>BG</b></a>
+        <a href="/hu/delete-account" hreflang="hu" lang="hu"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#CD2A3E"/><rect x="0" y="0.667" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="1.333" width="3" height="0.667" fill="#436F4D"/></svg><span>Magyar</span><b>HU</b></a>
+        <a href="/es/delete-account" hreflang="es" lang="es"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.500" fill="#AA151B"/><rect x="0" y="0.500" width="3" height="1.000" fill="#F1BF00"/><rect x="0" y="1.500" width="3" height="0.500" fill="#AA151B"/></svg><span>Español</span><b>ES</b></a>
+        </div>
+      </details>
+      <a class="btn small login" href="#login" data-login><span class="long">Log In / Create Account</span><span class="short">Log in</span></a>
+    </nav>
+  </div>
+</header>
+
+<div id="stage">
+<main id="page" class="page page-legal" data-page="legal">
+<div class="wrap legal-wrap">
+<article class="card legal" lang="en">
 <h1>Delete your account</h1>
 <p class="meta">For the Domivan and Domivan Driver apps, run by StepsNest B.V.</p>
 
@@ -42,8 +99,13 @@
 <a href="/terms">Terms for travellers</a>
 <a href="/transporter-terms">Terms for transporters</a>
 <a href="/privacy">Privacy Policy</a>
-<a href="/delete-account">Delete your account</a>
+<a href="/delete-account" aria-current="page">Delete your account</a>
 </nav>
+</article>
+</div>
 </main>
+</div>
+
+<script type="application/json" id="dv-t">{"acct_h": "Your account", "back": "Back", "tab_login": "Log in", "tab_create": "Create account", "google": "Continue with Google", "apple": "Continue with Apple", "redirecting": "Opening {provider}…", "signing_in": "Signing you in…", "f_name": "Full name", "ph_name": "First and last name", "f_email": "Email", "ph_email": "you@example.com", "hint": "We'll email you a one-time code. No password needed.", "send": "Email me a code", "sending": "Sending…", "code_h": "Check your email", "code_sent": "We sent a code to {email}", "f_code": "Code from the email", "verify": "Continue", "verifying": "Checking…", "change_email": "Change email", "resend": "Send a new code", "resend_in": "New code in {s} s", "resent": "We sent you a new code.", "legal": "By continuing you agree to the <a href=\"/terms\">Terms<\/a> and the <a href=\"/privacy\">Privacy Policy<\/a>.", "welcome": "You're signed in", "signed_in_as": "Signed in as", "my_trips": "My trips", "logout": "Log out", "my_account": "My account", "err_email": "Enter a valid email address.", "err_name": "Please enter your name.", "err_code": "Enter the code from the email.", "err_bad_code": "That code is wrong or has expired. Check the email or send a new code.", "no_account": "No account with this email yet.", "create_instead": "Create an account", "err_rate": "Too many tries. Please wait a minute and try again.", "err_wait": "Please wait a moment before asking for another code.", "err_network": "We couldn't reach Domivan. Check your connection and try again.", "err_generic": "Something went wrong. Please try again.", "err_oauth": "Signing in with {provider} didn't work. Please try again or use your email.", "err_oauth_off": "Signing in with {provider} isn't available yet. Please use your email.", "lang": "en", "home": "/", "or": "or"}</script>
 </body>
 </html>
