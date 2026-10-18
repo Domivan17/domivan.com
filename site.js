@@ -1437,11 +1437,14 @@
   // before pickup, as in the app), the pickup code, Report a problem, the invoices, and Cancel
   // until pickup (free until a transporter accepts; after that, what comes back depends on how long
   // before pickup). Only trips they booked as a client, and only what a client sees in the app:
-  // never what the transporter is paid. Trips never paid for don't show; the one
-  // just booked here does, while its payment is still being confirmed.
+  // my_trips() gives each side only its own amounts, never what the transporter is paid. Trips
+  // never paid for don't show; the one just booked here does, while its payment is still being
+  // confirmed.
 
-  var ORDER_COLS = 'id,kind,status,van_class,pickup_address,pickup_city,pickup_country,dropoff_address,dropoff_city,dropoff_country,'
-    + 'pickup_at,passengers,extra_bags,notes,fare_cents,cancel_reason,cancel_fee_cents,payout_on_hold,payout_release_at,stripe_transfer_id';
+  // my_trips() can only be filtered and sorted on columns it is asked for, so client_id and
+  // bid_started_at are in here.
+  var ORDER_COLS = 'id,client_id,kind,status,van_class,pickup_address,pickup_city,pickup_country,dropoff_address,dropoff_city,dropoff_country,'
+    + 'pickup_at,passengers,extra_bags,notes,fare_cents,bid_started_at,cancel_reason,cancel_fee_cents,payout_on_hold,payout_release_at,payout_sent';
   var DONE = ['completed', 'cancelled'], ASSIGNED = ['accepted', 'en_route', 'picked_up'];
   var TONE = { pending_payment: 'gray', bidding: 'amber', accepted: 'blue', en_route: 'blue', picked_up: 'blue', completed: 'green', cancelled: 'gray' };
   var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1503,7 +1506,7 @@
       listAt = Date.now();
       var n = ++listN, b = UUID.test(justBooked || '') ? justBooked : null;
       (uid ? token() : Promise.reject(new Error('No user'))).then(function (t) {
-        return rest('orders?select=' + ORDER_COLS + '&client_id=eq.' + uid
+        return rest('rpc/my_trips?select=' + ORDER_COLS + '&client_id=eq.' + uid
           + (b ? '&or=(bid_started_at.not.is.null,id.eq.' + b + ')' : '&bid_started_at=not.is.null')
           + '&order=pickup_at.desc&limit=100', t);
       }).then(function (r) {
@@ -1558,7 +1561,7 @@
       var tid = id, n = ++tripN;
       tripAt = Date.now();
       return (uid ? token() : Promise.reject(new Error('No user'))).then(function (t) {
-        return rest('orders?select=' + ORDER_COLS + '&id=eq.' + tid + '&client_id=eq.' + uid, t).then(function (r) {
+        return rest('rpc/my_trips?select=' + ORDER_COLS + '&id=eq.' + tid + '&client_id=eq.' + uid, t).then(function (r) {
           var o = r && r[0];
           if (!o) return null;
           return Promise.all([
@@ -1623,7 +1626,7 @@
     function report(o, now) {
       if (o.payout_on_hold) return '<p class="t-note t-done">' + esc(L.report_done) + '</p>';
       var until = o.payout_release_at ? new Date(o.payout_release_at) : null;
-      if (!(o.status === 'picked_up' || (o.status === 'completed' && !o.stripe_transfer_id && until && until > now))) return note && note.where === 'rep' ? msgHtml('rep') : '';
+      if (!(o.status === 'picked_up' || (o.status === 'completed' && !o.payout_sent && until && until > now))) return note && note.where === 'rep' ? msgHtml('rep') : '';
       return '<section class="t-sec">'
         + (o.status === 'completed' ? '<p>' + esc(fill(L.report_until, { date: dateText(until, L.lang) })) + '</p>' : '')
         + (rep ? '<label><small>' + esc(L.report_ph) + '</small><textarea maxlength="3800" rows="4"></textarea></label>' + msgHtml('rep')

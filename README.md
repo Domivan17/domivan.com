@@ -123,7 +123,9 @@ signed out shows Log in first and then My trips.
   transporter is paid (`report_trip_problem`); invoices and credit notes (PDF in a new tab through a
   link that works for five minutes); and Cancel while no transporter has accepted (`cancel-order`,
   full refund). An open trip is read again every minute.
-- It reads `orders` as the signed-in client (row level security), never the transporter's payout.
+- It reads trips through `my_trips()` as the signed-in client, which returns only the client's own
+  amounts, never the transporter's payout. Signed-in users cannot read the amount columns of
+  `orders` directly (`20261018210000_private_amounts.sql`).
 
 ## Booking on the home page
 
