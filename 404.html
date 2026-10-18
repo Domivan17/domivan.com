@@ -1,10 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head><script>if(!/^\/book(\/|$)/.test(location.pathname))location.replace('/')</script>
+  <head><script>(function (p) {
+  var m = /^\/(?:(ro|pl|bg|hu|es)\/)?r\/([A-Za-z0-9]{4,12})\/?$/.exec(p), lang = m && m[1];
+  if (!m) { if (!/^\/book(\/|$)/.test(p)) location.replace('/'); return; }
+  for (var ls = navigator.languages || [navigator.language || ''], i = 0; !lang && i < ls.length; i++) {
+    var c = String(ls[i]).slice(0, 2).toLowerCase();
+    if (/^(en|ro|pl|bg|hu|es)$/.test(c)) lang = c;
+  }
+  location.replace((lang && lang !== 'en' ? '/' + lang + '/' : '/') + '?r=' + m[2].toUpperCase());
+})(location.pathname)</script>
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>Book a trip | Domivan</title>
+    <title>Book a trip | DomiVan</title>
     <meta name="description" content="Book a door-to-door van seat between Eastern and Western Europe. See the price, pay and follow your trip.">
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
@@ -33,6 +41,6 @@
     </noscript>
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
-  <script src="/book/_expo/static/js/web/entry-d5da5f0b4e222a62a04a5e90309f0030.js" defer></script>
+  <script src="/book/_expo/static/js/web/entry-1a051a650cabf4605089e72e05bcb594.js" defer></script>
 </body>
 </html>

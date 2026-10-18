@@ -10,10 +10,13 @@
  * home page it takes the Book your trip card's spot; elsewhere it slides in as its own
  * screen. Google and Apple go through Supabase's PKCE redirect, email through a one-time
  * code. The session is stored where supabase-js keeps it, so /book is signed in too.
+ * Signed in, the same card is the account: Your account (#login), My trips (#trips) and one
+ * trip (#trips/<id>) slide inside it, so nothing leaves the page. The header button (My
+ * account) opens it, and closes it again when it already shows Your account.
  *
  * Phones (the one-column layout) open like the app: a signed-out visitor sees the account
  * card in the home page's spot first, and Book your trip once signed in. Transporters goes
- * to the Domivan Driver app in the App Store or Google Play there (DRIVER_APP).
+ * to the DomiVan Driver app in the App Store or Google Play there (DRIVER_APP).
  *
  * Booking (home): Book your trip prices the trip, takes the payment (Stripe's Payment Element)
  * and confirms it inside the card; each step slides in and the page never changes. The account
@@ -22,11 +25,15 @@
  * Page modules: the booking card (home) and the Join Transporters form, started once for
  * each page as it is shown.
  *
+ * Invite links: a VIT partner's QR code (domivan.com/r/CODE, sent home as ?r=CODE by 404.html)
+ * shows an invite panel on the home page and keeps the code until the visitor signs in, applies
+ * to drive or downloads the DomiVan Driver app (see "invite links" below).
+ *
  * Background: hero-net.js draws the live network over the night map and keeps its lights off
  * the copy and the cards. It is told (dvNet.relayout) whenever a page or card slides in or out.
  *
  * Hand-written, no build step. Strings come from each page (#dv-t, built by
- * scripts/build-site.py from scripts/account_strings.py).
+ * scripts/build-site.py from scripts/account_strings.py, book_strings.py and trips_strings.py).
  */
 (function () {
   'use strict';
@@ -35,6 +42,7 @@
   var KEY = 'sb_publishable_2spxK11Ldq3pj2EjJeoPbw_TVsZuKnL'; // public key, same as the apps
   var STORE = 'sb-htegjzxfspdaclcvfjfl-auth-token';             // where supabase-js v2 keeps the session
   var PKCE = 'domivan-pkce', NAME = 'domivan-name', DRAFT = 'domivan-join-draft';
+  var REF = 'domivan-referral'; // a VIT invite code, same key as the apps (src/lib/referral.ts)
   // name@domain.tld, with no empty parts (no '..', no dot at either end).
   var EMAIL_RE = /^[^@\s.]+(?:\.[^@\s.]+)*@[^@\s.]+(?:\.[^@\s.]+)+$/;
   var EASE = 'cubic-bezier(.22, .8, .24, 1)';
@@ -179,24 +187,31 @@
   // prices the trip again on the server and that is what the client pays; this is the preview.
   // Change both together.
 
-  var HOME_CC = ['PL', 'RO', 'BG', 'HU'], ABROAD_CC = ['DE', 'FR', 'BE', 'NL', 'GB', 'ES', 'IT', 'CH'];
+  // The 27 EU members, the UK and Switzerland, either end, the same country included.
+  var SERVED_CC = ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT',
+    'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'GB', 'CH'];
+  var MIN_KM = 100;
   var RATES = { base: 30, perKm: 0.062, road: 1.28, surcharge: { GB: 30, CH: 10 }, bag: 10, round: 5 };
   var VANS = ['standard', 'large', 'luxury'];
   var VAN = { standard: { max: 8, x: 1 }, large: { max: 20, x: 1.1 }, luxury: { max: 16, x: 1.6 } };
 
   function inList(list, c) { return list.indexOf(String(c).toUpperCase()) >= 0; }
-  // Trips run between a home country and one abroad, in either direction.
-  function routeOk(a, b) {
-    return (inList(HOME_CC, a.country) && inList(ABROAD_CC, b.country)) || (inList(ABROAD_CC, a.country) && inList(HOME_CC, b.country));
-  }
+  function routeOk(a, b) { return inList(SERVED_CC, a.country) && inList(SERVED_CC, b.country); }
   function toRad(x) { return (x * Math.PI) / 180; }
-  function quote(a, b, pax, bags, van) {
+  function roadKm(a, b) {
     var dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
     var sLat = Math.sin(dLat / 2), sLng = Math.sin(dLng / 2); // not **: older Safari can't parse it
     var h = sLat * sLat + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sLng * sLng;
-    var km = Math.round(2 * 6371 * Math.asin(Math.sqrt(h)) * RATES.road);
-    var abroad = inList(ABROAD_CC, b.country) ? b.country : a.country; // UK and Switzerland cost extra at either end
-    var per = RATES.base + RATES.perKm * km + (RATES.surcharge[String(abroad).toUpperCase()] || 0);
+    return Math.round(2 * 6371 * Math.asin(Math.sqrt(h)) * RATES.road);
+  }
+  // UK and Switzerland cost extra at either end, but not for a trip inside one of them.
+  function surcharge(a, b) {
+    var x = String(a.country).toUpperCase(), y = String(b.country).toUpperCase();
+    return x === y ? 0 : Math.max(RATES.surcharge[x] || 0, RATES.surcharge[y] || 0);
+  }
+  function quote(a, b, pax, bags, van) {
+    var km = roadKm(a, b);
+    var per = RATES.base + RATES.perKm * km + surcharge(a, b);
     var raw = (per * pax + RATES.bag * bags) * VAN[van].x;
     return { km: km, cents: Math.max(RATES.round, Math.round(raw / RATES.round) * RATES.round) * 100 };
   }
@@ -381,23 +396,23 @@
 
   // ---------------------------------------------------------------- payments (Stripe)
 
-  var STRIPE_PK = 'pk_test_51UR6TkFGe72W5Sn03sZiyUxy2RrnSKKlK570gs7cXFLr0qkjfHJTSiKBUJNKft1VlOMPLOh7NpOJWa2RQgaHSrL900EXEru4Se'; // public key, same as the apps (test mode, the "Domivan" sandbox)
+  var STRIPE_PK = 'pk_test_51UR6TkFGe72W5Sn03sZiyUxy2RrnSKKlK570gs7cXFLr0qkjfHJTSiKBUJNKft1VlOMPLOh7NpOJWa2RQgaHSrL900EXEru4Se'; // public key, same as the apps (test mode, the "DomiVan" sandbox)
   // Stripe's Payment Element in the card's colours: dark fields, the site's blue.
   var APPEARANCE = {
     theme: 'night',
     variables: {
-      colorPrimary: '#2E5BFF', colorBackground: '#18213A', colorText: '#FFFFFF', colorTextSecondary: '#C3CEDF',
+      colorPrimary: '#0064D2', colorBackground: '#18213A', colorText: '#FFFFFF', colorTextSecondary: '#C3CEDF',
       colorTextPlaceholder: '#8996AC', colorIcon: '#C3CEDF', colorDanger: '#FFB4A8',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif',
       fontSizeBase: '16px', borderRadius: '12px', spacingUnit: '4px'
     },
     rules: {
       '.Input': { border: '1.5px solid #34405A', boxShadow: 'none' },
-      '.Input:focus': { border: '1.5px solid #9DB5FF', boxShadow: 'none' },
+      '.Input:focus': { border: '1.5px solid #8CBDF5', boxShadow: 'none' },
       '.Input--invalid': { border: '1.5px solid #FF9B8A' },
       '.Label': { fontSize: '12.5px', fontWeight: '700', color: '#C3CEDF' },
       '.Tab': { border: '1.5px solid #34405A', backgroundColor: '#18213A', boxShadow: 'none' },
-      '.Tab--selected': { border: '1.5px solid #9DB5FF', backgroundColor: '#1E2A4A' }
+      '.Tab--selected': { border: '1.5px solid #8CBDF5', backgroundColor: '#1E2A4A' }
     }
   };
   // Stripe.js has to come from js.stripe.com. Fetched once, when a price is first shown.
@@ -466,7 +481,8 @@
     bag: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="7" width="14" height="12.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M9.5 7V4.6h5V7M9 19.5v1.6M15 19.5v1.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     km: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c3-1 3-6 7-7s4-6 7-7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-dasharray="2.2 3"/><circle cx="5" cy="19" r="2" fill="currentColor"/><circle cx="19" cy="5" r="2" fill="currentColor"/></svg>',
     lock: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke="currentColor" stroke-width="1.9"/></svg>',
-    ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    doc: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h7.5l4.5 4.5v12.5h-12z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M14 3.5V8h4.5M9.5 12.5h5.5M9.5 16h5.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>'
   };
   // Set by start() before the home page's card starts: back from the bank (?booked=...), or from
   // Google or Apple.
@@ -518,7 +534,7 @@
     pane('done', '<div class="book-body">'
       + '<div class="done-top"><span class="tick" aria-hidden="true">' + IC.ok + '</span><h3>' + esc(L.done_h) + '</h3><p class="done-p"></p></div>'
       + '<dl class="done-sum"></dl>'
-      + '</div><div class="book-foot"><a class="btn big" href="/book/">' + esc(L.my_trips) + '</a><button type="button" class="btn ghost another">' + esc(L.another) + '</button></div>');
+      + '</div><div class="book-foot"><a class="btn big" href="#trips">' + esc(L.my_trips) + '</a><button type="button" class="btn ghost another">' + esc(L.another) + '</button></div>');
     var notes = $('[name=notes]', P.price), priceBtn = $('.go', P.price), payBtn = $('.go', P.pay);
 
     function msg(p, text, input) {
@@ -582,6 +598,7 @@
         if (!r[0]) return msg(f, fill(L.err_not_found, { q: a }), el.from);
         if (!r[1]) return msg(f, fill(L.err_not_found, { q: b }), el.to);
         if (!routeOk(r[0], r[1])) return msg(f, L.err_route);
+        if (roadKm(r[0], r[1]) < MIN_KM) return msg(f, fill(L.err_short, { n: MIN_KM }));
         trip = { kind: kind, from: r[0], to: r[1], at: at, pax: pax, bags: bags };
         order = null;
         fillPrice();
@@ -749,6 +766,7 @@
       }
       if (order && order.cents) rows.push([L.s_paid, money(order.cents, L.lang)]);
       $('.done-sum', p).innerHTML = rows.map(function (r) { return '<div><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('');
+      if (order) justBooked = order.id; // My trips lists it even before the payment is confirmed
       tripStore.del();
       wantPay = false;
       go('done', o);
@@ -912,11 +930,13 @@
       PL: function (n) { return n.length === 10; },                  // NIP or KRS
       RO: function (n) { return n.length >= 2 && n.length <= 10; },  // CUI
       BG: function (n) { return n.length === 9 || n.length === 13; }, // EIK / UIC
-      HU: function (n) { return n.length === 8 || n.length === 10 || n.length === 11; } // adószám or cégjegyzékszám
+      HU: function (n) { return n.length === 8 || n.length === 10 || n.length === 11; }, // adószám or cégjegyzékszám
+      LT: function (n) { return n.length === 9; },                   // įmonės kodas
+      LV: function (n) { return n.length === 11; }                   // reģistrācijas numurs
     };
     var yesNo = [{ v: 'yes', t: J.yes }, { v: 'no', t: J.no }];
     var STEPS = [
-      { id: 'country', q: J.q_country, type: 'one', opts: ['PL', 'RO', 'BG', 'HU'].map(function (c) { return { v: c, t: J.countries[c], flag: c }; }) },
+      { id: 'country', q: J.q_country, type: 'one', opts: ['PL', 'RO', 'BG', 'HU', 'LT', 'LV'].map(function (c) { return { v: c, t: J.countries[c], flag: c }; }) },
       { id: 'business_type', q: J.q_kind, type: 'one', opts: [{ v: 'company', t: J.kind_company }, { v: 'self_employed', t: J.kind_self }] },
       { id: 'company', q: J.q_company, type: 'fields', fields: function () {
           return [
@@ -944,7 +964,14 @@
         } },
       { id: 'confirm', q: J.q_confirm, sub: J.confirm_sub, type: 'confirm' }
     ];
-    var i = 0, busy = false;
+    var i = 0, busy = false, ref = keptRef();
+    // Came through a VIT partner's invite link: the code goes with the application.
+    if (ref) {
+      var chip = d.createElement('p');
+      chip.className = 'inv-chip';
+      chip.innerHTML = GIFT + '<span>' + esc(ref.by ? fill(T.inv_saved, { name: ref.by }) : fill(T.inv_code, { code: ref.code })) + '</span>';
+      form.parentNode.insertBefore(chip, form);
+    }
 
     function optHtml(s, o) {
       var on = s.type === 'many' ? (a[s.id] || []).indexOf(o.v) >= 0 : a[s.id] === o.v;
@@ -1024,8 +1051,17 @@
         passenger_insurance: a.passenger_insurance === 'yes',
         full_name: a.full_name, phone: a.phone, email: a.email
       };
-      fetch(API, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(row) })
-        .then(function (r) { if (!r.ok) throw new Error(r.status); done(); })
+      ref = keptRef();
+      if (ref) row.referral_code = ref.code;
+      var post = function () {
+        return fetch(API, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(row) })
+          .then(function (r) { return r.ok ? 0 : r.status; });
+      };
+      post().then(function (status) {
+        if (status !== 400 || !row.referral_code) return status;
+        delete row.referral_code; // an invite code the database refuses never costs the application itself
+        return post();
+      }).then(function (status) { if (status) throw new Error(status); done(); })
         .catch(function () { busy = false; btn.disabled = false; btn.textContent = J.submit; err('_', J.err_send); });
     }
 
@@ -1035,7 +1071,9 @@
       box.className = 'q to-left';
       setTimeout(function () {
         box.innerHTML = '<div class="done-mark" aria-hidden="true">✓</div><h1>' + esc(J.done_h.replace('{name}', (a.full_name || '').split(' ')[0])) + '</h1>'
-          + '<p class="qsub">' + esc(J.done_p) + '</p><a class="btn big next" href="' + esc(J.home) + '">' + esc(J.done_cta) + '</a>';
+          + '<p class="qsub">' + esc(J.done_p) + '</p>'
+          + (ref ? '<p class="qsub inv-done">' + GIFT + esc(fill(T.inv_join_done, { email: a.email })) + '</p>' : '')
+          + '<a class="btn big next" href="' + esc(J.home) + '">' + esc(J.done_cta) + '</a>';
         box.className = 'q';
       }, 180);
     }
@@ -1075,6 +1113,156 @@
       s.textContent = old.textContent;
       old.parentNode.replaceChild(s, old);
     });
+  }
+
+  // ---------------------------------------------------------------- invite links (VIT partners)
+
+  // A VIT partner's QR code opens domivan.com/r/CODE. Pages has no such page, so 404.html sends
+  // it to the home page in the visitor's language as ?r=CODE. The code then waits in this browser
+  // for 30 days (REF). Signed out, the home page asks "I want to travel" or "I'm a transporter".
+  // Travellers book here, and the code goes on their account as soon as they are signed in
+  // (apply_referral_code checks every rule: new accounts only, in their first 7 days, before the
+  // first booking, not their own code). Transporters get the DomiVan Driver app with the code
+  // (Google Play hands it to the app; on iPhone it is copied, and the app's sign-up page has
+  // Apple's Paste button) or the Join Transporters form, which sends it with the application.
+  var REF_DAYS = 30, REF_CODE = /^[A-Z0-9]{4,12}$/;
+  var GIFT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 11.5h15V19a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 19v-7.5ZM3.5 7.5h17v4h-17zM12 7.5v13M12 7.5c-1-2.6-2.3-4-3.8-4-1.3 0-2 .8-2 1.8 0 1.4 1.8 2.2 5.8 2.2Zm0 0c1-2.6 2.3-4 3.8-4 1.3 0 2 .8 2 1.8 0 1.4-1.8 2.2-5.8 2.2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var VAN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.4 16.5H3.2a.7.7 0 0 1-.7-.7V7.5A1.5 1.5 0 0 1 4 6h10.6c.5 0 .9.2 1.2.6l3.9 4.9c.2.3.3.6.3.9v3.4a.7.7 0 0 1-.7.7h-.4M8.6 16.5h6.3M14.5 6.5v5h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
+  var inv = null, applying = false, invN = 0; // inv: what the invite panel shows ({ step, ... })
+
+  function keptRef() {
+    var r = store.json(REF);
+    return r && REF_CODE.test(r.code) && Date.now() - r.t < REF_DAYS * 864e5 ? r : null;
+  }
+  function keepRef(code, by) { store.set(REF, JSON.stringify({ code: code, by: by || null, t: Date.now() })); }
+  function refBy(r) { return (r && r.by) || T.inv_partner; }
+
+  // Back from an invite link (?r=CODE): keep the code and clean the address. Run before the
+  // page starts, so the address it remembers has no ?r= either.
+  function takeRef() {
+    if (!window.URLSearchParams) return;
+    var q = new URLSearchParams(location.search);
+    if (!q.has('r')) return;
+    var code = String(q.get('r')).toUpperCase(), had = keptRef();
+    q.delete('r');
+    var rest = q.toString();
+    history.replaceState(history.state, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
+    if (!REF_CODE.test(code)) return;
+    keepRef(code, had && had.code === code ? had.by : null);
+    inv = { step: 'check' };
+  }
+
+  // Once the session is renewed: whose code it is (a new link), then the panel, or straight
+  // onto the account when signed in. A code kept from an earlier visit shows who invited them.
+  function startRef() {
+    var r = keptRef();
+    if (!r) return;
+    if (!inv) { inv = { step: 'saved' }; return refNext(); }
+    api('/rest/v1/rpc/referral_code_info', { p_code: r.code }).then(function (rows) {
+      var row = rows && rows[0];
+      if (!row || !row.valid) { store.del(REF); inv = { step: 'note', msg: T.inv_bad }; return renderInvite(); }
+      keepRef(r.code, row.invited_by);
+      inv = { step: 'choose' };
+      refNext();
+    }, function () { inv = { step: 'choose' }; refNext(); }); // offline: the server checks it when it is added
+  }
+  function refNext() { if (getSession()) applyRef(); else renderInvite(); }
+
+  // Signed in: the code goes on the account. Any answer from the server settles it; without
+  // one (offline, an expired login) it is tried again on the next visit.
+  function applyRef() {
+    var r = keptRef(), s = getSession();
+    if (!r || !s || applying || (inv && inv.step === 'check')) return;
+    applying = true;
+    api('/rest/v1/rpc/apply_referral_code', { p_code: r.code }, s.access_token).then(function (res) {
+      store.del(REF);
+      var why = { invalid_code: T.inv_bad, already_referred: T.inv_already, too_late: T.inv_too_late,
+        already_booked: T.inv_booked, own_code: T.inv_own }[res];
+      inv = res === 'ok' ? { step: 'ok', by: refBy(r) } : { step: 'note', msg: why || T.err_generic };
+      renderInvite();
+    }, noop).then(function () { applying = false; });
+  }
+
+  // A store link that carries the kept code: Google Play hands &referrer= to the app after the
+  // install. The App Store can't, so there the tap copies the invite link (onClick, onInvite).
+  function toStore(url) {
+    var r = keptRef();
+    if (!r || !/^https:\/\/play\.google\.com\//.test(url)) return url;
+    return url + (url.indexOf('?') < 0 ? '?' : '&') + 'referrer=' + encodeURIComponent('vit=' + r.code);
+  }
+  function copyRef() {
+    var r = keptRef();
+    if (r && navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText('https://domivan.com/r/' + r.code).catch(noop);
+  }
+
+  // The invite panel on the home page: under the lead on wide screens, between the pill and the
+  // card spot on phones. Drawn again whenever the home page is shown.
+  function renderInvite() {
+    var host = page && $('.hero-copy', page), old = host && $('.invite', host);
+    if (!host) return;
+    var html = inv && !inv.hidden ? inviteHtml(inv, keptRef()) : '';
+    if (!html) {
+      if (old) { host.removeChild(old); relayoutMap(); }
+      return;
+    }
+    var el = old || d.createElement('section');
+    el.className = 'invite' + (inv.step === 'choose' || inv.step === 'driver' ? '' : ' small') + (inv.step === 'ok' ? ' ok' : '');
+    el.innerHTML = html;
+    el.setAttribute('aria-labelledby', $('h2', el).id);
+    if (!old) {
+      var lead = $('.lead', host);
+      host.insertBefore(el, lead ? lead.nextSibling : host.firstChild);
+      el.addEventListener('click', onInvite);
+    }
+    relayoutMap();
+  }
+  function inviteHtml(v, r) {
+    var id = 'inv-h' + ++invN;
+    var head = function (icon, h, p, close, back) {
+      return '<div class="inv-head">'
+        + (back ? '<button type="button" class="back-btn" data-inv="back" aria-label="' + esc(T.back) + '" title="' + esc(T.back) + '">' + CHEV + '</button>' : '')
+        + '<span class="inv-ic">' + icon + '</span><div class="inv-txt"><h2 id="' + id + '">' + esc(h) + '</h2>'
+        + (p ? '<p>' + esc(p) + '</p>' : '') + '</div>'
+        + (close ? '<button type="button" class="inv-x" data-inv="close" aria-label="' + esc(T.inv_close) + '" title="' + esc(T.inv_close) + '">×</button>' : '')
+        + '</div>';
+    };
+    if (v.step === 'note') return head(GIFT, T.inv_h, v.msg, true);
+    if (v.step === 'ok') return head(IC.ok, fill(T.inv_saved, { name: v.by }), T.inv_ok, true);
+    if (!r || v.step === 'check') return '';
+    var app = v.step === 'driver' && driverStore();
+    if (app) {
+      return head(VAN, T.inv_drv_h, fill(/apple\.com/.test(app) ? T.inv_drv_ios : T.inv_drv_android, { code: r.code }), false, true)
+        + '<a class="btn big inv-store" href="' + esc(toStore(app)) + '" data-inv="store">' + esc(T.inv_drv_btn) + '</a>'
+        + '<a class="link inv-web" href="' + esc(T.home + 'join') + '">' + esc(T.inv_drv_web) + '</a>';
+    }
+    if (v.step === 'choose') {
+      return head(GIFT, fill(T.inv_by, { name: refBy(r) }), T.inv_choose)
+        + '<div class="inv-opts">'
+        + '<button type="button" class="inv-opt" data-inv="travel">' + IC.bag + '<span><b>' + esc(T.inv_travel) + '</b><small>' + esc(T.inv_travel_s) + '</small></span></button>'
+        + '<a class="inv-opt" href="' + esc(T.home + 'join') + '" data-inv="driver">' + VAN + '<span><b>' + esc(T.inv_driver) + '</b><small>' + esc(T.inv_driver_s) + '</small></span></a>'
+        + '</div>';
+    }
+    return head(GIFT, fill(T.inv_saved, { name: refBy(r) }), T.inv_saved_p, true);
+  }
+  function onInvite(e) {
+    var b = e.target.closest && e.target.closest('[data-inv]');
+    if (!b) return;
+    var what = b.getAttribute('data-inv');
+    if (what === 'close') { inv.hidden = true; return renderInvite(); }
+    if (what === 'back') { inv = { step: 'choose' }; return renderInvite(); }
+    if (what === 'store') { if (/apple\.com/.test(b.href)) copyRef(); return; } // on to the store
+    if (what === 'driver') {
+      if (driverStore()) { e.preventDefault(); inv = { step: 'driver' }; renderInvite(); }
+      else inv = { step: 'saved' }; // on to Join Transporters (the link); the panel waits here
+      return;
+    }
+    // A traveller: Book your trip is right here. On phones the card is Log in / Create account
+    // until they sign in; someone new needs Create account.
+    inv = { step: 'saved' };
+    renderInvite();
+    var deck = deckOf(page), tab = deck && acct && acct.el.parentNode === deck && $('.tabs input[value=create]', acct.el);
+    if (tab && !tab.checked && !acct.used()) tab.click();
+    if (deck) reveal(deck);
   }
 
   // ---------------------------------------------------------------- Supabase Auth (REST)
@@ -1234,10 +1422,328 @@
       }
     }
     if (chromeOnly) return;
+    if (s) applyRef();
     if (acct) acct.sync();
     syncDeck(instant);
     var bk = curBook();
     if (bk) bk.auth();
+  }
+
+  // ---------------------------------------------------------------- My trips (account card)
+  //
+  // The trips this visitor booked, and one trip in full, as views of the account card: its status,
+  // the route, what was paid, what happens next, the transporter and their phone (from 24 hours
+  // before pickup, as in the app), the pickup code, Report a problem, the invoices, and Cancel
+  // while no transporter has accepted. Only trips they booked as a client, and only what a client
+  // sees in the app: never what the transporter is paid. Trips never paid for don't show; the one
+  // just booked here does, while its payment is still being confirmed.
+
+  var ORDER_COLS = 'id,kind,status,van_class,pickup_address,pickup_city,pickup_country,dropoff_address,dropoff_city,dropoff_country,'
+    + 'pickup_at,passengers,extra_bags,notes,fare_cents,cancel_reason,payout_on_hold,payout_release_at,stripe_transfer_id';
+  var DONE = ['completed', 'cancelled'], ASSIGNED = ['accepted', 'en_route', 'picked_up'];
+  var TONE = { pending_payment: 'gray', bidding: 'amber', accepted: 'blue', en_route: 'blue', picked_up: 'blue', completed: 'green', cancelled: 'gray' };
+  var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  var justBooked = null; // the trip booked on this page (the booked step)
+
+  // The project's database as the signed-in visitor (PostgREST): a read, or with a body a
+  // function call. Row security decides what comes back.
+  function rest(path, token, body) {
+    var h = { apikey: KEY, Authorization: 'Bearer ' + token };
+    if (body) h['Content-Type'] = 'application/json';
+    return fetch(SB + '/rest/v1/' + path, { method: body ? 'POST' : 'GET', headers: h, body: body ? JSON.stringify(body) : undefined }).then(function (r) {
+      return r.text().then(function (txt) {
+        var j = null;
+        try { j = txt ? JSON.parse(txt) : null; } catch (e) {}
+        if (r.ok) return j;
+        var e = new Error((j && j.message) || 'HTTP ' + r.status);
+        e.status = r.status;
+        throw e;
+      });
+    });
+  }
+  // The signed-in user's id: the session keeps the user (one saved by an older page only the token).
+  function uidOf(s) {
+    if (s && s.user && s.user.id) return s.user.id;
+    try { return JSON.parse(atob(s.access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub || null; } catch (e) { return null; }
+  }
+  function nothing() { return null; }
+
+  function Trips(listPane, tripPane) {
+    var L = T, uid = null, rows = null, byId = {}, listN = 0, listAt = 0;
+    // The trip shown: its id, what was loaded for it (order, transporter, pickup code, invoices),
+    // and what the visitor has open in it (Cancel's question, the report form and its text).
+    var id = null, dt = null, tripN = 0, tripAt = 0, ask = false, rep = false, repText = '', note = null, busy = false, tick = 0;
+
+    function token() {
+      return refresh().then(function (s) {
+        if (!s) { var e = new Error('Signed out'); e.status = 401; throw e; }
+        return s.access_token;
+      });
+    }
+    // Refused as signed out: Log in again (the card then comes back to this view).
+    function out(e) { if (e && e.status === 401) { clearSession(); return true; } return false; }
+    function spinner() { return '<div class="tload"><span class="spin" aria-hidden="true"></span></div>'; }
+    function oops(text, retry) {
+      return '<div class="tempty"><p>' + esc(text) + '</p>' + (retry ? '<button type="button" class="btn ghost t-retry">' + esc(L.retry) + '</button>'
+        : '<a class="btn ghost" href="#trips">' + esc(L.my_trips) + '</a>') + '</div>';
+    }
+    function badges(o) {
+      return '<span class="badge ' + (TONE[o.status] || 'gray') + '">' + esc(L['st_' + o.status] || o.status) + '</span>'
+        + (o.kind === 'live' ? '<span class="badge live">' + esc(L.tag_live) + '</span>' : '');
+    }
+
+    // ---- the list: upcoming trips first (soonest at the top), then past ones (latest first)
+    function list() {
+      if (rows) drawList();
+      else listPane.innerHTML = spinner();
+      if (Date.now() - listAt < 1000) return; // just asked
+      listAt = Date.now();
+      var n = ++listN, b = UUID.test(justBooked || '') ? justBooked : null;
+      (uid ? token() : Promise.reject(new Error('No user'))).then(function (t) {
+        return rest('orders?select=' + ORDER_COLS + '&client_id=eq.' + uid
+          + (b ? '&or=(bid_started_at.not.is.null,id.eq.' + b + ')' : '&bid_started_at=not.is.null')
+          + '&order=pickup_at.desc&limit=100', t);
+      }).then(function (r) {
+        if (n !== listN) return;
+        rows = r || [];
+        byId = {};
+        rows.forEach(function (o) { byId[o.id] = o; });
+        drawList();
+      }, function (e) {
+        if (n !== listN) return;
+        listAt = 0;
+        if (!out(e) && !rows) listPane.innerHTML = oops(L.err_trips, true);
+      });
+    }
+    function drawList() {
+      var y = listPane.scrollTop;
+      if (!rows.length) {
+        listPane.innerHTML = '<div class="tempty"><span class="tempty-ic" aria-hidden="true">' + IC.cal + '</span><h3>' + esc(L.none_h) + '</h3>'
+          + '<p>' + esc(L.none_p) + '</p><a class="btn big" href="' + esc(L.home) + '">' + esc(L.book_trip) + '</a></div>';
+        return;
+      }
+      var up = rows.filter(function (o) { return DONE.indexOf(o.status) < 0; }).reverse();
+      var past = rows.filter(function (o) { return DONE.indexOf(o.status) >= 0; });
+      listPane.innerHTML = (up.length ? '<h3 class="tsec">' + esc(L.up_h) + '</h3>' + up.map(row).join('') : '')
+        + (past.length ? '<h3 class="tsec">' + esc(L.past_h) + '</h3>' + past.map(row).join('') : '');
+      listPane.scrollTop = y;
+    }
+    function row(o) {
+      return '<a class="trow" href="#trips/' + esc(o.id) + '"><span class="trow-top">' + badges(o) + '</span>'
+        + '<b class="trow-route">' + esc(o.pickup_city) + ' → ' + esc(o.dropoff_city) + '</b>'
+        + '<span class="trow-foot"><span>' + esc(dateText(new Date(o.pickup_at), L.lang)) + '</span><b>' + esc(money(o.fare_cents, L.lang)) + '</b></span>'
+        + '<span class="go-ic" aria-hidden="true">' + CHEV + '</span></a>';
+    }
+    listPane.addEventListener('click', function (e) { if (e.target.closest('.t-retry')) list(); });
+
+    // ---- one trip. Opened from the list it shows at once and fills in as the rest arrives; while
+    // it is shown it is read again every minute (the transporter's phone appears on a clock).
+    function open(tid) {
+      if (tid !== id) {
+        id = tid; dt = null; ask = rep = false; repText = ''; note = null; tripAt = 0;
+        tripPane.scrollTop = 0;
+        if (byId[tid]) { dt = { o: byId[tid] }; drawTrip(); } else tripPane.innerHTML = spinner();
+      }
+      if (Date.now() - tripAt > 1000) load();
+      stop();
+      tick = setInterval(function () {
+        if (!busy && !ask && !rep && !d.hidden && tripPane.isConnected && !tripPane.closest('.off')) load();
+      }, 60000);
+    }
+    function stop() { clearInterval(tick); tick = 0; }
+    function load() {
+      var tid = id, n = ++tripN;
+      tripAt = Date.now();
+      return (uid ? token() : Promise.reject(new Error('No user'))).then(function (t) {
+        return rest('orders?select=' + ORDER_COLS + '&id=eq.' + tid + '&client_id=eq.' + uid, t).then(function (r) {
+          var o = r && r[0];
+          if (!o) return null;
+          return Promise.all([
+            ASSIGNED.indexOf(o.status) >= 0 ? rest('rpc/trip_contact', t, { p_order: tid }).catch(nothing) : null,
+            o.status === 'accepted' || o.status === 'en_route' ? rest('order_pickup_codes?select=code&order_id=eq.' + tid, t).catch(nothing) : null,
+            rest('invoices?select=id,kind,number,total_cents,file_path&order_id=eq.' + tid + '&kind=in.(trip,credit_note)&file_path=not.is.null&order=created_at.asc', t).catch(nothing)
+          ]).then(function (x) {
+            return { o: o, who: x[0] && x[0][0], code: x[1] && x[1][0] && x[1][0].code, inv: x[2] || [] };
+          });
+        });
+      }).then(function (r) {
+        if (n !== tripN || tid !== id) return;
+        if (!r) { dt = null; tripPane.innerHTML = oops(L.gone); return; }
+        dt = r;
+        byId[tid] = r.o;
+        if (rows) rows = rows.map(function (o) { return o.id === tid ? r.o : o; }); // the list shows it like this too
+        drawTrip();
+      }, function (e) {
+        if (n !== tripN || tid !== id) return;
+        tripAt = 0;
+        if (!out(e) && !dt) tripPane.innerHTML = oops(L.err_trips, true);
+      });
+    }
+
+    function leg(cls, city, cc, addr) {
+      return '<div class="leg"><span class="' + cls + '" aria-hidden="true"></span><p><b>' + esc(city + ', ' + countryName(cc, L.lang)) + '</b>'
+        + '<span>' + (addr && addr !== city ? esc(addr) : '') + '</span></p></div>';
+    }
+    function msgHtml(where) { return '<div class="msg" role="alert">' + (note && note.where === where ? esc(note.text) : '') + '</div>'; }
+    function drawTrip() {
+      var o = dt.o, who = dt.who, at = new Date(o.pickup_at), opens = new Date(at.getTime() - 864e5), now = Date.now(), say = '', tone = '';
+      var facts = [[L.s_pickup, dateText(at, L.lang)], [L.f_pax, o.passengers]];
+      if (o.extra_bags) facts.push([L.f_bags, o.extra_bags]);
+      facts.push([L.s_van, L['v_' + o.van_class] || o.van_class], [L.s_paid, money(o.fare_cents, L.lang)]);
+      var h = '<div class="t-top">' + badges(o) + '</div>'
+        + '<div class="legs">' + leg('start', o.pickup_city, o.pickup_country, o.pickup_address) + leg('ring', o.dropoff_city, o.dropoff_country, o.dropoff_address) + '</div>'
+        + '<dl class="done-sum">' + facts.map(function (r) { return '<div><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('')
+        + (o.notes ? '<div class="wide"><dt>' + esc(L.t_note) + '</dt><dd>' + esc(o.notes) + '</dd></div>' : '') + '</dl>';
+      // What happens next.
+      if (o.status === 'bidding') { say = L.n_bidding; tone = ' amber'; }
+      else if (o.status === 'pending_payment') say = L.done_wait;
+      else if (o.status === 'cancelled') say = o.cancel_reason === 'no_transporter' ? L.n_refunded : L.n_cancelled;
+      else if (ASSIGNED.indexOf(o.status) >= 0 && !who && o.kind !== 'live' && opens > now) say = fill(L.n_locked, { date: dateText(opens, L.lang) });
+      if (say) h += '<p class="t-note' + tone + '">' + esc(say) + '</p>';
+      if (who) {
+        var van = [who.van_plate, who.van_seats ? fill(L.seats, { n: who.van_seats }) : '', who.van_class ? L['v_' + who.van_class] : ''].filter(Boolean).join(' · ');
+        h += '<section class="t-sec"><h3>' + esc(L.tr_h) + '</h3>'
+          + '<div class="t-person"><span class="ava" aria-hidden="true">' + esc((who.full_name || '?').charAt(0).toUpperCase()) + '</span><p><b>' + esc(who.full_name || '') + '</b>'
+          + (who.company_name ? '<span>' + esc(who.company_name) + '</span>' : '') + '</p></div>'
+          + (van ? '<p class="t-van">' + esc(van) + '</p>' : '')
+          + (who.phone ? '<a class="btn big" href="tel:' + esc(who.phone.replace(/[^\d+]/g, '')) + '">' + esc(fill(L.call, { phone: who.phone })) + '</a>' : '')
+          + '</section>';
+      }
+      if (dt.code && (o.status === 'accepted' || o.status === 'en_route')) {
+        h += '<section class="t-sec"><h3>' + esc(L.pc_h) + '</h3><b class="t-digits">' + esc(dt.code) + '</b><p>' + esc(L.pc_p) + '</p></section>';
+      }
+      tripPane.innerHTML = h + report(o, now) + invoices() + cancel(o);
+      if (rep) $('textarea', tripPane).value = repText;
+    }
+    // Report a problem: while on the road, and after the trip until the transporter is paid (as in the app).
+    function report(o, now) {
+      if (o.payout_on_hold) return '<p class="t-note t-done">' + esc(L.report_done) + '</p>';
+      var until = o.payout_release_at ? new Date(o.payout_release_at) : null;
+      if (!(o.status === 'picked_up' || (o.status === 'completed' && !o.stripe_transfer_id && until && until > now))) return note && note.where === 'rep' ? msgHtml('rep') : '';
+      return '<section class="t-sec">'
+        + (o.status === 'completed' ? '<p>' + esc(fill(L.report_until, { date: dateText(until, L.lang) })) + '</p>' : '')
+        + (rep ? '<label><small>' + esc(L.report_ph) + '</small><textarea maxlength="3800" rows="4"></textarea></label>' + msgHtml('rep')
+          + '<button type="button" class="btn big t-send">' + esc(L.report_send) + '</button>'
+          : '<button type="button" class="btn ghost t-report">' + esc(L.report) + '</button>')
+        + '</section>';
+    }
+    function invoices() {
+      if (!dt.inv || !dt.inv.length) return '';
+      return '<section class="t-sec"><h3>' + esc(L.invoices_h) + '</h3>' + dt.inv.map(function (v) {
+        return '<button type="button" class="t-file" data-path="' + esc(v.file_path) + '">' + IC.doc
+          + '<span>' + esc(fill(v.kind === 'credit_note' ? L.invoice_credit : L.invoice_trip, { n: v.number })) + '</span><b>' + esc(money(v.total_cents, L.lang)) + '</b></button>';
+      }).join('') + msgHtml('inv') + '</section>';
+    }
+    // Cancel: free while no transporter has accepted. One question first.
+    function cancel(o) {
+      if (o.status !== 'bidding' && o.status !== 'pending_payment') return note && note.where === 'cancel' ? msgHtml('cancel') : '';
+      if (!ask) return '<div class="t-cancel"><button type="button" class="btn ghost danger t-ask">' + esc(L.cancel) + '</button>' + msgHtml('cancel') + '</div>';
+      return '<div class="t-cancel"><p>' + esc(L.cancel_q) + '</p><div class="t-two"><button type="button" class="btn ghost t-keep">' + esc(L.cancel_no) + '</button>'
+        + '<button type="button" class="btn danger t-yes">' + esc(L.cancel_yes) + '</button></div>' + msgHtml('cancel') + '</div>';
+    }
+
+    function redraw(focus) {
+      drawTrip();
+      var f = focus && $(focus, tripPane);
+      if (!f) return;
+      into(f.closest('.t-sec, .t-cancel') || f);
+      f.focus({ preventScroll: true });
+    }
+    // Brings a part of the trip (the cancel question, the report form, a message) fully into view.
+    function into(x) {
+      x = typeof x === 'string' ? $(x, tripPane) : x;
+      if (!x) return;
+      var p = tripPane.getBoundingClientRect(), r = x.getBoundingClientRect(), y = tripPane.scrollTop;
+      if (r.top - 16 < p.top || r.height + 32 > p.height) y += r.top - 16 - p.top;
+      else if (r.bottom + 16 > p.bottom) y += r.bottom + 16 - p.bottom;
+      else return;
+      tripPane.scrollTo({ top: y, behavior: calm() ? 'auto' : 'smooth' });
+    }
+    tripPane.addEventListener('input', function (e) { if (e.target.tagName === 'TEXTAREA') repText = e.target.value; });
+    tripPane.addEventListener('click', function (e) {
+      var b = e.target.closest('button');
+      if (!b || busy || !dt && !b.classList.contains('t-retry')) return;
+      var c = b.classList;
+      if (c.contains('t-retry')) load();
+      else if (c.contains('t-ask')) { ask = true; note = null; redraw('.t-keep'); }
+      else if (c.contains('t-keep')) { ask = false; note = null; redraw('.t-ask'); }
+      else if (c.contains('t-yes')) cancelTrip(b);
+      else if (c.contains('t-report')) { rep = true; note = null; redraw('textarea'); }
+      else if (c.contains('t-send')) sendReport(b);
+      else if (c.contains('t-file')) openFile(b.dataset.path);
+    });
+    function cancelTrip(b) {
+      var tid = id;
+      busy = true;
+      note = null;
+      busyBtn(b, true, L.cancelling);
+      token().then(function (t) { return callFn('cancel-order', { orderId: tid }, t); }).then(function () { ask = false; }, function (e) {
+        if (out(e)) return;
+        if (e.status === 409) ask = false; // a transporter accepted meanwhile
+        note = { where: 'cancel', text: e.status === 409 ? L.err_cancel : errText(e) };
+      }).then(function () { return tid === id ? load() : null; }).then(function () {
+        busy = false; // the button says Cancelling… until the trip shows how it is now
+        listAt = 0;   // the list reads it again too
+        if (tid === id && dt) { drawTrip(); into(note ? '.msg:not(:empty)' : '.t-note'); }
+      });
+    }
+    function sendReport(b) {
+      var text = repText.trim(), tid = id;
+      if (!text) { note = { where: 'rep', text: L.err_report_empty }; return redraw('textarea'); }
+      busy = true;
+      note = null;
+      busyBtn(b, true, L.sending);
+      token().then(function (t) { return rest('rpc/report_trip_problem', t, { p_order: tid, p_body: text }); }).then(function () {
+        rep = false;
+        repText = '';
+      }, function (e) {
+        if (out(e)) return;
+        note = { where: 'rep', text: /report_window_closed/.test(e.message) ? L.err_report_closed : /empty_report/.test(e.message) ? L.err_report_empty : errText(e) };
+      }).then(function () { return !note && tid === id ? load() : null; }).then(function () {
+        busy = false;
+        if (tid === id && dt) { drawTrip(); into(note ? '.msg:not(:empty)' : '.t-done'); } // keeps the text when it didn't go
+      });
+    }
+    // An invoice (a PDF in the private invoices bucket) opens in a new tab through a link that
+    // works for five minutes. The tab opens at the tap, so the browser doesn't block it.
+    function openFile(path) {
+      var w = window.open('', '_blank');
+      if (w) w.opener = null;
+      note = null;
+      token().then(function (t) {
+        return fetch(SB + '/storage/v1/object/sign/invoices/' + path.split('/').map(encodeURIComponent).join('/'), {
+          method: 'POST', body: JSON.stringify({ expiresIn: 300 }),
+          headers: { apikey: KEY, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }
+        });
+      }).then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)); }).then(function (j) {
+        if (!j || !j.signedURL) throw new Error('No link');
+        var url = SB + '/storage/v1' + j.signedURL;
+        if (w) w.location.href = url; else location.assign(url);
+      }).catch(function () {
+        if (w) w.close();
+        note = { where: 'inv', text: L.err_generic };
+        if (dt) { drawTrip(); into('.msg:not(:empty)'); }
+      });
+    }
+
+    return {
+      list: list, open: open, stop: stop,
+      // Who is signed in. Another account (or none): what was loaded for the last one goes.
+      user: function (u) {
+        u = UUID.test(u || '') ? u : null;
+        if (u === uid) return;
+        uid = u;
+        rows = dt = id = null;
+        byId = {};
+        ask = rep = busy = false;
+        repText = '';
+        note = null;
+        listN++; tripN++;
+        listAt = tripAt = 0;
+        stop();
+        listPane.innerHTML = tripPane.innerHTML = '';
+      }
+    };
   }
 
   // ---------------------------------------------------------------- account card
@@ -1301,25 +1807,35 @@
       + '<div class="me-ava"><span class="ava big"></span><i class="ok" aria-hidden="true"></i></div>'
       + '<p class="me-hi">' + esc(T.welcome) + '</p>'
       + '<p class="me-who"><small>' + esc(T.signed_in_as) + '</small><b class="me-name"></b><span class="me-mail"></span></p>'
-      + '<a class="btn big" href="/book/">' + esc(T.my_trips) + '</a>'
-      + '<button type="button" class="btn ghost out">' + esc(T.logout) + '</button>'
+      + '<a class="btn big" href="#trips">' + esc(T.my_trips) + '</a>'
+      + '<a class="btn ghost" href="' + esc(T.home) + '">' + esc(T.book_trip) + '</a>'
+      + '<button type="button" class="link out">' + esc(T.logout) + '</button>'
       + '</div></div>'
+      + '<div class="pane tv" data-pane="trips"></div>'
+      + '<div class="pane tv" data-pane="trip"></div>'
       + '</div></div>'
       + '<p class="acct-legal">' + T.legal + '</p>';
 
-    var P = {}, panes = $('.panes', el), cur = null, tab = 'login';
+    var P = {}, panes = $('.panes', el), cur = null, tab = 'login', h2 = $('h2', el);
     var email = '', fullName = '', codeTab = 'login', timer = 0, until = 0;
     $$('.pane', el).forEach(function (p) { P[p.dataset.pane] = p; setOn(p, false); });
     var codeIn = $('[name=code]', P.code);
+    h2.tabIndex = -1;
+    // Signed in, the card shows `view`: Your account (#login), My trips (#trips) or one trip
+    // (#trips/<id>). Deeper views come in from the right, shallower ones from the left.
+    var view = '#login', trips = Trips(P.trips, P.trip);
 
     function show(name, dir, instant) {
       var to = P[name];
       if (to === cur) return;
-      el.classList.toggle('is-me', name === 'me');
+      el.classList.toggle('is-me', !!DEPTH[name]);
+      el.classList.toggle('is-list', DEPTH[name] > 1);
+      h2.textContent = name === 'trips' ? T.my_trips : name === 'trip' ? T.trip_h : T.acct_h;
       var solo = el.parentNode && el.parentNode.classList.contains('solo'); // the card is as tall as its step
       swap(panes, cur, to, dir, instant || !el.isConnected || el.classList.contains('off'), null, solo ? panes.offsetHeight : null);
       cur = to;
       if (name !== 'code') stopTimer();
+      if (name !== 'trip') trips.stop();
     }
     function msg(pane, text, name, action) {
       var m = $('.msg', pane);
@@ -1472,7 +1988,14 @@
       if (loginOpen && !gated()) el.classList.remove('gate');
     }, true);
     $('.out', P.me).addEventListener('click', function () { el.classList.remove('fresh'); logout(); });
-    $('.back-btn', el).addEventListener('click', function () { closeLogin({ ui: true }); });
+    $('.back-btn', el).addEventListener('click', accountBack);
+
+    function showView(instant) {
+      var name = paneOf(view), was = cur && cur.dataset.pane;
+      if (name === 'trips') trips.list();
+      if (name === 'trip') trips.open(view.slice(7));
+      show(name, DEPTH[was] > DEPTH[name] ? -1 : 1, instant);
+    }
 
     function sync(instant) {
       var s = getSession();
@@ -1481,10 +2004,12 @@
         $('.ava', P.me).textContent = (nm || u.email || '?').charAt(0).toUpperCase();
         $('.me-name', P.me).textContent = nm || u.email || T.my_account;
         $('.me-mail', P.me).textContent = nm ? u.email || '' : '';
-        show('me', 1, instant);
+        trips.user(uidOf(s));
+        showView(instant);
       } else {
         el.classList.remove('fresh');
-        if (!cur || cur === P.me) show(tab, -1, instant);
+        trips.user(null);
+        if (!cur || DEPTH[cur.dataset.pane]) show(tab, -1, instant);
       }
     }
 
@@ -1511,7 +2036,15 @@
 
     return {
       el: el, lang: T.lang, sync: sync, callback: callback, used: used,
-      reset: function () { $$('.sso-btn', el).forEach(function (b) { busy(b, false); }); }
+      reset: function () { $$('.sso-btn', el).forEach(function (b) { busy(b, false); }); },
+      // Shows the view for an account URL (see acctHash). Signed out, Log in shows first and the
+      // view comes once signed in. The heading takes the focus when the card slides to another view.
+      route: function (h, instant) {
+        var was = cur;
+        view = h;
+        sync(instant);
+        if (cur !== was && was && DEPTH[was.dataset.pane] && !instant && el.isConnected && !el.classList.contains('off')) h2.focus({ preventScroll: true });
+      }
     };
   }
 
@@ -1521,19 +2054,36 @@
     return acct;
   }
 
-  // ---------------------------------------------------------------- login in place (#login)
+  // ---------------------------------------------------------------- the account card in place
+  //
+  // Its URLs: Log in, or Your account once signed in (#login), My trips (#trips) and one trip
+  // (#trips/<id>). The signed-in views form a stack, and so do their history entries: a deeper
+  // view pushes the views between (My trips from the booked step pushes Your account first), a
+  // shallower one goes back to its entry, so Back and the card's back arrow always go up one view.
+  // Entries pushed for the card carry au (the entry before is the view above this one) and ac (how
+  // many entries back the card was closed, when that is known).
 
-  var loginOpen = false, loginPushed = false, underY = 0;
+  var loginOpen = false, underY = 0;
+  var DEPTH = { me: 1, trips: 2, trip: 3 };
+  function acctHash(h) {
+    h = h == null ? location.hash : h;
+    return h === '#login' || h === '#trips' || (h.indexOf('#trips/') === 0 && UUID.test(h.slice(7))) ? h : '';
+  }
+  function paneOf(h) { return h === '#trips' ? 'trips' : h.indexOf('#trips/') === 0 ? 'trip' : 'me'; }
+  function depth(h) { return h ? DEPTH[paneOf(h)] : 0; }
+  function here(h) { return location.pathname + location.search + (h || ''); }
   function deckOf(p) { return p && $('.deck', p); }
   function loginButton(on) { var b = $('.top .login'); if (b) b.classList.toggle('on', on); }
   function closeLangMenus() { $$('details.lang[open]').forEach(function (x) { x.open = false; }); }
   function focusCard() { if (acct) acct.el.focus({ preventScroll: true }); }
+  // Where the card is: the home page's spot, or the card itself on its own screen.
+  function spot() { var p = acct.el.parentNode; return p && p.classList.contains('deck') ? p : acct.el; }
 
   function mountInDeck(deck, instant) {
     var a = account();
     if (deck._end) deck._end();
     if (a.el.parentNode !== deck) { leaveCopy(a.el); setOn(a.el, false); deck.appendChild(a.el); }
-    a.sync(true);
+    a.route(acctHash() || '#login', true);
     a.el.classList.toggle('gate', gated());
     if (deck._front === a.el) return;
     swap(deck, $('.book', deck), a.el, 1, instant, function () {
@@ -1590,11 +2140,14 @@
       else if (getSession() || !a.used()) { loginButton(false); return toBook(deck, instant); }
       else { // the layout widened (a phone turned sideways) mid sign-in: it stays, as the account card opened from the header
         loginOpen = true;
-        history.replaceState(history.state, '', location.pathname + location.search + '#login');
+        history.replaceState(history.state, '', here('#login'));
       }
     }
-    a.el.classList.toggle('gate', g || (fresh && solo)); // no back arrow during the welcome either: it moves on by itself
-    if (!deck._end) setSolo(deck, g || (fresh && solo), instant);
+    // No back arrow during the welcome either: it moves on by itself. Signed in on the way to My
+    // trips, the card takes the spot's full height at once (the list scrolls inside it).
+    var alone = g || (fresh && solo && depth(acctHash()) < 2);
+    a.el.classList.toggle('gate', alone);
+    if (!deck._end) setSolo(deck, alone, instant);
     loginButton(true);
   }
   function accountScreen() {
@@ -1605,7 +2158,7 @@
     setOn(a.el, true);
     a.el.classList.remove('gate');
     box.appendChild(a.el);
-    a.sync(true);
+    a.route(acctHash() || '#login', true);
     return s;
   }
   // The home page's booking card comes back when the page is shown again.
@@ -1628,24 +2181,20 @@
     }
   }
 
+  // Opens the card on a view (Log in or Your account unless o.view says otherwise).
   function openLogin(o) {
     o = o || {};
-    var deck = deckOf(page);
-    if (deck && !loginOpen && !o.fromUrl && gated()) { // phones: the card is already there, Log in first
+    var deck = deckOf(page), h = o.view || '#login';
+    if (loginOpen) return o.fromUrl ? acct.route(h) : goAccount(h);
+    if (deck && !o.fromUrl && h === '#login' && gated()) { // phones: the card is already there, Log in first
       syncDeck(true);
       reveal(deck, o.instant);
       return focusCard();
     }
-    if (!o.fromUrl && location.hash !== '#login') {
-      var url = location.pathname + location.search + '#login';
-      if (o.replace) history.replaceState(history.state, '', url);
-      else {
-        history.replaceState(Object.assign({}, history.state, { y: window.scrollY }), '');
-        history.pushState({ dv: stamp(), y: 0, bk: (history.state || {}).bk }, '', url); // the booking card stays on its step
-        loginPushed = true;
-      }
+    if (!o.fromUrl && acctHash() !== h) {
+      if (o.replace) history.replaceState(Object.assign({}, history.state, { au: null, ac: null }), '', here(h));
+      else pushViews(0, h);
     }
-    if (loginOpen) { if (deck) reveal(deck); return focusCard(); }
     loginOpen = true;
     loginButton(true);
     closeLangMenus();
@@ -1658,19 +2207,65 @@
     }
     focusCard();
   }
+  // Pushes the history entries for the views from depth `from` down to h. The booking card stays
+  // on its step in all of them.
+  function pushViews(from, h) {
+    var st = history.state || {}, ac = from ? st.ac : 0, views = ['#login', '#trips', h].slice(0, depth(h));
+    history.replaceState(Object.assign({}, st, { y: window.scrollY }), '');
+    for (var i = from; i < views.length; i++) {
+      if (ac != null) ac++;
+      history.pushState({ dv: stamp(), y: 0, bk: st.bk, au: true, ac: ac }, '', here(views[i]));
+    }
+  }
+  // Another view of the card (a link to #login, #trips or a trip). Opens the card if it is closed.
+  function goAccount(h) {
+    if (!loginOpen) return openLogin({ view: h });
+    var now = acctHash(), dn = depth(now), dh = depth(h), st = history.state || {};
+    if (h !== now && routing) {
+      if (dh > dn) pushViews(dn, h);
+      else if (dh < dn && st.ac != null) return history.go(dh - dn); // popstate shows it
+      else if (dh === dn - 1 && st.au) return history.back();
+      else history.replaceState(dh === dn ? st : Object.assign({}, st, { au: null, ac: null }), '', here(h));
+    }
+    acct.route(h);
+    reveal(spot());
+  }
+  // The card's back arrow: up one view (a trip to My trips, My trips to Your account); from Your
+  // account, or Log in, the card closes.
+  function accountBack() {
+    var dn = depth(acctHash()), st = history.state || {};
+    if (dn <= 1 || !getSession()) return closeLogin({ ui: true });
+    if (routing && st.au) return history.back(); // popstate shows the view above
+    goAccount(dn === 3 ? '#trips' : '#login');
+  }
+  // The header button (Log In / Create Account, or My account once signed in) opens the card. From
+  // My trips or a trip it goes back to Your account, and when the card already shows that, it
+  // closes it: Book your trip (or the page it was opened on) slides back. A double click opens it
+  // once; a card scrolled out of sight is brought back instead.
+  var tapAt = 0;
+  function accountButton() {
+    var quick = Date.now() - tapAt < 600;
+    tapAt = Date.now();
+    if (!loginOpen) return openLogin();
+    if (quick) return;
+    if (depth(acctHash()) > 1) return goAccount('#login');
+    var r = acct.el.getBoundingClientRect();
+    if (r.bottom < headerH() + 80 || r.top > window.innerHeight - 80) { reveal(spot()); return focusCard(); }
+    closeLogin({ ui: true });
+  }
 
   function closeLogin(o) {
     o = o || {};
     if (!loginOpen) return;
     cancelAutoClose();
-    // Escape or the back arrow: keyboard focus goes back to the header button.
+    // Escape, the back arrow or the header button: keyboard focus goes back to the header button.
     if (o.ui && o.focus !== false) { var b = $('.top .login'); if (b) b.focus({ preventScroll: true }); }
-    if (o.ui && location.hash === '#login') {
-      if (loginPushed) { history.back(); return; } // popstate closes it, so Back doesn't reopen it
-      history.replaceState(history.state, '', location.pathname + location.search);
+    if (o.ui && acctHash()) {
+      var st = history.state || {};
+      if (routing && st.ac > 0) { history.go(-st.ac); return; } // popstate closes it, so Back doesn't reopen it
+      history.replaceState(Object.assign({}, st, { au: null, ac: null }), '', here());
     }
     loginOpen = false;
-    loginPushed = false;
     loginButton(false);
     var a = acct, deck = a && a.el.parentNode && a.el.parentNode.classList.contains('deck') ? a.el.parentNode : null;
     if (deck) { if (gated()) syncDeck(o.instant); else toBook(deck, o.instant); } // phones stay on the card until signed in
@@ -1680,21 +2275,24 @@
     if (bk) bk.loginClosed();
   }
 
+  // The URL changed (Back, Forward, a typed #hash): the card follows it.
   function syncLogin() {
-    var want = location.hash === '#login';
-    if (want && !loginOpen) openLogin({ fromUrl: true });
-    else if (!want && loginOpen) closeLogin();
+    var h = acctHash();
+    if (h && !loginOpen) openLogin({ fromUrl: true, view: h });
+    else if (!h && loginOpen) closeLogin();
+    else if (h) acct.route(h);
   }
 
   // Signed in from the account card: on the home page, slide back to Book your trip after a
-  // moment. Tapping anything in the card, or leaving the page, cancels that.
+  // moment (not on the way to My trips). Tapping anything in the card, or leaving the page,
+  // cancels that.
   var autoClose = 0;
   function cancelAutoClose() { clearTimeout(autoClose); autoClose = 0; }
   function signedIn() {
     var s = getSession();
     if (s) fetchName(s);
     cancelAutoClose();
-    if (loginOpen && deckOf(page)) {
+    if (loginOpen && deckOf(page) && depth(acctHash()) < 2) {
       autoClose = setTimeout(function () {
         autoClose = 0;
         if (loginOpen && getSession() && deckOf(page)) closeLogin({ ui: true, focus: false });
@@ -1821,13 +2419,12 @@
   function arrive(next, dir, hash, y) {
     var from = screen, prev = page;
     loginOpen = false;
-    loginPushed = false;
     loginButton(false);
     applyChrome(next.meta);
     page = next.page;
     curKey = next.key;
     var to = page;
-    if (hash === '#login') { // Back or Forward onto an open account card
+    if (acctHash(hash)) { // Back or Forward onto an open account card
       loginOpen = true;
       loginButton(true);
       if (deckOf(page)) mountInDeck(deckOf(page), true);
@@ -1838,6 +2435,7 @@
     syncDeck(true);
     slideScreen(from, to, dir, y, function () { if (prev !== page) resetDeck(prev); });
     initPage(page, true);
+    renderInvite();
     if (to !== page) focusCard();
     else focusPage(page, from);
     announce(d.title);
@@ -1852,15 +2450,16 @@
     if (app) { // phones: the browser follows the link to the store (and it is /join again right after)
       cancelAutoClose();
       var href = a.getAttribute('href');
-      a.setAttribute('href', app);
+      if (/apple\.com/.test(app)) copyRef(); // an invite code goes along (toStore)
+      a.setAttribute('href', toStore(app));
       setTimeout(function () { a.setAttribute('href', href); });
       return;
     }
-    if (a.hasAttribute('data-login')) { e.preventDefault(); openLogin(); return; }
+    if (a.hasAttribute('data-login')) { e.preventDefault(); accountButton(); return; }
     var u = sitePage(a);
     if (!u) { cancelAutoClose(); return; } // leaving for /book or another site: nothing may pull us back
     if (samePage(u)) { // this page
-      if (u.hash === '#login') { e.preventDefault(); openLogin(); return; }
+      if (acctHash(u.hash)) { e.preventDefault(); goAccount(acctHash(u.hash)); return; } // a view of the account card
       if (!u.hash) {
         e.preventDefault();
         if (loginOpen) closeLogin({ ui: true, focus: false });
@@ -1899,7 +2498,7 @@
     navigate(location.href, { pop: true, dir: dir, y: ys[hIdx] != null ? ys[hIdx] : st.y || 0 });
   }
 
-  // The Domivan Driver app's page in the store this phone uses, or '' (computers, tablets in the
+  // The DomiVan Driver app's page in the store this phone uses, or '' (computers, tablets in the
   // two-column layout and other phones keep the Join Transporters form). iPads asking for the
   // desktop site say Macintosh, but have a touch screen.
   function driverStore() {
@@ -1927,6 +2526,7 @@
     var cb = takeCallback();
     oauthBack = !!cb;
     takeBooked();
+    takeRef();
     curKey = location.pathname + location.search;
     var st = history.state || {};
     hIdx = st.dv != null ? st.dv : stamp();
@@ -1936,10 +2536,10 @@
     initPage(page, false);
     authChanged(true);
     syncDeck(true);
-    refresh().then(function (s) { if (s) fetchName(s); });
+    refresh().then(function (s) { if (s) fetchName(s); startRef(); });
 
     if (cb) { openLogin({ replace: true, instant: true }); acct.callback(cb); }
-    else if (location.hash === '#login') openLogin({ fromUrl: true, instant: true });
+    else if (acctHash()) openLogin({ fromUrl: true, instant: true, view: acctHash() });
     else if (st.y && !location.hash) jump(st.y);
 
     d.addEventListener('click', onClick);
