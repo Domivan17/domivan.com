@@ -15,6 +15,10 @@
  * card in the home page's spot first, and Book your trip once signed in. Transporters goes
  * to the Domivan Driver app in the App Store or Google Play there (DRIVER_APP).
  *
+ * Booking (home): Book your trip prices the trip, takes the payment (Stripe's Payment Element)
+ * and confirms it inside the card; each step slides in and the page never changes. The account
+ * card slides over it when a signed-out visitor goes to pay.
+ *
  * Page modules: the booking card (home) and the Join Transporters form, started once for
  * each page as it is shown.
  *
@@ -169,29 +173,730 @@
     b.onfinish = end;
   }
 
-  // ---------------------------------------------------------------- booking card (home)
+  // ---------------------------------------------------------------- prices
+  //
+  // A copy of supabase/functions/_shared/pricing.ts (its rates are placeholders too). create-order
+  // prices the trip again on the server and that is what the client pays; this is the preview.
+  // Change both together.
 
-  // Fills sensible defaults, then hands the trip to the web app at /book.
-  function initBook(f) {
-    var when = f.elements.when, pad = function (n) { return String(n).padStart(2, '0'); };
-    var local = function (t) {
-      return t.getFullYear() + '-' + pad(t.getMonth() + 1) + '-' + pad(t.getDate()) + 'T' + pad(t.getHours()) + ':' + pad(t.getMinutes());
-    };
-    var t = new Date(Date.now() + 864e5); t.setHours(8, 0, 0, 0);
-    when.value = local(t); when.min = local(new Date());
-    var sync = function () { f.classList.toggle('is-live', f.elements.kind.value === 'live'); };
-    f.addEventListener('change', sync); sync();
+  var HOME_CC = ['PL', 'RO', 'BG', 'HU'], ABROAD_CC = ['DE', 'FR', 'BE', 'NL', 'GB', 'ES', 'IT', 'CH'];
+  var RATES = { base: 30, perKm: 0.062, road: 1.28, surcharge: { GB: 30, CH: 10 }, bag: 10, round: 5 };
+  var VANS = ['standard', 'large', 'luxury'];
+  var VAN = { standard: { max: 8, x: 1 }, large: { max: 20, x: 1.1 }, luxury: { max: 16, x: 1.6 } };
+
+  function inList(list, c) { return list.indexOf(String(c).toUpperCase()) >= 0; }
+  // Trips run between a home country and one abroad, in either direction.
+  function routeOk(a, b) {
+    return (inList(HOME_CC, a.country) && inList(ABROAD_CC, b.country)) || (inList(ABROAD_CC, a.country) && inList(HOME_CC, b.country));
+  }
+  function toRad(x) { return (x * Math.PI) / 180; }
+  function quote(a, b, pax, bags, van) {
+    var dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+    var sLat = Math.sin(dLat / 2), sLng = Math.sin(dLng / 2); // not **: older Safari can't parse it
+    var h = sLat * sLat + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sLng * sLng;
+    var km = Math.round(2 * 6371 * Math.asin(Math.sqrt(h)) * RATES.road);
+    var abroad = inList(ABROAD_CC, b.country) ? b.country : a.country; // UK and Switzerland cost extra at either end
+    var per = RATES.base + RATES.perKm * km + (RATES.surcharge[String(abroad).toUpperCase()] || 0);
+    var raw = (per * pax + RATES.bag * bags) * VAN[van].x;
+    return { km: km, cents: Math.max(RATES.round, Math.round(raw / RATES.round) * RATES.round) * 100 };
+  }
+
+  // Euros, dates and countries the way the page's language writes them.
+  function locale(lang) { return lang === 'en' ? 'en-GB' : lang; }
+  function money(cents, lang) {
+    var f = cents % 100 ? 2 : 0;
+    try {
+      return new Intl.NumberFormat(locale(lang), { style: 'currency', currency: 'EUR', currencyDisplay: 'narrowSymbol', minimumFractionDigits: f, maximumFractionDigits: f }).format(cents / 100);
+    } catch (e) { return '€' + (cents / 100).toFixed(f); }
+  }
+  function dateText(t, lang) {
+    try {
+      return new Intl.DateTimeFormat(locale(lang), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(t);
+    } catch (e) { return t.toLocaleString(); }
+  }
+  function countryName(cc, lang) {
+    try { return new Intl.DisplayNames([lang], { type: 'region' }).of(cc) || cc; } catch (e) { return cc; }
+  }
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  // The value of a datetime-local field, and back. Both in the visitor's own time.
+  function localDT(t) { return t.getFullYear() + '-' + pad2(t.getMonth() + 1) + '-' + pad2(t.getDate()) + 'T' + pad2(t.getHours()) + ':' + pad2(t.getMinutes()); }
+  function parseDT(v) {
+    var m = /^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d)/.exec(v || '');
+    if (!m) return null;
+    var t = new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5]);
+    return isNaN(t.getTime()) ? null : t;
+  }
+
+  // ---------------------------------------------------------------- address search
+  //
+  // The same search as the apps (src/lib/place-search.ts): Photon while the visitor types (towns,
+  // streets with numbers, postcodes, typos forgiven), Nominatim when Photon finds nothing. Both
+  // are OpenStreetMap based and need no key.
+
+  var EUROPE = { west: -25, south: 27, east: 45, north: 72 };
+  var PLACE_TYPES = ['city', 'town', 'village', 'locality', 'district'];
+  // The first of its arguments that is set (?? in the apps' code).
+  function pick() { for (var i = 0; i < arguments.length; i++) if (arguments[i] != null) return arguments[i]; }
+
+  function fromPhoton(f) {
+    var p = f.properties || {}, c = f.geometry && f.geometry.coordinates;
+    if (!p.countrycode || !c) return null;
+    var isPlace = PLACE_TYPES.indexOf(p.type) >= 0;
+    var city = pick(isPlace ? p.name : pick(p.city, p.locality, p.district), p.county, p.state, p.name, '');
+    var street = p.street ? [p.street, p.housenumber].filter(Boolean).join(' ') : '';
+    var parts = [
+      p.name && [p.street, p.postcode, city].indexOf(p.name) < 0 ? p.name : '',
+      street,
+      [p.postcode, city].filter(Boolean).join(' '),
+      isPlace || !city ? pick(p.county, p.state) : '',
+      p.country
+    ];
+    var label = parts.filter(function (s, i) { return s && parts.indexOf(s) === i; }).join(', ');
+    return { label: label, address: label, city: city, country: p.countrycode.toUpperCase(), lat: c[1], lng: c[0] };
+  }
+  function searchPlaces(q, signal) {
+    var E = EUROPE, url = 'https://photon.komoot.io/api/?limit=6&lang=en&bbox=' + [E.west, E.south, E.east, E.north].join(',') + '&q=' + encodeURIComponent(q);
+    return fetch(url, { headers: { Accept: 'application/json' }, signal: signal }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (j) {
+      var seen = {};
+      return (j.features || []).map(fromPhoton).filter(function (s) {
+        if (!s || seen[s.label]) return false;
+        seen[s.label] = 1;
+        return true;
+      });
+    });
+  }
+  function searchNominatim(q) {
+    var E = EUROPE;
+    var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=1&accept-language=en&viewbox='
+      + [E.west, E.north, E.east, E.south].join(',') + '&bounded=1&q=' + encodeURIComponent(q);
+    return fetch(url, { headers: { Accept: 'application/json' } }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (rows) {
+      var hit = rows && rows[0], a = (hit && hit.address) || {};
+      if (!hit || !a.country_code) return null;
+      return {
+        address: q, city: pick(a.city, a.town, a.village, a.municipality, a.county, a.state, q),
+        country: a.country_code.toUpperCase(), lat: parseFloat(hit.lat), lng: parseFloat(hit.lon)
+      };
+    });
+  }
+  // Best match for typed text the visitor didn't pick from the suggestions: null when neither
+  // service knows it, an error when neither answered.
+  function findPlace(q) {
+    var down = 0;
+    return searchPlaces(q).then(function (r) { return r[0] ? Object.assign({}, r[0], { address: q }) : null; }, function () { down++; return null; })
+      .then(function (p) { return p || searchNominatim(q).catch(function () { down++; return null; }); })
+      .then(function (p) { if (!p && down === 2) throw new Error('Address search is down'); return p; });
+  }
+
+  // Suggestions under an address field while the visitor types (a combobox: arrows, Enter, Escape).
+  // Picking one keeps that exact place on the field (input._place); typing again drops it.
+  var sgN = 0;
+  function Suggest(input) {
+    var label = input.closest('label'), box = d.createElement('div'), list = d.createElement('ul'), id = 'sg' + (++sgN);
+    var items = [], active = -1, timer = 0, ctl = null, seq = 0;
+    box.className = 'af';
+    label.parentNode.insertBefore(box, label);
+    box.appendChild(label);
+    box.appendChild(list);
+    list.className = 'sugg';
+    list.id = id;
+    list.hidden = true;
+    list.setAttribute('role', 'listbox');
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-expanded', 'false');
+    input.setAttribute('aria-controls', id);
+    input.setAttribute('autocomplete', 'off'); // the browser's own list would cover ours
+
+    function close() {
+      list.hidden = true;
+      active = -1;
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+    }
+    function render() {
+      list.innerHTML = items.map(function (s, i) {
+        var parts = s.label.split(', ');
+        return '<li role="option" id="' + id + '-' + i + '" aria-selected="false" data-i="' + i + '"><b>' + esc(parts[0]) + '</b>'
+          + (parts.length > 1 ? '<span>' + esc(parts.slice(1).join(', ')) + '</span>' : '') + '</li>';
+      }).join('');
+      active = -1;
+      list.hidden = !items.length;
+      input.setAttribute('aria-expanded', items.length ? 'true' : 'false');
+    }
+    function mark(i) {
+      active = i;
+      $$('li', list).forEach(function (li, j) { li.setAttribute('aria-selected', j === i ? 'true' : 'false'); });
+      input.setAttribute('aria-activedescendant', id + '-' + i);
+    }
+    function choose(i) {
+      var s = items[i];
+      if (!s) return;
+      input.value = s.label;
+      input._place = s;
+      close();
+      input.dispatchEvent(new CustomEvent('dv-pick', { bubbles: true }));
+    }
+    input.addEventListener('input', function () {
+      input._place = null;
+      clearTimeout(timer);
+      var q = input.value.trim();
+      if (q.length < 3) { seq++; items = []; return close(); }
+      timer = setTimeout(function () {
+        var n = ++seq;
+        if (ctl) ctl.abort();
+        ctl = window.AbortController ? new AbortController() : null;
+        searchPlaces(q, ctl ? ctl.signal : undefined).then(function (r) {
+          if (n !== seq || d.activeElement !== input) return;
+          items = r.slice(0, 5);
+          render();
+        }, noop);
+      }, 220);
+    });
+    input.addEventListener('keydown', function (e) {
+      if (list.hidden) return;
+      var n = items.length;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        mark(e.key === 'ArrowDown' ? (active + 1) % n : active <= 0 ? n - 1 : active - 1);
+      } else if (e.key === 'Enter' && active >= 0) {
+        e.preventDefault();
+        choose(active);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation(); // only the list closes
+        close();
+      }
+    });
+    input.addEventListener('blur', function () { setTimeout(close, 120); });
+    list.addEventListener('mousedown', function (e) { e.preventDefault(); }); // the field keeps the focus (and a phone its keyboard)
+    list.addEventListener('click', function (e) { var li = e.target.closest('li'); if (li) choose(+li.dataset.i); });
+    return { close: close };
+  }
+
+  // ---------------------------------------------------------------- payments (Stripe)
+
+  var STRIPE_PK = 'pk_test_51UR6TkFGe72W5Sn03sZiyUxy2RrnSKKlK570gs7cXFLr0qkjfHJTSiKBUJNKft1VlOMPLOh7NpOJWa2RQgaHSrL900EXEru4Se'; // public key, same as the apps (test mode, the "Domivan" sandbox)
+  // Stripe's Payment Element in the card's colours: dark fields, the site's blue.
+  var APPEARANCE = {
+    theme: 'night',
+    variables: {
+      colorPrimary: '#2E5BFF', colorBackground: '#18213A', colorText: '#FFFFFF', colorTextSecondary: '#C3CEDF',
+      colorTextPlaceholder: '#8996AC', colorIcon: '#C3CEDF', colorDanger: '#FFB4A8',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif',
+      fontSizeBase: '16px', borderRadius: '12px', spacingUnit: '4px'
+    },
+    rules: {
+      '.Input': { border: '1.5px solid #34405A', boxShadow: 'none' },
+      '.Input:focus': { border: '1.5px solid #9DB5FF', boxShadow: 'none' },
+      '.Input--invalid': { border: '1.5px solid #FF9B8A' },
+      '.Label': { fontSize: '12.5px', fontWeight: '700', color: '#C3CEDF' },
+      '.Tab': { border: '1.5px solid #34405A', backgroundColor: '#18213A', boxShadow: 'none' },
+      '.Tab--selected': { border: '1.5px solid #9DB5FF', backgroundColor: '#1E2A4A' }
+    }
+  };
+  // Stripe.js has to come from js.stripe.com. Fetched once, when a price is first shown.
+  var stripeReq = null;
+  function loadStripe() {
+    if (!stripeReq) {
+      stripeReq = new Promise(function (ok, no) {
+        var ready = function () { if (window.Stripe) ok(window.Stripe(STRIPE_PK)); else no(new Error('No Stripe.js')); };
+        if (window.Stripe) return ready();
+        var s = d.createElement('script');
+        s.src = 'https://js.stripe.com/v3/';
+        s.onload = ready;
+        s.onerror = function () { s.remove(); no(new Error('Stripe.js did not load')); };
+        d.head.appendChild(s);
+      });
+      stripeReq.catch(function () { stripeReq = null; }); // the next try fetches it again
+    }
+    return stripeReq;
+  }
+
+  // POST to one of the project's edge functions as the signed-in visitor.
+  function callFn(name, body, token) {
+    return fetch(SB + '/functions/v1/' + name, {
+      method: 'POST', body: JSON.stringify(body),
+      headers: { apikey: KEY, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }
+    }).then(function (r) {
+      return r.text().then(function (txt) {
+        var j = {};
+        try { j = txt ? JSON.parse(txt) : {}; } catch (e) {}
+        if (r.ok) return j;
+        var e = new Error(j.error || 'HTTP ' + r.status);
+        e.status = r.status;
+        throw e;
+      });
+    });
+  }
+  function busyBtn(btn, on, label) {
+    if (on) {
+      if (btn._label == null) btn._label = btn.textContent;
+      btn.disabled = true; btn.classList.add('busy');
+      if (label) btn.textContent = label;
+    } else if (btn._label != null) {
+      btn.disabled = false; btn.classList.remove('busy');
+      btn.textContent = btn._label; btn._label = null;
+    }
+  }
+
+  // ---------------------------------------------------------------- booking card (home)
+  //
+  // Book your trip books the whole trip in place: its steps slide inside the card (trip, price,
+  // payment, booked) and the page never changes. Paying needs an account: signed out, "Log in to
+  // pay" slides the account card over it, and the payment step is ready behind it by the time it
+  // slides back. Each step is a history entry, so Back goes one step back. While the visitor is
+  // away at Google, Apple or their bank, the trip waits in sessionStorage (TRIP).
+
+  var TRIP = 'domivan-trip';
+  var tripStore = {
+    get: function () { try { return JSON.parse(sessionStorage.getItem(TRIP)); } catch (e) { return null; } },
+    set: function (v) { try { sessionStorage.setItem(TRIP, JSON.stringify(v)); } catch (e) {} },
+    del: function () { try { sessionStorage.removeItem(TRIP); } catch (e) {} }
+  };
+  var STEPS = { trip: 0, price: 1, pay: 2, done: 3 };
+  var IC = {
+    cal: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M3.5 10h17M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
+    pax: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M5 20c.8-3.6 3.6-5.6 7-5.6s6.2 2 7 5.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
+    bag: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="7" width="14" height="12.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M9.5 7V4.6h5V7M9 19.5v1.6M15 19.5v1.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    km: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c3-1 3-6 7-7s4-6 7-7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-dasharray="2.2 3"/><circle cx="5" cy="19" r="2" fill="currentColor"/><circle cx="19" cy="5" r="2" fill="currentColor"/></svg>',
+    lock: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke="currentColor" stroke-width="1.9"/></svg>',
+    ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+  // Set by start() before the home page's card starts: back from the bank (?booked=...), or from
+  // Google or Apple.
+  var stripeBack = null, oauthBack = false;
+
+  function Book(card, main) {
+    var L = T, f = $('form.bk-trip', card), el = f.elements, panes = $('.panes', card), h2 = $('h2', card);
+    var title0 = h2.textContent, P = { trip: f }, cur = f, step = 'trip';
+    var trip = null, van = 'standard', prefer = null, order = null, dirty = false, ed = 0;
+    var stripe = null, els = null, pe = null, busy = false, paying = false, wantPay = false, afterLogin = null;
+    f.noValidate = true; // our own messages, in the page's language
+
+    // The back arrow in the card's header row, shown after the first step.
+    var back = d.createElement('button');
+    back.type = 'button';
+    back.className = 'back-btn';
+    back.title = L.back;
+    back.setAttribute('aria-label', L.back);
+    back.innerHTML = CHEV;
+    h2.parentNode.insertBefore(back, h2.parentNode.firstChild);
+    h2.setAttribute('tabindex', '-1');
+
+    function pane(name, html) {
+      var p = d.createElement('div');
+      p.className = 'pane bk-' + name;
+      p.dataset.pane = name;
+      p.innerHTML = html;
+      setOn(p, false);
+      panes.appendChild(p);
+      return (P[name] = p);
+    }
+    function leg(k, cls) {
+      return '<div class="leg"><span class="' + cls + '" aria-hidden="true"></span><p><b class="' + k + '-city"></b><span class="' + k + '-addr"></span></p></div>';
+    }
+    pane('price', '<div class="book-body">'
+      + '<div class="trip-sum"><div class="legs">' + leg('a', 'start') + leg('b', 'ring') + '</div><p class="facts"></p></div>'
+      + '<fieldset class="vpick"><legend><small>' + esc(L.van_h) + '</small></legend><div class="vopts">' + VANS.map(function (v) {
+        return '<label class="vopt ' + v + '"><input type="radio" name="van" value="' + v + '"><b>' + esc(L['v_' + v]) + '</b><span class="vprice"></span></label>';
+      }).join('') + '</div><p class="vcap"></p></fieldset>'
+      + '<label class="notes"><small>' + esc(L.note_label) + '</small><input name="notes" maxlength="500" autocomplete="off" placeholder="' + esc(L.ph_note) + '"></label>'
+      + '<div class="msg" role="alert"></div>'
+      + '</div><div class="book-foot"><p class="total"><span>' + esc(L.total) + '</span><b></b></p>'
+      + '<button class="btn big go" type="button"></button><p class="fine"></p></div>');
+    pane('pay', '<div class="book-body">'
+      + '<div class="pay-sum"><p class="ps-route"></p><b class="ps-price"></b></div>'
+      + '<div class="pe-box"><div class="pe"></div><span class="spin" aria-hidden="true"></span></div>'
+      + '<div class="msg" role="alert"></div>'
+      + '</div><div class="book-foot"><button class="btn big go" type="button"></button><p class="secure">' + IC.lock + '<span>' + esc(L.secure) + '</span></p></div>');
+    pane('done', '<div class="book-body">'
+      + '<div class="done-top"><span class="tick" aria-hidden="true">' + IC.ok + '</span><h3>' + esc(L.done_h) + '</h3><p class="done-p"></p></div>'
+      + '<dl class="done-sum"></dl>'
+      + '</div><div class="book-foot"><a class="btn big" href="/book/">' + esc(L.my_trips) + '</a><button type="button" class="btn ghost another">' + esc(L.another) + '</button></div>');
+    var notes = $('[name=notes]', P.price), priceBtn = $('.go', P.price), payBtn = $('.go', P.pay);
+
+    function msg(p, text, input) {
+      $('.msg', p).textContent = text || '';
+      $$('[aria-invalid]', p).forEach(function (i) { i.removeAttribute('aria-invalid'); });
+      if (input) { input.setAttribute('aria-invalid', 'true'); input.focus({ preventScroll: true }); }
+    }
+
+    // ---- step 1: the trip
+    var when = el.when, t0 = new Date(Date.now() + 864e5);
+    t0.setHours(8, 0, 0, 0);
+    when.value = localDT(t0);
+    when.min = localDT(new Date());
+    var sync = function () { card.classList.toggle('is-live', el.kind.value === 'live'); };
+    f.addEventListener('change', sync);
+    sync();
+    // Every change to the trip: the price shown is no longer for this form.
+    function edited() { dirty = true; ed++; }
+    f.addEventListener('input', edited);
+    f.addEventListener('change', edited);
     $('.swap', f).addEventListener('click', function () {
-      var a = f.elements.from, b = f.elements.to, v = a.value; a.value = b.value; b.value = v;
+      var a = el.from, b = el.to, v = a.value, p = a._place;
+      a.value = b.value; b.value = v;
+      a._place = b._place; b._place = p;
+      edited();
+      msg(f, '');
     });
     $$('[data-step]', f).forEach(function (b) {
       b.addEventListener('click', function () {
         var i = b.parentNode.querySelector('input');
         i.value = Math.min(+i.max, Math.max(+i.min, (+i.value || 0) + +b.dataset.step));
+        edited();
       });
     });
-    f.addEventListener('submit', function () { if (f.elements.kind.value === 'live') when.disabled = true; });
+    Suggest(el.from);
+    Suggest(el.to);
+    // Picked the pickup: on to the destination if it is still empty.
+    f.addEventListener('dv-pick', function (e) { if (e.target === el.from && !el.to.value.trim()) el.to.focus({ preventScroll: true }); });
+    f.addEventListener('submit', function (e) { e.preventDefault(); getPrice(); });
+
+    function getPrice() {
+      if (busy) return;
+      var a = el.from.value.trim(), b = el.to.value.trim(), kind = el.kind.value === 'live' ? 'live' : 'booking', at = null;
+      if (!a) return msg(f, L.err_from, el.from);
+      if (!b) return msg(f, L.err_to, el.to);
+      if (kind === 'booking') {
+        at = parseDT(when.value);
+        if (!at || at.getTime() < Date.now() + 2 * 3600e3) return msg(f, L.err_when, when);
+      }
+      var pax = +el.pax.value, bags = +(el.bags.value || 0);
+      if (!(pax >= 1 && pax <= 20 && pax % 1 === 0)) return msg(f, L.err_pax, el.pax);
+      if (!(bags >= 0 && bags <= 40 && bags % 1 === 0)) return msg(f, L.err_bags, el.bags);
+      var btn = $('.go', f), e0 = ed;
+      // Edited, or gone, while the addresses were looked up: that answer is for an older trip.
+      var stale = function () { return ed !== e0 || step !== 'trip' || !card.isConnected; };
+      msg(f, '');
+      busy = true;
+      busyBtn(btn, true, L.checking);
+      Promise.all([el.from._place || findPlace(a), el.to._place || findPlace(b)]).then(function (r) {
+        if (stale()) return;
+        if (!r[0]) return msg(f, fill(L.err_not_found, { q: a }), el.from);
+        if (!r[1]) return msg(f, fill(L.err_not_found, { q: b }), el.to);
+        if (!routeOk(r[0], r[1])) return msg(f, L.err_route);
+        trip = { kind: kind, from: r[0], to: r[1], at: at, pax: pax, bags: bags };
+        order = null;
+        fillPrice();
+        go('price');
+        dirty = false; // after go: a field that loses focus there can still send its change
+        loadStripe().catch(noop); // ready for the payment step
+      }, function () { if (!stale()) msg(f, L.err_search); }).then(function () { busy = false; busyBtn(btn, false); });
+    }
+
+    // ---- step 2: the price, with a choice of van
+    function fits(v) { return trip.pax <= VAN[v].max; }
+    function cents() { return quote(trip.from, trip.to, trip.pax, trip.bags, van).cents; }
+    function fillPrice() {
+      var p = P.price, A = trip.from, B = trip.to;
+      [['a', A], ['b', B]].forEach(function (x) {
+        $('.' + x[0] + '-city', p).textContent = x[1].city + ', ' + countryName(x[1].country, L.lang);
+        $('.' + x[0] + '-addr', p).textContent = x[1].address !== x[1].city ? x[1].address : '';
+      });
+      var fact = function (icon, text, label) {
+        return '<span class="fact"' + (label ? ' title="' + esc(label) + '"' : '') + '>' + icon
+          + (label ? '<span class="sr-only">' + esc(label) + ': </span>' : '') + esc(text) + '</span>';
+      };
+      $('.facts', p).innerHTML = fact(IC.cal, trip.kind === 'live' ? L.asap : dateText(trip.at, L.lang))
+        + fact(IC.pax, trip.pax, L.f_pax) + (trip.bags ? fact(IC.bag, trip.bags, L.f_bags) : '')
+        + fact(IC.km, fill(L.km, { n: quote(A, B, 1, 0, 'standard').km }));
+      VANS.forEach(function (v) {
+        var ok = fits(v), o = $('.vopt.' + v, p);
+        o.classList.toggle('no', !ok);
+        $('input', o).disabled = !ok;
+        $('.vprice', o).textContent = ok ? money(quote(A, B, trip.pax, trip.bags, v).cents, L.lang) : fill(L.too_many, { n: VAN[v].max });
+      });
+      setVan(prefer && fits(prefer) ? prefer : fits(van) ? van : trip.pax <= VAN.standard.max ? 'standard' : 'large');
+    }
+    function setVan(v) {
+      van = v;
+      $$('[name=van]', P.price).forEach(function (r) { r.checked = r.value === v; r.parentNode.classList.toggle('on', r.checked); });
+      $('.vcap', P.price).textContent = L['c_' + v];
+      syncPrice();
+    }
+    function syncPrice() {
+      if (!trip) return;
+      var price = money(cents(), L.lang), label = fill(getSession() ? L.pay : L.login_pay, { price: price });
+      $('.total b', P.price).textContent = price;
+      if (priceBtn._label != null) priceBtn._label = label; // busy: shown once it is done
+      else priceBtn.textContent = label;
+      $('.fine', P.price).textContent = (trip.kind === 'live' ? L.fine_print_live : L.fine_print) + (van === 'luxury' ? ' ' + L.lux_note : '');
+    }
+    P.price.addEventListener('change', function (e) {
+      if (e.target.name !== 'van') return;
+      prefer = e.target.value;
+      setVan(prefer);
+      if (order) order = null; // another van is another order
+    });
+    priceBtn.addEventListener('click', startPay);
+
+    // ---- step 3: payment
+    function orderBody() {
+      var place = function (x) { return { address: x.address, city: x.city, country: x.country, lat: x.lat, lng: x.lng }; };
+      return {
+        kind: trip.kind, pickup: place(trip.from), dropoff: place(trip.to),
+        pickupAt: (trip.kind === 'live' ? new Date() : trip.at).toISOString(),
+        passengers: trip.pax, extraBags: trip.bags, vanClass: van, notes: notes.value.trim() || undefined
+      };
+    }
+    // Creates the order (the server prices it and starts a Stripe payment for it), then slides
+    // on to Stripe's form. Signed out: the account card first.
+    function startPay() {
+      if (busy || !trip) return;
+      if (!getSession()) {
+        wantPay = true;
+        save(true);
+        openLogin();
+        return;
+      }
+      var c = cents();
+      busy = true;
+      lock(true);
+      busyBtn(priceBtn, true, L.preparing);
+      msg(P.price, '');
+      refresh().then(function (s) {
+        if (!s) { var e = new Error('Signed out'); e.status = 401; throw e; }
+        return callFn('create-order', orderBody(), s.access_token);
+      }).then(function (r) {
+        if (!r || !r.orderId || !r.clientSecret) throw new Error('No payment in the reply');
+        order = { id: r.orderId, secret: r.clientSecret, cents: r.fareCents || c };
+        save(false);
+        return loadStripe().then(function (st) { stripe = st; }, function () { var e = new Error('Stripe.js'); e.stripe = true; throw e; });
+      }).then(function () {
+        if (step !== 'price' || !card.isConnected) return; // went back meanwhile: Pay starts it again
+        mountPayment();
+        go('pay');
+      }).catch(function (e) {
+        if (e.status === 401) { msg(P.price, L.err_login_again); clearSession(); }
+        else if (e.status === 409) msg(P.price, L.err_paid);
+        else msg(P.price, e.stripe ? L.err_pay_load : errText(e));
+      }).then(function () {
+        busy = false;
+        lock(false);
+        busyBtn(priceBtn, false);
+        syncPrice();
+      });
+    }
+    // The order is made for the van and the note shown, so they stay put until it is.
+    function lock(on) {
+      $('.vpick', P.price).disabled = on;
+      notes.readOnly = on;
+    }
+    function mountPayment() {
+      var p = P.pay, price = money(order.cents, L.lang);
+      dropPayment();
+      $('.ps-route', p).textContent = trip.from.city + ' → ' + trip.to.city;
+      $('.ps-price', p).textContent = price;
+      payBtn.textContent = fill(L.pay, { price: price });
+      payBtn.disabled = true;
+      msg(p, '');
+      p.classList.add('loading');
+      // Didn't load: the button tries again.
+      var failed = function () { p.classList.remove('loading'); dropPayment(); msg(p, L.err_pay_load); payBtn.textContent = L.retry; payBtn.disabled = false; };
+      try {
+        els = stripe.elements({ clientSecret: order.secret, locale: L.lang, appearance: APPEARANCE });
+        pe = els.create('payment', { layout: 'tabs' });
+        pe.on('ready', function () { p.classList.remove('loading'); payBtn.disabled = false; });
+        pe.on('loaderror', failed);
+        pe.mount($('.pe', p));
+      } catch (e) { failed(); }
+    }
+    function dropPayment() {
+      if (pe) { try { pe.destroy(); } catch (e) {} }
+      pe = els = null;
+    }
+    function confirmPay() {
+      if (paying) return;
+      if (!pe) {
+        return loadStripe().then(function (st) { stripe = st; mountPayment(); }, function () { msg(P.pay, L.err_pay_load); });
+      }
+      var p = P.pay;
+      paying = true;
+      busyBtn(payBtn, true, L.paying);
+      msg(p, '');
+      save(false);
+      // Cards finish here (3-D Secure opens over the page); bank redirects come back to this page.
+      stripe.confirmPayment({
+        elements: els, redirect: 'if_required',
+        confirmParams: { return_url: location.origin + location.pathname + '?booked=' + encodeURIComponent(order.id) }
+      }).then(function (r) {
+        if (r && r.error) {
+          if (r.error.type !== 'validation_error') msg(p, r.error.message || L.err_pay); // Stripe marks the field itself
+          return;
+        }
+        var s = r && r.paymentIntent && r.paymentIntent.status;
+        booked(s === 'processing' ? 'wait' : 'ok');
+      }, function () { msg(p, L.err_pay); }).then(function () {
+        paying = false;
+        busyBtn(payBtn, false);
+      });
+    }
+    payBtn.addEventListener('click', confirmPay);
+
+    // ---- step 4: booked
+    function booked(how, o) {
+      var p = P.done, t = trip, rows = [];
+      $('.done-p', p).textContent = how === 'wait' ? L.done_wait : t && t.kind === 'live' ? L.done_p_live : L.done_p;
+      if (t) {
+        rows.push([L.s_route, t.from.city + ' → ' + t.to.city], [L.s_pickup, t.kind === 'live' ? L.asap : dateText(t.at, L.lang)], [L.s_van, L['v_' + van]]);
+      }
+      if (order && order.cents) rows.push([L.s_paid, money(order.cents, L.lang)]);
+      $('.done-sum', p).innerHTML = rows.map(function (r) { return '<div><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('');
+      tripStore.del();
+      wantPay = false;
+      go('done', o);
+    }
+    $('.another', P.done).addEventListener('click', function () {
+      reset();
+      go('trip', { history: false });
+      history.replaceState(Object.assign({}, history.state, { bk: null, bkp: null, bkr: null }), '');
+      setTimeout(function () { el.from.focus({ preventScroll: true }); }, 480);
+    });
+    function reset() {
+      trip = order = prefer = null;
+      dirty = false;
+      el.from.value = el.to.value = notes.value = '';
+      el.from._place = el.to._place = null;
+      msg(f, '');
+      tripStore.del();
+    }
+
+    // ---- moving between steps
+    function push(name) {
+      if (!routing) return;
+      history.replaceState(Object.assign({}, history.state, { y: window.scrollY }), '');
+      history.pushState({ dv: stamp(), y: window.scrollY, bk: name, bkp: 1 }, ''); // bkp: the entry before is the step before
+    }
+    function go(name, o) {
+      o = o || {};
+      var to = P[name];
+      if (to === cur) return;
+      var fwd = STEPS[name] > STEPS[step], was = step, hidden = !card.isConnected || card.classList.contains('off');
+      step = name;
+      card.dataset.stage = name;
+      h2.textContent = name === 'trip' ? title0 : L['h_' + name];
+      swap(panes, cur, to, fwd ? 1 : -1, o.instant || hidden, function () { if (was === 'pay' && step !== 'pay') dropPayment(); });
+      cur = to;
+      if (o.history !== false) {
+        if (name === 'done') history.replaceState(Object.assign({}, history.state, { bk: 'done', bkr: null }), '');
+        else if (fwd && loginOpen) afterLogin = name; // pushed once the account card has gone (loginClosed)
+        else if (fwd) push(name);
+      }
+      if (!hidden && !o.instant) {
+        if (fwd) reveal(card);
+        h2.focus({ preventScroll: true });
+      }
+    }
+    back.addEventListener('click', function () {
+      var prev = step === 'pay' ? 'price' : 'trip', st = history.state || {};
+      if (routing && st.bk === step && st.bkp && !st.bkr) return history.back(); // popstate takes it back a step
+      go(prev, { history: false });
+      if (routing) history.replaceState(Object.assign({}, st, { bk: prev === 'trip' ? null : prev, bkp: null }), '');
+    });
+
+    // Keeps the trip while the visitor is away at Google, Apple or their bank.
+    function save(pay) {
+      if (!trip) return;
+      tripStore.set({
+        t: Date.now(), lang: L.lang, kind: trip.kind, from: trip.from, to: trip.to, fromText: el.from.value, toText: el.to.value,
+        when: when.value, at: trip.at ? trip.at.getTime() : null, pax: trip.pax, bags: trip.bags, van: van, notes: notes.value,
+        pay: !!pay, order: order ? { id: order.id, cents: order.cents } : null
+      });
+    }
+    function placeOk(x) { return !!x && typeof x.city === 'string' && typeof x.country === 'string' && isFinite(x.lat) && isFinite(x.lng); }
+    function restore(s) {
+      if (!s || s.lang !== L.lang || Date.now() - s.t > 3 * 3600e3 || !placeOk(s.from) || !placeOk(s.to)) return false;
+      $$('[name=kind]', f).forEach(function (r) { r.checked = r.value === s.kind; });
+      sync();
+      el.from.value = s.fromText || s.from.address;
+      el.to.value = s.toText || s.to.address;
+      el.from._place = s.from;
+      el.to._place = s.to;
+      if (s.when) when.value = s.when;
+      el.pax.value = s.pax;
+      el.bags.value = s.bags;
+      notes.value = s.notes || '';
+      trip = { kind: s.kind === 'live' ? 'live' : 'booking', from: s.from, to: s.to, at: s.at ? new Date(s.at) : null, pax: +s.pax || 1, bags: +s.bags || 0 };
+      if (trip.kind === 'booking' && !trip.at) { trip = null; return false; }
+      prefer = s.van;
+      fillPrice();
+      if (s.order) order = { id: s.order.id, cents: s.order.cents };
+      return true;
+    }
+
+    // Back from the bank: booked, or the payment step again with what went wrong.
+    var s = tripStore.get(), sb = stripeBack;
+    if (sb) {
+      stripeBack = null;
+      var had = restore(s) && !!order && order.id === sb.id;
+      if (sb.status === 'succeeded' || sb.status === 'processing') {
+        if (!had) { trip = null; order = null; }
+        booked(sb.status === 'processing' ? 'wait' : 'ok', { instant: true });
+      } else if (had) {
+        go('price', { instant: true, history: false });
+        history.replaceState(Object.assign({}, history.state, { bk: 'price', bkr: 1 }), '');
+        msg(P.price, L.err_pay);
+      } else {
+        msg(f, L.err_pay);
+      }
+    } else if (oauthBack && s && s.pay && restore(s)) {
+      // Back from Google or Apple after "Log in to pay": the price again, and the payment step
+      // as soon as the session is in (auth).
+      go('price', { instant: true, history: false });
+      history.replaceState(Object.assign({}, history.state, { bk: 'price', bkr: 1 }), '');
+      wantPay = true;
+    } else if (routing && history.state && history.state.bk) {
+      history.replaceState(Object.assign({}, history.state, { bk: null, bkp: null, bkr: null }), ''); // reloaded on a later step
+    }
+    oauthBack = false;
+
+    // The vans' "Book a seat" buttons scroll here with that van chosen.
+    main.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('[data-van]');
+      if (!a || !VAN[a.dataset.van]) return;
+      prefer = a.dataset.van;
+      if (trip && step === 'price' && !busy && fits(prefer)) setVan(prefer);
+    });
+
+    return {
+      // The session changed: the button's wording, and on to payment after "Log in to pay".
+      auth: function () {
+        syncPrice();
+        if (getSession() && $('.msg', P.price).textContent === L.err_login_again) msg(P.price, '');
+        if (getSession() && wantPay && step === 'price' && !busy) { wantPay = false; startPay(); }
+      },
+      // The account card has gone.
+      loginClosed: function () {
+        if (!getSession() && wantPay) { wantPay = false; save(false); } // no payment later from another sign-in
+        var n = afterLogin;
+        afterLogin = null;
+        if (n && n === step) push(n);
+      },
+      // Back or Forward between this page's entries: true when the card took it.
+      pop: function (target) {
+        if (!P[target] || target === step) return false;
+        if (STEPS[target] < STEPS[step] && step !== 'done') { go(target, { history: false }); return true; }
+        if (step === 'done') { reset(); go('trip', { history: false }); }
+        else if (target === 'price' && trip && !dirty) { go('price', { history: false }); return true; } // Forward again, nothing changed
+        // The card stays (or starts over): this entry now says so, so its back arrow goes the right way.
+        history.replaceState(Object.assign({}, history.state, { bk: step === 'trip' ? null : step, bkp: null, bkr: null }), '');
+        return true;
+      },
+      // Back to the page from the browser's cache (bfcache), e.g. Back from a bank's page.
+      revive: function () {
+        if (paying) { paying = false; busyBtn(payBtn, false); }
+      }
+    };
   }
+
+  function curBook() { var b = page && $('.deck > .book', page); return b && b._bk; }
 
   // ---------------------------------------------------------------- Join Transporters
 
@@ -360,7 +1065,7 @@
     main._dv = true;
     try {
       var kind = main.getAttribute('data-page');
-      if (kind === 'home' && $('#book', main)) initBook($('#book', main));
+      if (kind === 'home' && $('#book', main)) $('#book', main)._bk = Book($('#book', main), main);
       if (kind === 'join' && $('#join', main) && $('#join-data', main)) initJoin($('#join', main), JSON.parse($('#join-data', main).textContent));
     } catch (err) { setTimeout(function () { throw err; }); }
     if (arrived) $$('script', main).forEach(function (old) {
@@ -498,6 +1203,19 @@
     return cb;
   }
 
+  // Back from a bank's page after paying for a trip: ?booked=<order>&redirect_status=... (Stripe
+  // adds payment_intent and its client secret too). Cleans the URL; the booking card shows how
+  // it went (stripeBack).
+  function takeBooked() {
+    if (!window.URLSearchParams) return;
+    var q = new URLSearchParams(location.search), id = q.get('booked'), status = q.get('redirect_status');
+    if (!id || !status) return;
+    stripeBack = { id: id, status: status };
+    ['booked', 'payment_intent', 'payment_intent_client_secret', 'redirect_status'].forEach(function (k) { q.delete(k); });
+    var rest = q.toString();
+    history.replaceState(history.state, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
+  }
+
   // Header button: "Log In / Create Account", or the first name once signed in. Then the
   // account card, and which card the home page's spot shows (phones: Log in first).
   function authChanged(chromeOnly, instant) {
@@ -518,6 +1236,8 @@
     if (chromeOnly) return;
     if (acct) acct.sync();
     syncDeck(instant);
+    var bk = curBook();
+    if (bk) bk.auth();
   }
 
   // ---------------------------------------------------------------- account card
@@ -921,7 +1641,7 @@
       if (o.replace) history.replaceState(history.state, '', url);
       else {
         history.replaceState(Object.assign({}, history.state, { y: window.scrollY }), '');
-        history.pushState({ dv: stamp(), y: 0 }, '', url);
+        history.pushState({ dv: stamp(), y: 0, bk: (history.state || {}).bk }, '', url); // the booking card stays on its step
         loginPushed = true;
       }
     }
@@ -956,6 +1676,8 @@
     if (deck) { if (gated()) syncDeck(o.instant); else toBook(deck, o.instant); } // phones stay on the card until signed in
     else if (screen !== page) slideScreen(screen, page, o.instant ? 0 : -1, underY);
     if (a) setTimeout(function () { if (!loginOpen) a.el.classList.remove('fresh'); }, 600);
+    var bk = curBook();
+    if (bk) bk.loginClosed();
   }
 
   function syncLogin() {
@@ -1152,7 +1874,7 @@
       if (loginOpen) closeLogin();
       var y = yOf(target);
       history.replaceState(Object.assign({}, history.state, { y: window.scrollY }), '');
-      history.pushState({ dv: stamp(), y: y }, '', u.hash);
+      history.pushState({ dv: stamp(), y: y, bk: (history.state || {}).bk }, '', u.hash);
       window.scrollTo({ top: y, behavior: calm() ? 'auto' : 'smooth' });
       return;
     }
@@ -1163,10 +1885,11 @@
 
   function onPop(e) {
     var st = e.state || {}, to = st.dv;
-    if (location.pathname + location.search === curKey) { // only the #hash changed
-      var was = loginOpen;
+    if (location.pathname + location.search === curKey) { // only the #hash changed, or a booking step
+      var was = loginOpen, bk = curBook();
       if (to != null) hIdx = to;
       syncLogin();
+      if (bk && bk.pop((history.state || {}).bk || 'trip')) return;
       if (!was && !loginOpen && st.y != null) window.scrollTo({ top: st.y, behavior: calm() ? 'auto' : 'smooth' });
       return;
     }
@@ -1202,6 +1925,8 @@
     if (!stage || !page) return;
     meta = metaOf(d);
     var cb = takeCallback();
+    oauthBack = !!cb;
+    takeBooked();
     curKey = location.pathname + location.search;
     var st = history.state || {};
     hIdx = st.dv != null ? st.dv : stamp();
@@ -1240,8 +1965,10 @@
       try { history.replaceState(Object.assign({}, history.state, { y: screen === page ? window.scrollY : underY }), ''); } catch (e) {}
     });
     window.addEventListener('pageshow', function (e) {
-      $$('form.book [name=when]').forEach(function (w) { w.disabled = false; });
-      if (e.persisted && acct) acct.reset();
+      if (!e.persisted) return;
+      if (acct) acct.reset();
+      var bk = curBook();
+      if (bk) bk.revive();
     });
     window.addEventListener('storage', function (e) { if (e.key === STORE || e.key === NAME || e.key === null) authChanged(); });
     // Turning a tablet or resizing the window across the phone width: the right card again.

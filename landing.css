@@ -137,6 +137,83 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .card .btn.big:disabled { opacity: .65; cursor: default; }
 .book-foot p { margin: 10px 0 0; color: var(--soft); font-size: 13px; line-height: 1.45; text-align: center; }
 
+/* Booking in place (site.js): the trip, the price, the payment and the confirmation are steps of
+   Book your trip that share one cell and slide sideways, like the account card's. Every step is
+   as tall as the tallest, so the card keeps its size and its big button stays where it is. */
+.book .panes { grid-template-columns: minmax(0, 1fr); }
+.book .pane { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.book .book-foot { margin-top: auto; }
+.book h2 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.book h2:focus { outline: none; }
+.book .back-btn { overflow: hidden; transition: width .4s cubic-bezier(.22, .8, .24, 1), margin .4s cubic-bezier(.22, .8, .24, 1), opacity .25s, background .15s, color .15s; }
+.book[data-stage="trip"] .back-btn, .book[data-stage="done"] .back-btn { width: 0; margin: 0 -12px 0 0; opacity: 0; visibility: hidden; transition-property: width, margin, opacity, visibility; }
+/* Address suggestions under the From and To fields. */
+.af { position: relative; }
+.sugg { position: absolute; z-index: 6; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 6px; list-style: none; background: #142039; border: 1px solid rgba(255, 255, 255, .18); border-radius: 14px; box-shadow: 0 22px 44px -14px rgba(0, 0, 0, .8); }
+.sugg li { padding: 7px 10px; border-radius: 10px; cursor: pointer; line-height: 1.3; }
+.sugg li b { display: block; font-size: 15px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sugg li span { display: block; font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sugg li:hover, .sugg li[aria-selected="true"] { background: rgba(255, 255, 255, .1); }
+/* Price: the route, the trip in short, one tile per van with its price, a note, then Pay. */
+.trip-sum { display: grid; gap: 12px; }
+.legs { display: grid; gap: 8px; }
+.leg { position: relative; display: grid; grid-template-columns: 14px 1fr; gap: 10px; align-items: start; }
+.leg .start, .leg .ring { justify-self: center; margin-top: 7px; border-radius: 50%; }
+.leg .start { width: 10px; height: 10px; background: var(--sky); box-shadow: 0 0 10px var(--sky); }
+.leg .ring { width: 8px; height: 8px; margin-top: 8px; border: 3px solid var(--amber); box-shadow: 0 0 10px var(--amber); box-sizing: content-box; }
+.leg:first-child::after { content: ""; position: absolute; left: 6px; top: 22px; bottom: -6px; border-left: 2px dotted rgba(255, 255, 255, .45); }
+.leg p { margin: 0; min-width: 0; line-height: 1.35; }
+.leg b { display: block; font-size: 17px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.leg p span { display: block; color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.leg p span:empty { display: none; }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0; color: var(--soft); font-size: 14px; font-weight: 600; line-height: 1.4; }
+.fact { display: inline-flex; align-items: center; gap: 6px; }
+.fact svg { width: 17px; height: 17px; flex: none; color: var(--sky-text); }
+.vpick { border: 0; margin: 0; padding: 0; min-width: 0; }
+.vpick legend { padding: 0; }
+.vopts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.vopt { position: relative; display: grid; align-content: center; justify-items: center; gap: 2px; min-height: 66px; padding: 8px 6px; border-radius: 14px; text-align: center; background: var(--field); border: 1.5px solid rgba(255, 255, 255, .14); cursor: pointer; transition: border-color .15s, background .15s; }
+.vopt:hover { background: rgba(255, 255, 255, .14); }
+.vopt input { position: absolute; opacity: 0; pointer-events: none; }
+.vopt b { font-size: 14px; color: var(--soft); line-height: 1.2; }
+.vopt .vprice { font-size: 19px; font-weight: 800; color: #fff; letter-spacing: -0.01em; line-height: 1.25; }
+.vopt.on { border-color: var(--sky); background: rgba(46, 91, 255, .24); box-shadow: inset 0 0 0 1px var(--sky); }
+.vopt.on b { color: #fff; }
+.vopt.luxury.on { border-color: var(--amber); background: rgba(255, 176, 32, .16); box-shadow: inset 0 0 0 1px var(--amber); }
+.vopt:has(input:focus-visible) { outline: 2px solid var(--sky); outline-offset: 2px; }
+.vopt.no { opacity: .5; cursor: default; }
+.vopt.no:hover { background: var(--field); }
+.vpick:disabled .vopt { cursor: default; } /* while the order is made */
+.vopt.no .vprice { font-size: 11.5px; font-weight: 600; color: var(--soft); line-height: 1.3; }
+.vcap { margin: 7px 0 0; color: var(--muted); font-size: 13px; text-align: center; }
+.notes { display: block; }
+.book-foot .total { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 14px; }
+.total span { color: var(--soft); font-size: 15px; font-weight: 700; }
+.total b { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; color: #fff; line-height: 1; }
+.book .fine { text-wrap: pretty; }
+/* Payment: Stripe's form between the trip's total and Pay. */
+.pay-sum { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: 14px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .1); }
+.ps-route { margin: 0; font-weight: 700; color: #fff; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ps-price { font-size: 21px; font-weight: 800; color: #fff; white-space: nowrap; }
+.pe-box { position: relative; min-height: 210px; }
+.bk-pay .spin { display: none; }
+.bk-pay.loading .spin { display: block; position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, .18); border-top-color: var(--sky); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.secure svg { display: inline-block; width: 15px; height: 15px; margin-right: 5px; vertical-align: -2px; color: var(--sky-text); }
+/* Booked. */
+.done-top { display: grid; justify-items: center; text-align: center; gap: 4px; padding-top: 4px; }
+.done-top .tick { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; margin-bottom: 8px; background: #12A150; box-shadow: 0 0 0 8px rgba(18, 161, 80, .18), 0 14px 32px -10px rgba(18, 161, 80, .8); }
+.done-top .tick svg { width: 34px; height: 34px; color: #fff; }
+.book[data-stage="done"] .tick { animation: pop .45s cubic-bezier(.3, 1.6, .5, 1) .2s both; }
+.done-top h3 { margin: 0; font-size: 24px; }
+.done-p { margin: 0; color: var(--soft); font-size: 15px; line-height: 1.5; text-wrap: pretty; }
+.done-sum { margin: 0; border-radius: 14px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .1); }
+.done-sum div { display: flex; justify-content: space-between; gap: 14px; padding: 9px 14px; }
+.done-sum div + div { border-top: 1px solid rgba(255, 255, 255, .08); }
+.done-sum dt { color: var(--muted); font-size: 14px; }
+.done-sum dd { margin: 0; font-weight: 700; font-size: 15px; color: #fff; text-align: right; overflow-wrap: anywhere; }
+.bk-done .book-foot .btn { width: 100%; text-align: center; }
+
 /* Your account: Log in on the left, Create account on the right, then Google and Apple,
    then email. Its steps share one cell and slide sideways (site.js). */
 .acct { display: flex; flex-direction: column; outline: none; }
@@ -340,6 +417,7 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
   .hero .store { gap: 8px; padding: 8px; font-size: 16px; }
   .hero .store svg { width: 22px; height: 22px; }
   .card-head h2 { font-size: clamp(19px, 5.6vw, 22px); }   /* long titles (bg "Резервирай пътуване") stay on one line */
+  .vopt { min-height: 60px; }
 }
 @media (max-width: 340px) {
   .hero .store { gap: 6px; padding: 8px 6px; font-size: 15px; }
@@ -445,6 +523,7 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
   .sso-btn { font-size: 16px; padding: 0 46px; }
   .sso-btn svg { left: 16px; }
   .acct-stage { padding: 20px 20px 40px; place-items: start center; }
+  .book .total { display: none; } /* the chosen van and Pay show the price; the price step stays within the card */
 }
 
 /* Small phones: logo only, compact language button, so Join Transporters and Log in both fit */
@@ -471,5 +550,6 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
   .backdrop svg, .backdrop.net-on svg, .lang summary .earth, .btn.shiny::after { animation: none; }
   .backdrop .scan { display: none; }
   .q, .progress span, .kinds::before { transition: none; }
-  .acct.fresh .me-ava .ok { animation: none; }
+  .acct.fresh .me-ava .ok, .book[data-stage="done"] .tick { animation: none; }
+  .book .back-btn { transition: none; }
 }

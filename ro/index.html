@@ -20,8 +20,8 @@
 <meta name="theme-color" content="#050B18">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="stylesheet" href="/landing.css?v=70146729">
-<script src="/site.js?v=138a3216" defer></script>
+<link rel="stylesheet" href="/landing.css?v=371706a4">
+<script src="/site.js?v=00f3a073" defer></script>
 <script src="/hero-net.js?v=74928e45" defer></script>
 </head>
 <body>
@@ -93,34 +93,41 @@
     </div>
 
     <div class="deck" id="deck">
-    <form class="card book" action="/book/" method="get" id="book" autocomplete="on">
-      <div class="card-head"><span class="logo"><svg><use href="#mark"/></svg></span><h2>Rezervă-ți cursa</h2></div>
-      <div class="book-body">
-        <div class="kinds" role="radiogroup">
-          <label><input type="radio" name="kind" value="booking" checked><span>Din timp</span></label>
-          <label><input type="radio" name="kind" value="live"><span>Live (acum)</span></label>
-        </div>
-        <div class="route">
-          <div class="road" aria-hidden="true"><span class="start"></span><span class="dash"></span><span class="ring"></span></div>
-          <div class="addr">
-            <label><small>De la</small><input name="from" required placeholder="Stradă, număr, oraș" autocomplete="street-address"></label>
-            <label><small>Până la</small><input name="to" required placeholder="Stradă, număr, oraș"></label>
+    <!-- Booking happens here: site.js adds the price, payment and confirmation steps, which
+         slide in inside this card. Without JavaScript the form opens the web app at /book. -->
+    <section class="card book" id="book" data-stage="trip" aria-labelledby="book-h">
+      <div class="card-head"><span class="logo"><svg><use href="#mark"/></svg></span><h2 id="book-h">Rezervă-ți cursa</h2></div>
+      <div class="panes">
+        <form class="pane bk-trip" data-pane="trip" action="/book/" method="get" autocomplete="on">
+        <div class="book-body">
+          <div class="kinds" role="radiogroup">
+            <label><input type="radio" name="kind" value="booking" checked><span>Din timp</span></label>
+            <label><input type="radio" name="kind" value="live"><span>Live (acum)</span></label>
           </div>
-          <button type="button" class="swap" aria-label="Inversează preluarea și destinația" title="Inversează preluarea și destinația"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v13m0 0-3-3m3 3 3-3M17 20V7m0 0-3 3m3-3 3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <div class="route">
+            <div class="road" aria-hidden="true"><span class="start"></span><span class="dash"></span><span class="ring"></span></div>
+            <div class="addr">
+              <label><small>De la</small><input name="from" required placeholder="Stradă, număr, oraș" autocomplete="street-address"></label>
+              <label><small>Până la</small><input name="to" required placeholder="Stradă, număr, oraș"></label>
+            </div>
+            <button type="button" class="swap" aria-label="Inversează preluarea și destinația" title="Inversează preluarea și destinația"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v13m0 0-3-3m3 3 3-3M17 20V7m0 0-3 3m3-3 3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+          <label class="when"><small>Data și ora preluării</small><input type="datetime-local" name="when"></label>
+          <p class="live-note">Șoferii de pe ruta ta sunt anunțați imediat.</p>
+          <div class="counts">
+            <div class="count"><small>Pasageri</small><div class="stepper"><button type="button" data-step="-1" aria-label="−">−</button><input name="pax" type="number" min="1" max="20" value="1" inputmode="numeric"><button type="button" data-step="1" aria-label="+">+</button></div></div>
+            <div class="count"><small>Bagaje în plus</small><div class="stepper"><button type="button" data-step="-1" aria-label="−">−</button><input name="bags" type="number" min="0" max="40" value="0" inputmode="numeric"><button type="button" data-step="1" aria-label="+">+</button></div></div>
+          </div>
+          <p class="bags-note">Un bagaj mare per pasager este gratuit.</p>
+          <div class="msg" role="alert"></div>
         </div>
-        <label class="when"><small>Data și ora preluării</small><input type="datetime-local" name="when"></label>
-        <p class="live-note">Șoferii de pe ruta ta sunt anunțați imediat.</p>
-        <div class="counts">
-          <div class="count"><small>Pasageri</small><div class="stepper"><button type="button" data-step="-1" aria-label="−">−</button><input name="pax" type="number" min="1" max="20" value="1" inputmode="numeric"><button type="button" data-step="1" aria-label="+">+</button></div></div>
-          <div class="count"><small>Bagaje în plus</small><div class="stepper"><button type="button" data-step="-1" aria-label="−">−</button><input name="bags" type="number" min="0" max="40" value="0" inputmode="numeric"><button type="button" data-step="1" aria-label="+">+</button></div></div>
+        <div class="book-foot">
+          <button class="btn big go" type="submit">Vezi prețul</button>
+          <p>Vezi prețul întreg înainte să plătești. Anulare gratuită până când un transportator acceptă.</p>
         </div>
-        <p class="bags-note">Un bagaj mare per pasager este gratuit.</p>
+        </form>
       </div>
-      <div class="book-foot">
-        <button class="btn big" type="submit">Vezi prețul</button>
-        <p>Vezi prețul întreg înainte să plătești. Anulare gratuită până când un transportator acceptă.</p>
-      </div>
-    </form>
+    </section>
     </div>
   </div>
 </section>
@@ -156,7 +163,7 @@
         <span class="tag">Drumuri de zi cu zi</span>
         <h3>Standard</h3><p class="cap">Până la 8 pasageri</p><p>Microbuze confortabile pentru majoritatea curselor.</p>
         <ul class="feats"><li>Ideal pentru 1 până la 4 călători</li><li>Un bagaj mare gratuit de pasager</li></ul>
-        <div class="van-foot"><span class="price">Preț de bază</span><a class="btn small" href="#book">Rezervă un loc</a></div>
+        <div class="van-foot"><span class="price">Preț de bază</span><a class="btn small" href="#book" data-van="standard">Rezervă un loc</a></div>
       </div>
     </article>
     <article class="van lg">
@@ -165,7 +172,7 @@
         <span class="tag">Grupuri și familii</span>
         <h3>Mare</h3><p class="cap">Între 9 și 20 de locuri</p><p>Microbuze tip Sprinter pentru grupuri și mult bagaj.</p>
         <ul class="feats"><li>Loc pentru tot grupul</li><li>Spațiu în plus pentru bagaje</li></ul>
-        <div class="van-foot"><span class="price">+10% față de prețul de bază</span><a class="btn small" href="#book">Rezervă un loc</a></div>
+        <div class="van-foot"><span class="price">+10% față de prețul de bază</span><a class="btn small" href="#book" data-van="large">Rezervă un loc</a></div>
       </div>
     </article>
     <article class="van lux">
@@ -174,7 +181,7 @@
         <span class="tag">Premium</span>
         <h3>Lux</h3><p class="cap">V-Class și Sprinter VIP</p><p>Microbuze premium, doar de la transportatori aprobați.</p>
         <ul class="feats"><li>Scaune din piele și spațiu în plus pentru picioare</li><li>Microbuze verificate de Domivan</li></ul>
-        <div class="van-foot"><span class="price">+60% față de prețul de bază</span><a class="btn small" href="#book">Rezervă un loc</a></div>
+        <div class="van-foot"><span class="price">+60% față de prețul de bază</span><a class="btn small" href="#book" data-van="luxury">Rezervă un loc</a></div>
       </div>
     </article>
   </div>
@@ -226,6 +233,6 @@
 </main>
 </div>
 
-<script type="application/json" id="dv-t">{"acct_h": "Contul tău", "back": "Înapoi", "tab_login": "Intră în cont", "tab_create": "Cont nou", "google": "Continuă cu Google", "apple": "Continuă cu Apple", "redirecting": "Se deschide {provider}…", "signing_in": "Te conectăm…", "f_name": "Nume complet", "ph_name": "Nume și prenume", "f_email": "Email", "ph_email": "tu@exemplu.ro", "hint": "Îți trimitem pe email un cod de unică folosință. Fără parolă.", "send": "Trimite-mi un cod", "sending": "Se trimite…", "code_h": "Verifică-ți emailul", "code_sent": "Am trimis un cod la {email}", "f_code": "Codul din email", "verify": "Continuă", "verifying": "Se verifică…", "change_email": "Schimbă emailul", "resend": "Trimite un cod nou", "resend_in": "Cod nou în {s} s", "resent": "Ți-am trimis un cod nou.", "legal": "Continuând, ești de acord cu <a href=\"/ro/terms\">Termenii<\/a> și cu <a href=\"/ro/privacy\">Politica de confidențialitate<\/a>.", "welcome": "Ești conectat", "signed_in_as": "Conectat ca", "my_trips": "Cursele mele", "logout": "Ieși din cont", "my_account": "Contul meu", "err_email": "Introdu o adresă de email validă.", "err_name": "Te rugăm să-ți scrii numele.", "err_code": "Introdu codul din email.", "err_bad_code": "Codul e greșit sau a expirat. Verifică emailul sau cere un cod nou.", "no_account": "Nu există încă un cont cu acest email.", "create_instead": "Creează un cont", "err_rate": "Prea multe încercări. Așteaptă un minut și încearcă din nou.", "err_wait": "Mai așteaptă puțin înainte să ceri un cod nou.", "err_network": "Nu am putut contacta Domivan. Verifică conexiunea și încearcă din nou.", "err_generic": "Ceva n-a mers. Încearcă din nou.", "err_oauth": "Conectarea cu {provider} nu a reușit. Încearcă din nou sau folosește emailul.", "err_oauth_off": "Conectarea cu {provider} nu e disponibilă încă. Folosește emailul.", "lang": "ro", "home": "/ro/", "or": "sau"}</script>
+<script type="application/json" id="dv-t">{"acct_h": "Contul tău", "back": "Înapoi", "tab_login": "Intră în cont", "tab_create": "Cont nou", "google": "Continuă cu Google", "apple": "Continuă cu Apple", "redirecting": "Se deschide {provider}…", "signing_in": "Te conectăm…", "f_name": "Nume complet", "ph_name": "Nume și prenume", "f_email": "Email", "ph_email": "tu@exemplu.ro", "hint": "Îți trimitem pe email un cod de unică folosință. Fără parolă.", "send": "Trimite-mi un cod", "sending": "Se trimite…", "code_h": "Verifică-ți emailul", "code_sent": "Am trimis un cod la {email}", "f_code": "Codul din email", "verify": "Continuă", "verifying": "Se verifică…", "change_email": "Schimbă emailul", "resend": "Trimite un cod nou", "resend_in": "Cod nou în {s} s", "resent": "Ți-am trimis un cod nou.", "legal": "Continuând, ești de acord cu <a href=\"/ro/terms\">Termenii<\/a> și cu <a href=\"/ro/privacy\">Politica de confidențialitate<\/a>.", "welcome": "Ești conectat", "signed_in_as": "Conectat ca", "my_trips": "Cursele mele", "logout": "Ieși din cont", "my_account": "Contul meu", "err_email": "Introdu o adresă de email validă.", "err_name": "Te rugăm să-ți scrii numele.", "err_code": "Introdu codul din email.", "err_bad_code": "Codul e greșit sau a expirat. Verifică emailul sau cere un cod nou.", "no_account": "Nu există încă un cont cu acest email.", "create_instead": "Creează un cont", "err_rate": "Prea multe încercări. Așteaptă un minut și încearcă din nou.", "err_wait": "Mai așteaptă puțin înainte să ceri un cod nou.", "err_network": "Nu am putut contacta Domivan. Verifică conexiunea și încearcă din nou.", "err_generic": "Ceva n-a mers. Încearcă din nou.", "err_oauth": "Conectarea cu {provider} nu a reușit. Încearcă din nou sau folosește emailul.", "err_oauth_off": "Conectarea cu {provider} nu e disponibilă încă. Folosește emailul.", "lang": "ro", "home": "/ro/", "or": "sau", "h_price": "Prețul tău", "h_pay": "Plata", "h_done": "Cursă rezervată", "checking": "Verificăm ruta…", "err_from": "Scrie adresa de preluare.", "err_to": "Scrie adresa de destinație.", "err_not_found": "Nu am găsit „{q}”. Încearcă orașul și țara sau un cod poștal.", "err_search": "Căutarea adreselor nu răspunde acum. Încearcă din nou peste câteva momente.", "err_route": "Domivan face curse între România, Polonia, Bulgaria sau Ungaria și Germania, Franța, Belgia, Țările de Jos, Regatul Unit, Spania, Italia sau Elveția, în ambele sensuri.", "err_when": "Alege o preluare peste cel puțin 2 ore. Pentru curse urgente, alege Live (acum).", "err_pax": "Pasageri: între 1 și 20.", "err_bags": "Bagaje în plus: între 0 și 40.", "van_h": "Alege microbuzul", "too_many": "Până la {n} pasageri", "note_label": "Notă pentru transportator (opțional)", "ph_note": "Ex.: număr de zbor, intrare", "asap": "Cât mai curând", "km": "≈ {n} km", "total": "Total", "pay": "Plătește {price}", "login_pay": "Intră în cont și plătește {price}", "preparing": "Pregătim plata…", "paying": "Se plătește…", "fine_print": "Plătești acum. Datele transportatorului, chatul și telefonul apar cu 24 de ore înainte de preluare. Anulare gratuită până când un transportator acceptă.", "fine_print_live": "Plătești acum. Datele transportatorului, chatul și telefonul apar imediat ce unul acceptă. Anulare gratuită până când un transportator acceptă.", "lux_note": "Microbuzele de lux sunt mai puține: dacă niciunul nu acceptă la timp, primești banii înapoi integral.", "secure": "Plata este procesată de Stripe. Domivan nu vede niciodată numărul cardului tău.", "err_pay_load": "Formularul de plată nu s-a încărcat. Verifică conexiunea și încearcă din nou.", "err_paid": "Ai plătit deja această cursă. O găsești la Cursele mele.", "err_pay": "Plata nu a reușit. Încearcă din nou sau folosește altă metodă de plată.", "err_login_again": "Intră din nou în cont ca să plătești.", "done_h": "Cursa ta e rezervată!", "done_p": "Oferim acum cursa ta transportatorilor. Datele transportatorului, chatul și telefonul apar cu 24 de ore înainte de preluare.", "done_p_live": "Anunțăm acum transportatorii de pe ruta ta. Datele transportatorului, chatul și telefonul apar imediat ce unul acceptă.", "done_wait": "Banca ta încă confirmă plata. Oferim cursa transportatorilor imediat ce plata trece.", "s_route": "Ruta", "s_pickup": "Preluare", "s_van": "Microbuz", "s_paid": "Plătit", "another": "Rezervă altă cursă", "retry": "Încearcă din nou", "card_h": "Rezervă-ți cursa", "f_pax": "Pasageri", "f_bags": "Bagaje în plus", "v_standard": "Standard", "v_large": "Mare", "v_luxury": "Lux", "c_standard": "Până la 8 pasageri", "c_large": "Între 9 și 20 de locuri", "c_luxury": "V-Class și Sprinter VIP"}</script>
 </body>
 </html>
