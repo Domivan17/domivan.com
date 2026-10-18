@@ -445,6 +445,7 @@
         if (r.ok) return j;
         var e = new Error(j.error || 'HTTP ' + r.status);
         e.status = r.status;
+        e.code = j.code;
         throw e;
       });
     });
@@ -1434,12 +1435,13 @@
   // The trips this visitor booked, and one trip in full, as views of the account card: its status,
   // the route, what was paid, what happens next, the transporter and their phone (from 24 hours
   // before pickup, as in the app), the pickup code, Report a problem, the invoices, and Cancel
-  // while no transporter has accepted. Only trips they booked as a client, and only what a client
-  // sees in the app: never what the transporter is paid. Trips never paid for don't show; the one
+  // until pickup (free until a transporter accepts; after that, what comes back depends on how long
+  // before pickup). Only trips they booked as a client, and only what a client sees in the app:
+  // never what the transporter is paid. Trips never paid for don't show; the one
   // just booked here does, while its payment is still being confirmed.
 
   var ORDER_COLS = 'id,kind,status,van_class,pickup_address,pickup_city,pickup_country,dropoff_address,dropoff_city,dropoff_country,'
-    + 'pickup_at,passengers,extra_bags,notes,fare_cents,cancel_reason,payout_on_hold,payout_release_at,stripe_transfer_id';
+    + 'pickup_at,passengers,extra_bags,notes,fare_cents,cancel_reason,cancel_fee_cents,payout_on_hold,payout_release_at,stripe_transfer_id';
   var DONE = ['completed', 'cancelled'], ASSIGNED = ['accepted', 'en_route', 'picked_up'];
   var TONE = { pending_payment: 'gray', bidding: 'amber', accepted: 'blue', en_route: 'blue', picked_up: 'blue', completed: 'green', cancelled: 'gray' };
   var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1470,7 +1472,8 @@
 
   function Trips(listPane, tripPane) {
     var L = T, uid = null, rows = null, byId = {}, listN = 0, listAt = 0;
-    // The trip shown: its id, what was loaded for it (order, transporter, pickup code, invoices),
+    // The trip shown: its id, what was loaded for it (order, transporter, pickup code, invoices, what
+    // cancelling now gives back),
     // and what the visitor has open in it (Cancel's question, the report form and its text).
     var id = null, dt = null, tripN = 0, tripAt = 0, ask = false, rep = false, repText = '', note = null, busy = false, tick = 0;
 
@@ -1561,9 +1564,10 @@
           return Promise.all([
             ASSIGNED.indexOf(o.status) >= 0 ? rest('rpc/trip_contact', t, { p_order: tid }).catch(nothing) : null,
             o.status === 'accepted' || o.status === 'en_route' ? rest('order_pickup_codes?select=code&order_id=eq.' + tid, t).catch(nothing) : null,
-            rest('invoices?select=id,kind,number,total_cents,file_path&order_id=eq.' + tid + '&kind=in.(trip,credit_note)&file_path=not.is.null&order=created_at.asc', t).catch(nothing)
+            rest('invoices?select=id,kind,number,total_cents,file_path&order_id=eq.' + tid + '&kind=in.(trip,credit_note)&file_path=not.is.null&order=created_at.asc', t).catch(nothing),
+            o.status === 'accepted' || o.status === 'en_route' ? rest('rpc/my_cancellation_terms', t, { p_order: tid }).catch(nothing) : null
           ]).then(function (x) {
-            return { o: o, who: x[0] && x[0][0], code: x[1] && x[1][0] && x[1][0].code, inv: x[2] || [] };
+            return { o: o, who: x[0] && x[0][0], code: x[1] && x[1][0] && x[1][0].code, inv: x[2] || [], cx: x[3] && x[3][0] };
           });
         });
       }).then(function (r) {
@@ -1597,7 +1601,7 @@
       // What happens next.
       if (o.status === 'bidding') { say = L.n_bidding; tone = ' amber'; }
       else if (o.status === 'pending_payment') say = L.done_wait;
-      else if (o.status === 'cancelled') say = o.cancel_reason === 'no_transporter' ? L.n_refunded : L.n_cancelled;
+      else if (o.status === 'cancelled') say = o.cancel_reason === 'no_transporter' ? L.n_refunded : cancelled(o);
       else if (ASSIGNED.indexOf(o.status) >= 0 && !who && o.kind !== 'live' && opens > now) say = fill(L.n_locked, { date: dateText(opens, L.lang) });
       if (say) h += '<p class="t-note' + tone + '">' + esc(say) + '</p>';
       if (who) {
@@ -1634,12 +1638,39 @@
           + '<span>' + esc(fill(v.kind === 'credit_note' ? L.invoice_credit : L.invoice_trip, { n: v.number })) + '</span><b>' + esc(money(v.total_cents, L.lang)) + '</b></button>';
       }).join('') + msgHtml('inv') + '</section>';
     }
-    // Cancel: free while no transporter has accepted. One question first.
+    // Cancel: free while no transporter has accepted. After that, until pickup, what comes back
+    // depends on how long before pickup: dt.cx says how much now and until when (the database
+    // decides). One question first, with the amount.
     function cancel(o) {
-      if (o.status !== 'bidding' && o.status !== 'pending_payment') return note && note.where === 'cancel' ? msgHtml('cancel') : '';
-      if (!ask) return '<div class="t-cancel"><button type="button" class="btn ghost danger t-ask">' + esc(L.cancel) + '</button>' + msgHtml('cancel') + '</div>';
-      return '<div class="t-cancel"><p>' + esc(L.cancel_q) + '</p><div class="t-two"><button type="button" class="btn ghost t-keep">' + esc(L.cancel_no) + '</button>'
+      var open = o.status === 'bidding' || o.status === 'pending_payment', cx = dt.cx;
+      if (!open && !cx) return note && note.where === 'cancel' ? msgHtml('cancel') : '';
+      if (!ask) return '<div class="t-cancel"><button type="button" class="btn ghost danger t-ask">' + esc(L.cancel) + '</button>'
+        + (cx ? '<small class="t-cx">' + esc(cxNow(cx)) + '</small>' : '') + msgHtml('cancel') + '</div>';
+      return '<div class="t-cancel"><p>' + esc(cx ? cxQuestion(cx) : L.cancel_q) + '</p>'
+        + (cx && cx.fee_cents ? '<small class="t-cx">' + esc(L.cx_late) + '</small>' : '')
+        + '<div class="t-two"><button type="button" class="btn ghost t-keep">' + esc(L.cancel_no) + '</button>'
         + '<button type="button" class="btn danger t-yes">' + esc(L.cancel_yes) + '</button></div>' + msgHtml('cancel') + '</div>';
+    }
+    function pct(x) {
+      try { return new Intl.NumberFormat(locale(L.lang), { style: 'percent', maximumFractionDigits: 0 }).format(+x); } catch (e) { return Math.round(x * 100) + '%'; }
+    }
+    function cxNow(cx) {
+      var at = cx.changes_at ? dateText(new Date(cx.changes_at), L.lang) : '';
+      if (!cx.fee_cents) return at ? fill(L.cx_free, { date: at }) : L.cx_free_any;
+      var now = cx.refund_cents > 0 ? fill(L.cx_part, { pct: pct(cx.refund_pct), amount: money(cx.refund_cents, L.lang) }) : L.cx_none;
+      if (!at || cx.next_refund_pct == null) return now;
+      return now + ' ' + (+cx.next_refund_pct > 0 ? fill(L.cx_then_part, { pct: pct(cx.next_refund_pct), date: at }) : fill(L.cx_then_none, { date: at }));
+    }
+    function cxQuestion(cx) {
+      if (!cx.fee_cents) return L.cancel_q;
+      return cx.refund_cents > 0 ? fill(L.cx_q_part, { amount: money(cx.refund_cents, L.lang), pct: pct(cx.refund_pct) }) : L.cx_q_none;
+    }
+    // A cancelled trip: what came back. Cancelled by the client after acceptance, the fee shows.
+    function cancelled(o) {
+      if (o.cancel_reason !== 'client_cancelled' || o.cancel_fee_cents == null) return L.n_cancelled;
+      var back = o.fare_cents - o.cancel_fee_cents;
+      if (!o.cancel_fee_cents) return L.n_cx_full;
+      return back > 0 ? fill(L.n_cx_part, { refund: money(back, L.lang), fee: money(o.cancel_fee_cents, L.lang) }) : L.n_cx_none;
     }
 
     function redraw(focus) {
@@ -1672,15 +1703,18 @@
       else if (c.contains('t-send')) sendReport(b);
       else if (c.contains('t-file')) openFile(b.dataset.path);
     });
+    // Sends the refund the visitor was shown: if it changed meanwhile (a transporter accepted, or
+    // the refund stepped down), nothing is cancelled and the trip shows the new one.
     function cancelTrip(b) {
-      var tid = id;
+      var tid = id, refund = dt.cx ? dt.cx.refund_cents : dt.o.fare_cents;
       busy = true;
       note = null;
       busyBtn(b, true, L.cancelling);
-      token().then(function (t) { return callFn('cancel-order', { orderId: tid }, t); }).then(function () { ask = false; }, function (e) {
+      token().then(function (t) { return callFn('cancel-order', { orderId: tid, refundCents: refund }, t); }).then(function () { ask = false; }, function (e) {
         if (out(e)) return;
-        if (e.status === 409) ask = false; // a transporter accepted meanwhile
-        note = { where: 'cancel', text: e.status === 409 ? L.err_cancel : errText(e) };
+        if (e.status === 409) ask = false;
+        note = { where: 'cancel', text: e.status !== 409 ? errText(e) : e.code === 'refund_changed' ? L.err_cx_changed
+          : e.code === 'not_cancellable' ? L.err_cx_started : L.err_cancel };
       }).then(function () { return tid === id ? load() : null; }).then(function () {
         busy = false; // the button says Cancelling… until the trip shows how it is now
         listAt = 0;   // the list reads it again too

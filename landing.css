@@ -354,6 +354,7 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .t-file b { white-space: nowrap; }
 .t-cancel { display: grid; gap: 10px; margin-top: 2px; }
 .t-cancel p { margin: 0; color: #fff; font-weight: 700; text-align: center; text-wrap: pretty; }
+.t-cancel .t-cx { display: block; margin: 0; color: var(--soft); font-size: 14px; font-weight: 400; line-height: 1.45; text-align: center; text-wrap: pretty; }
 .t-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .btn.danger { border: 0; background: #E5484D; font: inherit; font-weight: 800; font-size: 16px; padding: 12px 16px; border-radius: 16px; cursor: pointer; }
 .btn.danger:hover { background: #CC3339; }
