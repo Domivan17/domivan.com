@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy | DomiVan</title>
+<meta name="description" content="How DomiVan and DomiVan Driver collect and use personal data.">
+<link rel="canonical" href="https://domivan.com/privacy">
+<meta name="theme-color" content="#050B18">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/landing.css?v=0cf33be1">
+<script src="/site.js?v=95368a69" defer></script>
+<script src="/hero-net.js?v=941616fd" defer></script>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 100 100">
+    <path d="M24 22v56" stroke="currentColor" stroke-opacity=".75" stroke-width="9" stroke-linecap="round" stroke-dasharray="1 15"/>
+    <path d="M24 14h20a36 36 0 0 1 0 72H35" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="24" cy="14" r="10" fill="var(--arrow, currentColor)"/>
+    <circle cx="24" cy="86" r="7.25" fill="none" stroke="currentColor" stroke-width="5.5"/>
+  </symbol>
+</svg>
+
+<!-- One night map for every page. Pages slide over it and it is never redrawn (site.js).
+     hero-net.js tilts it into a table and runs the live network of trips across it. The masks
+     fade the image out at its own edges, so the tilted map has no hard border. -->
+<div class="backdrop" aria-hidden="true">
+  <svg viewBox="0 120 1800 1140" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <linearGradient id="fade-y" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1381"><stop offset="0" stop-color="#000"/><stop offset=".1" stop-color="#fff"/><stop offset=".94" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+      <linearGradient id="fade-x" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1800" y2="0"><stop offset="0" stop-color="#000"/><stop offset=".06" stop-color="#fff"/><stop offset=".94" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+      <mask id="fade-v" maskUnits="userSpaceOnUse" x="0" y="0" width="1800" height="1381"><rect width="1800" height="1381" fill="url(#fade-y)"/></mask>
+      <mask id="fade-h" maskUnits="userSpaceOnUse" x="0" y="0" width="1800" height="1381"><rect width="1800" height="1381" fill="url(#fade-x)"/></mask>
+      <!-- brightness(1.22) contrast(1.1) saturate(1.3), applied when the map is drawn (landing.css), not on every frame -->
+      <filter id="lift" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope="1.342" intercept="-.05"/><feFuncG type="linear" slope="1.342" intercept="-.05"/><feFuncB type="linear" slope="1.342" intercept="-.05"/></feComponentTransfer><feColorMatrix type="saturate" values="1.3"/></filter>
+    </defs>
+    <g mask="url(#fade-h)"><image mask="url(#fade-v)" href="/img/europe-night.webp?v=5663e10b" x="0" y="0" width="1800" height="1381" preserveAspectRatio="none"/></g>
+  </svg>
+</div>
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="/fr/"><span class="logo"><svg><use href="#mark"/></svg></span>DomiVan</a>
+    <nav>
+      <a href="/fr/#how">Comment ça marche</a>
+      <a href="/fr/#vans">Vans</a>
+      <a class="btn small shiny" href="/fr/join" data-driver-app><span class="long">Devenir transporteur</span><span class="short">Transporteurs</span></a>
+      <details class="lang">
+        <summary aria-label="Langue"><span class="earth" aria-hidden="true"></span><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0.000" y="0" width="1.000" height="2" fill="#002654"/><rect x="1.000" y="0" width="1.000" height="2" fill="#FFFFFF"/><rect x="2.000" y="0" width="1.000" height="2" fill="#CE1126"/></svg>FR</summary>
+        <div class="menu">
+        <a href="/privacy" hreflang="en" lang="en"><svg class="flag" viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><clipPath id="uk-t"><path d="M30 15h30v15zv15H0zH0V0zV0h30z"/></clipPath><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#uk-t)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></svg><span>English</span><b>EN</b></a>
+        <a href="/ro/privacy" hreflang="ro" lang="ro"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0.000" y="0" width="1.000" height="2" fill="#002B7F"/><rect x="1.000" y="0" width="1.000" height="2" fill="#FCD116"/><rect x="2.000" y="0" width="1.000" height="2" fill="#CE1126"/></svg><span>Română</span><b>RO</b></a>
+        <a href="/pl/privacy" hreflang="pl" lang="pl"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="1.000" fill="#FFFFFF"/><rect x="0" y="1.000" width="3" height="1.000" fill="#DC143C"/></svg><span>Polski</span><b>PL</b></a>
+        <a href="/bg/privacy" hreflang="bg" lang="bg"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="0.667" width="3" height="0.667" fill="#00966E"/><rect x="0" y="1.333" width="3" height="0.667" fill="#D62612"/></svg><span>Български</span><b>BG</b></a>
+        <a href="/hu/privacy" hreflang="hu" lang="hu"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#CD2A3E"/><rect x="0" y="0.667" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="1.333" width="3" height="0.667" fill="#436F4D"/></svg><span>Magyar</span><b>HU</b></a>
+        <a href="/es/privacy" hreflang="es" lang="es"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.500" fill="#AA151B"/><rect x="0" y="0.500" width="3" height="1.000" fill="#F1BF00"/><rect x="0" y="1.500" width="3" height="0.500" fill="#AA151B"/></svg><span>Español</span><b>ES</b></a>
+        <a href="/fr/privacy" hreflang="fr" lang="fr" aria-current="page"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0.000" y="0" width="1.000" height="2" fill="#002654"/><rect x="1.000" y="0" width="1.000" height="2" fill="#FFFFFF"/><rect x="2.000" y="0" width="1.000" height="2" fill="#CE1126"/></svg><span>Français</span><b>FR</b></a>
+        <a href="/de/privacy" hreflang="de" lang="de"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#000000"/><rect x="0" y="0.667" width="3" height="0.667" fill="#DD0000"/><rect x="0" y="1.333" width="3" height="0.667" fill="#FFCE00"/></svg><span>Deutsch</span><b>DE</b></a>
+        <a href="/nl/privacy" hreflang="nl" lang="nl"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#AE1C28"/><rect x="0" y="0.667" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="1.333" width="3" height="0.667" fill="#21468B"/></svg><span>Nederlands</span><b>NL</b></a>
+        <a href="/pt/privacy" hreflang="pt" lang="pt"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#FF0000"/><rect width="1.2" height="2" fill="#006600"/><circle cx="1.2" cy="1" r=".42" fill="#FFCC00"/><path d="M.98.76h.44v.34q0 .2-.22.26Q.98 1.3.98 1.1z" fill="#FF0000"/><path d="M1.09.86h.22v.24q0 .11-.11.15-.11-.04-.11-.15z" fill="#fff"/></svg><span>Português</span><b>PT</b></a>
+        </div>
+      </details>
+      <a class="btn small login" href="#login" data-login><span class="long">Se connecter / Créer un compte</span><span class="short">Connexion</span></a>
+    </nav>
+  </div>
+</header>
+
+<div id="stage">
+<main id="page" class="page page-legal" data-page="legal">
+<div class="wrap legal-wrap">
+<article class="card legal" lang="en">
+<h1>Privacy Policy</h1>
+<p class="meta">For the DomiVan and DomiVan Driver apps. Last updated: <span class="fill">[DATE]</span></p>
+
+<p class="draft">Draft. This policy is not yet in force and must be reviewed by a lawyer before DomiVan launches. Text marked like <span class="fill">[THIS]</span> still needs to be filled in.</p>
+
+<h2>1. Who is responsible</h2>
+<p>StepsNest B.V., registered in the Netherlands under KvK number 42105882, Sprangstraat 10, 6004 XD Weert, is the controller of your personal data when you use DomiVan (for travellers) or DomiVan Driver (for transporters). For privacy questions, write to us through <strong>Help and support</strong> in the app or at <a href="mailto:privacy@domivan.com">privacy@domivan.com</a>.</p>
+
+<h2>2. What we collect and why</h2>
+<table>
+<tr class="th"><th>Data</th><th>Who</th><th>Why</th><th>Legal basis (GDPR)</th></tr>
+<tr><td data-label="Data">Email address and one-time sign-in codes</td><td data-label="Who">Everyone with an account</td><td data-label="Why">Create your account and sign you in</td><td data-label="Legal basis (GDPR)">Contract</td></tr>
+<tr><td data-label="Data">Name and phone number</td><td data-label="Who">Everyone with an account</td><td data-label="Why">Shown to the other side of your trip about 24 hours before pickup, so you can find each other</td><td data-label="Legal basis (GDPR)">Contract</td></tr>
+<tr><td data-label="Data">Profile photo (optional)</td><td data-label="Who">Everyone who adds one</td><td data-label="Why">Shown in the app so the other side recognises you</td><td data-label="Legal basis (GDPR)">Consent (remove it any time)</td></tr>
+<tr><td data-label="Data">Company name, van plate number, number of seats, and documents we ask for when checking you</td><td data-label="Who">Transporters</td><td data-label="Why">Check that you may carry passengers, match trips to your van, tell travellers which van to look for</td><td data-label="Legal basis (GDPR)">Contract; legitimate interest in passenger safety</td></tr>
+<tr><td data-label="Data">Trip details: pickup and destination addresses and their map coordinates, date and time, passengers, bags, notes, price, status</td><td data-label="Who">Travellers and their transporter</td><td data-label="Why">Price, book, offer and carry out the trip; keep records</td><td data-label="Legal basis (GDPR)">Contract; legal obligation (bookkeeping)</td></tr>
+<tr><td data-label="Data">Live location of the transporter, from tapping "Towards client" until the traveller is picked up</td><td data-label="Who">Transporters</td><td data-label="Why">Show the traveller where their van is</td><td data-label="Legal basis (GDPR)">Contract; legitimate interest in a smooth pickup</td></tr>
+<tr><td data-label="Data">Trip preferences: a start point (a town or address the transporter picks), a distance and countries</td><td data-label="Who">Transporters</td><td data-label="Why">Send them only trip requests that start in their area</td><td data-label="Legal basis (GDPR)">Contract</td></tr>
+<tr><td data-label="Data">Approximate location of the transporter (rounded to about 1 km) while they are Online</td><td data-label="Who">Transporters</td><td data-label="Why">Also send them trip requests that start near where they are</td><td data-label="Legal basis (GDPR)">Contract; legitimate interest in matching trips to nearby vans</td></tr>
+<tr><td data-label="Data">Chat messages between traveller and transporter</td><td data-label="Who">Both</td><td data-label="Why">Arrange the trip; handle complaints</td><td data-label="Legal basis (GDPR)">Contract; legitimate interest</td></tr>
+<tr><td data-label="Data">Support messages</td><td data-label="Who">Everyone who writes to support</td><td data-label="Why">Answer your questions and complaints</td><td data-label="Legal basis (GDPR)">Contract; legitimate interest</td></tr>
+<tr><td data-label="Data">Payment references (we never see your full card number), refunds, payout amounts</td><td data-label="Who">Travellers and transporters</td><td data-label="Why">Take payments, refund, pay transporters, bookkeeping</td><td data-label="Legal basis (GDPR)">Contract; legal obligation</td></tr>
+<tr><td data-label="Data">Push notification token</td><td data-label="Who">Everyone who allows notifications</td><td data-label="Why">Send alerts about new offers, your trip, chat and support replies</td><td data-label="Legal basis (GDPR)">Consent (turn off in your phone settings)</td></tr>
+<tr><td data-label="Data">Invite codes: the code from a DomiVan partner's invite link (kept in your browser or on your phone for up to 30 days, until you have an account), the code you signed up with and which partner (VIT) it belongs to, and an ID of your phone sent with VIT and invite codes (identifierForVendor on iPhone, Android ID on Android)</td><td data-label="Who">Everyone who uses an invite link or code; VIT partners</td><td data-label="Why">Link you to the partner who invited you and reward them for 12 months after you sign up; stop partners from inviting themselves</td><td data-label="Legal basis (GDPR)">Legitimate interest in rewarding partners who bring in customers and in preventing fraud</td></tr>
+<tr><td data-label="Data">Technical data such as IP address and app version in server logs</td><td data-label="Who">Everyone</td><td data-label="Why">Security, preventing fraud and fixing errors</td><td data-label="Legal basis (GDPR)">Legitimate interest</td></tr>
+</table>
+<p>We do not use your data for advertising, we do not sell it, and we do not use automated decision-making that has legal effects on you. Offers are shown to all eligible transporters at the same time and go to whoever accepts first.</p>
+<p><strong>Location.</strong> The traveller app does not track your location. Addresses and towns you type are turned into map coordinates by Photon and Nominatim, two search services based on OpenStreetMap, or, when they find nothing, by your phone's built-in map service (Apple on iPhone, Google on Android). They receive what you typed for that purpose. The Driver app uses your location in two cases. While a trip is in the "Towards client" stage, it shares your position with that traveller and keeps only your latest position for that trip, visible only to you and that traveller. While you are Online, it sends your approximate position (rounded to about 1 km) so trip requests that start near you reach you; we keep only the latest one and delete it when you go offline or Online ends.</p>
+
+<h2>3. Who we share it with</h2>
+<ul>
+<li><strong>The other side of your trip.</strong> Your transporter or traveller sees your name, phone number and photo from about 24 hours before pickup (right away for Live trips), plus the trip details and your chat. Transporters see the trip route, date and passengers, without names, when it is offered.</li>
+<li><strong>The DomiVan partner who invited you</strong>, if you signed up with their invite code. They see your name (or company name), when you joined, how many trips you completed and what they earned from them, never your contact details, addresses, trip prices or messages.</li>
+<li><strong>Service providers who process data for us:</strong>
+<ul>
+<li>Supabase (database, sign-in, file storage and servers), hosted in Frankfurt, Germany.</li>
+<li>Stripe (payments and transporter payouts). For transporter payouts, Stripe also collects identity and bank details itself, as a separate controller under its own <a href="https://stripe.com/privacy">privacy policy</a>.</li>
+<li>Lettermint (sending sign-in code emails).</li>
+<li>Expo (delivering push notifications), with Apple and Google, which deliver notifications to your phone.</li>
+<li>Apple and Google (app stores, and turning addresses into map coordinates on your phone).</li>
+<li>komoot (Photon) and the OpenStreetMap Foundation (Nominatim), for finding the addresses and towns you type. When a transporter taps "Use my location" in Trip preferences, Photon receives only a position rounded to about 1 km, to name the town.</li>
+</ul></li>
+<li><strong>Authorities</strong>, when the law requires it, or to protect the safety of passengers.</li>
+</ul>
+
+<h2>4. Transfers outside the EU</h2>
+<p>Our main database is in the EU. Some providers (such as Stripe, Expo, Apple and Google) may process data in the United States or other countries. Where that happens, we rely on the EU-US Data Privacy Framework or the European Commission's standard contractual clauses. <span class="fill">[LAWYER: confirm each provider's transfer mechanism and sign data processing agreements.]</span></p>
+
+<h2>5. How long we keep it</h2>
+<ul>
+<li>Account details: as long as your account exists. Deleting your account in the app removes them right away.</li>
+<li>Invites: which partner invited you, kept with the payout records of what it earned them. The phone ID sent with the code: <span class="fill">[DECIDE: delete it 12 months after sign-up, or when the account is deleted.]</span></li>
+<li>Trip, payment and payout records: 7 years, as Dutch tax law requires.</li>
+<li>Chat and support messages: <span class="fill">[1 year]</span> after the trip or conversation, unless needed for an open complaint.</li>
+<li>Live location: only the latest position, kept with the trip record. <span class="fill">[DECIDE: delete live location when the trip is completed.]</span></li>
+<li>Online position: only the latest one, deleted within an hour after you go offline or Online ends.</li>
+<li>Transporter documents: as long as you are active, then <span class="fill">[1 year]</span>.</li>
+<li>Server logs: <span class="fill">[90 days]</span>.</li>
+</ul>
+
+<h2>6. Your rights</h2>
+<p>You can ask us to see, correct, delete or export your data, to restrict how we use it, or object to our use based on legitimate interest. Where we rely on consent, you can withdraw it at any time. You can change your name, phone and photo yourself in the app. To use your other rights, write to us through Help and support or at <a href="mailto:privacy@domivan.com">privacy@domivan.com</a>; we answer within one month.</p>
+<p>You can delete your account yourself in the app under Profile, Delete account. See <a href="/fr/delete-account">Delete your account</a>.</p>
+<p>You can complain to the Dutch Data Protection Authority (<a href="https://autoriteitpersoonsgegevens.nl">Autoriteit Persoonsgegevens</a>) or the authority in your own country.</p>
+
+<h2>7. Security</h2>
+<p>Data is encrypted in transit, access to the database is limited by strict per-user rules, sign-in uses one-time codes instead of passwords, and card details are handled only by Stripe. No system is perfectly safe; if a breach puts your data at risk, we will tell you and the authorities as the law requires.</p>
+
+<h2>8. Children</h2>
+<p>You must be 18 or older to have an account. Travellers may book for children travelling with them; we receive only the number of passengers, not their names.</p>
+
+<h2>9. Changes</h2>
+<p>If we change this policy in an important way, we tell you in the app before the change takes effect.</p>
+
+<nav class="links">
+<a href="/fr/">DomiVan</a>
+<a href="/fr/terms">Terms for travellers</a>
+<a href="/fr/transporter-terms">Terms for transporters</a>
+<a href="/fr/privacy" aria-current="page">Privacy Policy</a>
+<a href="/fr/delete-account">Delete your account</a>
+</nav>
+</article>
+</div>
+</main>
+</div>
+
+<script type="application/json" id="dv-t">{"acct_h": "Votre compte", "back": "Retour", "tab_login": "Se connecter", "tab_create": "Créer un compte", "google": "Continuer avec Google", "apple": "Continuer avec Apple", "redirecting": "Ouverture de {provider}…", "signing_in": "Connexion en cours…", "f_name": "Nom complet", "ph_name": "Prénom et nom", "f_email": "E-mail", "ph_email": "vous@exemple.fr", "hint": "Nous vous envoyons un code à usage unique par e-mail. Pas besoin de mot de passe.", "send": "Recevoir un code", "sending": "Envoi en cours…", "code_h": "Consultez vos e-mails", "code_sent": "Nous avons envoyé un code à {email}", "f_code": "Code reçu par e-mail", "verify": "Continuer", "verifying": "Vérification…", "change_email": "Modifier l’e-mail", "resend": "Recevoir un nouveau code", "resend_in": "Nouveau code dans {s} s", "resent": "Nous vous avons envoyé un nouveau code.", "legal": "En continuant, vous acceptez les <a href=\"/fr/terms\">Conditions d’utilisation<\/a> et la <a href=\"/fr/privacy\">Politique de confidentialité<\/a>.", "welcome": "Connexion réussie", "signed_in_as": "Connecté en tant que", "my_trips": "Mes trajets", "logout": "Se déconnecter", "my_account": "Mon compte", "err_email": "Saisissez une adresse e-mail valide.", "err_name": "Veuillez indiquer votre nom.", "err_code": "Saisissez le code reçu par e-mail.", "err_bad_code": "Ce code est erroné ou a expiré. Vérifiez l’e-mail ou demandez un nouveau code.", "no_account": "Aucun compte n’existe encore avec cet e-mail.", "create_instead": "Créer un compte", "err_rate": "Trop de tentatives. Patientez une minute, puis réessayez.", "err_wait": "Patientez un instant avant de demander un autre code.", "err_network": "Impossible de joindre DomiVan. Vérifiez votre connexion et réessayez.", "err_generic": "Une erreur s’est produite. Veuillez réessayer.", "err_oauth": "La connexion avec {provider} n’a pas abouti. Réessayez ou utilisez votre e-mail.", "err_oauth_off": "La connexion avec {provider} n’est pas encore disponible. Utilisez votre e-mail.", "lang": "fr", "home": "/fr/", "or": "ou", "h_price": "Votre prix", "h_pay": "Paiement", "h_done": "Trajet réservé", "checking": "Vérification de votre itinéraire…", "err_from": "Saisissez l’adresse de prise en charge.", "err_to": "Saisissez l’adresse de destination.", "err_not_found": "Nous n’avons pas trouvé « {q} ». Essayez la ville et le pays, ou un code postal.", "err_search": "La recherche d’adresse ne répond pas pour le moment. Réessayez dans un instant.", "err_route": "DomiVan propose des trajets dans l’UE, au Royaume-Uni et en Suisse, y compris à l’intérieur d’un même pays.", "err_short": "Un trajet doit faire au moins {n} km.", "err_when": "Choisissez une prise en charge dans 2 heures au moins. Pour un trajet urgent, choisissez Live (maintenant).", "err_pax": "Passagers : de 1 à 20.", "err_bags": "Bagages en plus : de 0 à 40.", "van_h": "Choisissez votre van", "too_many": "Jusqu’à {n} passagers", "note_label": "Note pour le transporteur (facultatif)", "ph_note": "Ex. : numéro de vol, entrée", "asap": "Dès que possible", "km": "≈ {n} km", "total": "Total", "pay": "Payer {price}", "login_pay": "Connectez-vous pour payer {price}", "preparing": "Préparation du paiement…", "paying": "Paiement en cours…", "fine_print": "Vous payez maintenant. Les coordonnées de votre transporteur, la messagerie et les appels sont accessibles 24 heures avant la prise en charge. Annulation gratuite tant qu’aucun transporteur n’a accepté.", "fine_print_live": "Vous payez maintenant. Les coordonnées de votre transporteur, la messagerie et les appels sont accessibles dès qu’un transporteur accepte. Annulation gratuite tant qu’aucun transporteur n’a accepté.", "lux_note": "Les vans de luxe sont moins nombreux : si aucun transporteur n’accepte à temps, vous êtes remboursé intégralement.", "secure": "Les paiements sont gérés par Stripe. DomiVan ne voit jamais votre numéro de carte.", "err_pay_load": "Le formulaire de paiement ne s’est pas chargé. Vérifiez votre connexion et réessayez.", "err_paid": "Vous avez déjà payé ce trajet. Vous le retrouverez dans Mes trajets.", "err_pay": "Le paiement n’a pas abouti. Réessayez ou utilisez un autre moyen de paiement.", "err_login_again": "Reconnectez-vous pour payer.", "done_h": "C’est réservé !", "done_p": "Nous proposons dès maintenant votre trajet aux transporteurs. Les coordonnées de votre transporteur, la messagerie et les appels sont accessibles 24 heures avant la prise en charge.", "done_p_live": "Nous prévenons dès maintenant les transporteurs de votre itinéraire. Les coordonnées de votre transporteur, la messagerie et les appels sont accessibles dès que l’un d’eux accepte.", "done_wait": "Votre banque confirme encore le paiement. Nous proposerons votre trajet aux transporteurs dès qu’il sera validé.", "s_route": "Itinéraire", "s_pickup": "Prise en charge", "s_van": "Van", "s_paid": "Montant payé", "another": "Réserver un autre trajet", "retry": "Réessayer", "book_trip": "Réserver un trajet", "trip_h": "Votre trajet", "up_h": "À venir", "past_h": "Passés", "none_h": "Aucun trajet pour l’instant", "none_p": "Les trajets que vous réservez apparaissent ici.", "err_trips": "Impossible de charger vos trajets. Vérifiez votre connexion et réessayez.", "gone": "Nous n’avons pas trouvé ce trajet dans votre compte.", "st_pending_payment": "Confirmation du paiement", "st_bidding": "Recherche d’un transporteur", "st_accepted": "Transporteur attribué", "st_en_route": "Transporteur en route", "st_picked_up": "Trajet en cours", "st_completed": "Terminé", "st_cancelled": "Annulé", "tag_live": "Live", "t_note": "Votre note", "n_bidding": "Votre trajet est payé et proposé dès maintenant aux transporteurs. Vous pouvez l’annuler gratuitement tant qu’aucun d’eux ne l’a accepté.", "n_locked": "Les coordonnées et le numéro de téléphone de votre transporteur seront accessibles le {date}, 24 heures avant la prise en charge.", "n_refunded": "Aucun transporteur n’a accepté ce trajet à temps : votre paiement a été remboursé intégralement.", "n_cancelled": "Ce trajet a été annulé et votre paiement remboursé intégralement.", "tr_h": "Votre transporteur", "seats": "{n} places", "call": "Appeler le {phone}", "pc_h": "Code de prise en charge", "pc_p": "Donnez ce code à votre chauffeur en montant dans le van.", "cancel": "Annuler le trajet", "cancel_q": "Annuler ce trajet ? Vous êtes remboursé intégralement.", "cancel_yes": "Oui, annuler", "cancel_no": "Garder mon trajet", "cancelling": "Annulation en cours…", "err_cancel": "Un transporteur a déjà accepté ce trajet. Pour l’annuler, écrivez à support@domivan.com.", "cx_free": "Annulation gratuite jusqu’au {date}.", "cx_free_any": "Annulation gratuite.", "cx_part": "En annulant maintenant, vous êtes remboursé à {pct} ({amount}).", "cx_none": "En annulant maintenant, vous n’êtes pas remboursé.", "cx_then_part": "Remboursement de {pct} à partir du {date}.", "cx_then_none": "Aucun remboursement à partir du {date}.", "cx_q_part": "Annuler ce trajet ? Vous récupérez {amount}, soit {pct} de ce que vous avez payé.", "cx_q_none": "Annuler ce trajet ? La prise en charge est trop proche pour un remboursement : vous ne récupérez rien.", "cx_late": "Transporteur en retard ou absent ? Écrivez plutôt à support@domivan.com.", "n_cx_full": "Vous avez annulé ce trajet à temps : votre paiement a été remboursé intégralement.", "n_cx_part": "Vous avez annulé ce trajet. {refund} sera recrédité sur votre carte, ce qui peut prendre de 5 à 10 jours ouvrés. Les frais d’annulation s’élèvent à {fee}.", "n_cx_none": "Vous avez annulé ce trajet peu avant la prise en charge : votre paiement n’a donc pas été remboursé.", "err_cx_changed": "Le montant remboursé en cas d’annulation vient de changer. Vérifiez-le et réessayez.", "err_cx_started": "Ce trajet ne peut plus être annulé ici. Écrivez à support@domivan.com.", "report": "Signaler un problème", "report_until": "Un problème sur ce trajet ? Vous pouvez le signaler jusqu’au {date}.", "report_ph": "Que s’est-il passé ?", "report_send": "Envoyer le signalement", "report_done": "Vous avez signalé un problème sur ce trajet. Nous vous contacterons à ce sujet.", "err_report_empty": "Dites-nous ce qui s’est passé.", "err_report_closed": "Le délai pour signaler un problème sur ce trajet est dépassé. Écrivez à support@domivan.com.", "invoices_h": "Factures", "invoice_trip": "Facture {n}", "invoice_credit": "Avoir {n}", "inv_by": "{name} vous invite à rejoindre DomiVan", "inv_partner": "Un partenaire DomiVan", "inv_choose": "Comment voulez-vous utiliser DomiVan ?", "inv_travel": "Je veux voyager", "inv_travel_s": "Réservez des trajets en van de porte à porte", "inv_driver": "Je suis transporteur", "inv_driver_s": "Recevez des trajets rémunérés pour votre van", "inv_saved": "Invitation de {name}", "inv_code": "Code d’invitation {code}", "inv_saved_p": "Votre invitation est ajoutée à votre compte lorsque vous vous connectez ou vous inscrivez.", "inv_drv_h": "Téléchargez l’app DomiVan Driver", "inv_drv_ios": "Quand vous touchez le bouton, nous copions votre code d’invitation {code}. Dans l’app, touchez le bouton Coller sur l’écran d’inscription.", "inv_drv_android": "Votre code d’invitation {code} est transmis avec le téléchargement.", "inv_drv_btn": "Télécharger DomiVan Driver", "inv_drv_web": "Ou inscrivez-vous sur le site", "inv_ok": "L’invitation est maintenant liée à votre compte.", "inv_h": "Code d’invitation", "inv_bad": "Ce lien d’invitation n’est plus valide. Vous pouvez tout de même utiliser DomiVan normalement.", "inv_too_late": "Un code d’invitation ne peut être ajouté que dans les 7 jours qui suivent l’inscription.", "inv_already": "Votre compte a déjà une invitation.", "inv_booked": "Un code d’invitation ne peut être ajouté qu’avant votre première réservation.", "inv_own": "Vous ne pouvez pas utiliser votre propre code d’invitation.", "inv_close": "Fermer", "inv_join_done": "Inscrivez-vous dans l’app DomiVan Driver avec {email} et votre invitation sera ajoutée automatiquement.", "card_h": "Réservez votre trajet", "f_pax": "Passagers", "f_bags": "Bagages en plus", "v_standard": "Standard", "v_large": "Grand", "v_luxury": "Luxe", "c_standard": "Jusqu’à 8 passagers", "c_large": "De 9 à 20 places", "c_luxury": "Classe V et Sprinter VIP"}</script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terms of Service | DomiVan</title>
+<meta name="description" content="Terms of Service for travellers booking door-to-door van trips with DomiVan.">
+<link rel="canonical" href="https://domivan.com/terms">
+<meta name="theme-color" content="#050B18">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/landing.css?v=0cf33be1">
+<script src="/site.js?v=95368a69" defer></script>
+<script src="/hero-net.js?v=941616fd" defer></script>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 100 100">
+    <path d="M24 22v56" stroke="currentColor" stroke-opacity=".75" stroke-width="9" stroke-linecap="round" stroke-dasharray="1 15"/>
+    <path d="M24 14h20a36 36 0 0 1 0 72H35" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="24" cy="14" r="10" fill="var(--arrow, currentColor)"/>
+    <circle cx="24" cy="86" r="7.25" fill="none" stroke="currentColor" stroke-width="5.5"/>
+  </symbol>
+</svg>
+
+<!-- One night map for every page. Pages slide over it and it is never redrawn (site.js).
+     hero-net.js tilts it into a table and runs the live network of trips across it. The masks
+     fade the image out at its own edges, so the tilted map has no hard border. -->
+<div class="backdrop" aria-hidden="true">
+  <svg viewBox="0 120 1800 1140" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <linearGradient id="fade-y" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1381"><stop offset="0" stop-color="#000"/><stop offset=".1" stop-color="#fff"/><stop offset=".94" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+      <linearGradient id="fade-x" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1800" y2="0"><stop offset="0" stop-color="#000"/><stop offset=".06" stop-color="#fff"/><stop offset=".94" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+      <mask id="fade-v" maskUnits="userSpaceOnUse" x="0" y="0" width="1800" height="1381"><rect width="1800" height="1381" fill="url(#fade-y)"/></mask>
+      <mask id="fade-h" maskUnits="userSpaceOnUse" x="0" y="0" width="1800" height="1381"><rect width="1800" height="1381" fill="url(#fade-x)"/></mask>
+      <!-- brightness(1.22) contrast(1.1) saturate(1.3), applied when the map is drawn (landing.css), not on every frame -->
+      <filter id="lift" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope="1.342" intercept="-.05"/><feFuncG type="linear" slope="1.342" intercept="-.05"/><feFuncB type="linear" slope="1.342" intercept="-.05"/></feComponentTransfer><feColorMatrix type="saturate" values="1.3"/></filter>
+    </defs>
+    <g mask="url(#fade-h)"><image mask="url(#fade-v)" href="/img/europe-night.webp?v=5663e10b" x="0" y="0" width="1800" height="1381" preserveAspectRatio="none"/></g>
+  </svg>
+</div>
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="/nl/"><span class="logo"><svg><use href="#mark"/></svg></span>DomiVan</a>
+    <nav>
+      <a href="/nl/#how">Zo werkt het</a>
+      <a href="/nl/#vans">Busjes</a>
+      <a class="btn small shiny" href="/nl/join" data-driver-app><span class="long">Word vervoerder</span><span class="short">Vervoerders</span></a>
+      <details class="lang">
+        <summary aria-label="Taal"><span class="earth" aria-hidden="true"></span><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#AE1C28"/><rect x="0" y="0.667" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="1.333" width="3" height="0.667" fill="#21468B"/></svg>NL</summary>
+        <div class="menu">
+        <a href="/terms" hreflang="en" lang="en"><svg class="flag" viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><clipPath id="uk-t"><path d="M30 15h30v15zv15H0zH0V0zV0h30z"/></clipPath><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#uk-t)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></svg><span>English</span><b>EN</b></a>
+        <a href="/ro/terms" hreflang="ro" lang="ro"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0.000" y="0" width="1.000" height="2" fill="#002B7F"/><rect x="1.000" y="0" width="1.000" height="2" fill="#FCD116"/><rect x="2.000" y="0" width="1.000" height="2" fill="#CE1126"/></svg><span>Română</span><b>RO</b></a>
+        <a href="/pl/terms" hreflang="pl" lang="pl"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="1.000" fill="#FFFFFF"/><rect x="0" y="1.000" width="3" height="1.000" fill="#DC143C"/></svg><span>Polski</span><b>PL</b></a>
+        <a href="/bg/terms" hreflang="bg" lang="bg"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="0.667" width="3" height="0.667" fill="#00966E"/><rect x="0" y="1.333" width="3" height="0.667" fill="#D62612"/></svg><span>Български</span><b>BG</b></a>
+        <a href="/hu/terms" hreflang="hu" lang="hu"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#CD2A3E"/><rect x="0" y="0.667" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="1.333" width="3" height="0.667" fill="#436F4D"/></svg><span>Magyar</span><b>HU</b></a>
+        <a href="/es/terms" hreflang="es" lang="es"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.500" fill="#AA151B"/><rect x="0" y="0.500" width="3" height="1.000" fill="#F1BF00"/><rect x="0" y="1.500" width="3" height="0.500" fill="#AA151B"/></svg><span>Español</span><b>ES</b></a>
+        <a href="/fr/terms" hreflang="fr" lang="fr"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0.000" y="0" width="1.000" height="2" fill="#002654"/><rect x="1.000" y="0" width="1.000" height="2" fill="#FFFFFF"/><rect x="2.000" y="0" width="1.000" height="2" fill="#CE1126"/></svg><span>Français</span><b>FR</b></a>
+        <a href="/de/terms" hreflang="de" lang="de"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#000000"/><rect x="0" y="0.667" width="3" height="0.667" fill="#DD0000"/><rect x="0" y="1.333" width="3" height="0.667" fill="#FFCE00"/></svg><span>Deutsch</span><b>DE</b></a>
+        <a href="/nl/terms" hreflang="nl" lang="nl" aria-current="page"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#AE1C28"/><rect x="0" y="0.667" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="1.333" width="3" height="0.667" fill="#21468B"/></svg><span>Nederlands</span><b>NL</b></a>
+        <a href="/pt/terms" hreflang="pt" lang="pt"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#FF0000"/><rect width="1.2" height="2" fill="#006600"/><circle cx="1.2" cy="1" r=".42" fill="#FFCC00"/><path d="M.98.76h.44v.34q0 .2-.22.26Q.98 1.3.98 1.1z" fill="#FF0000"/><path d="M1.09.86h.22v.24q0 .11-.11.15-.11-.04-.11-.15z" fill="#fff"/></svg><span>Português</span><b>PT</b></a>
+        </div>
+      </details>
+      <a class="btn small login" href="#login" data-login><span class="long">Inloggen / Account aanmaken</span><span class="short">Inloggen</span></a>
+    </nav>
+  </div>
+</header>
+
+<div id="stage">
+<main id="page" class="page page-legal" data-page="legal">
+<div class="wrap legal-wrap">
+<article class="card legal" lang="en">
+<h1>Terms of Service for travellers</h1>
+<p class="meta">For the DomiVan app. Last updated: <span class="fill">[DATE]</span></p>
+
+<p class="draft">Draft. These terms are not yet in force and must be reviewed by a lawyer before DomiVan launches. Text marked like <span class="fill">[THIS]</span> still needs to be filled in.</p>
+
+<h2>1. Who we are</h2>
+<p>DomiVan is run by StepsNest B.V., a private limited company registered in the Netherlands under Chamber of Commerce (KvK) number 42105882, with its registered office at Sprangstraat 10, 6004 XD Weert, the Netherlands, VAT number NL869759164B01 ("DomiVan", "we", "us").</p>
+<p>You can reach us through <strong>Help and support</strong> in the app, or by email at <a href="mailto:support@domivan.com">support@domivan.com</a>. We do not offer phone support.</p>
+
+<h2>2. What DomiVan does</h2>
+<p>DomiVan is an online marketplace that connects travellers with independent transport companies ("transporters") that drive passengers door to door in vans of up to 20 seats, between Poland, Romania, Bulgaria and Hungary on one side and Germany, France, Belgium, the Netherlands, the United Kingdom, Spain, Italy and Switzerland on the other, in both directions.</p>
+<p>When you book, we set the fare and take your payment. We then offer your trip to transporters that have been checked by us, and the first transporter to accept it carries out the trip.</p>
+<p><strong>The transporter, not DomiVan, performs the transport.</strong> The transporter is responsible for the vehicle, the driver, the licences and permits needed for passenger transport, their insurance, and your safety during the trip. DomiVan does not own vans or employ drivers. <span class="fill">[LAWYER: confirm how DomiVan's role is described, given that DomiVan sets the price and collects the payment, and which passenger-rights rules apply.]</span></p>
+
+<h2>3. Your account</h2>
+<ul>
+<li>You can get a price without an account. To book you sign in with your email address and a one-time code, and give your name and phone number.</li>
+<li>You must be at least 18 years old to create an account and book. You may book for other passengers, including children travelling with an adult, and you are responsible for them following these terms.</li>
+<li>Keep access to your email account safe. Anyone who can read your sign-in codes can use your DomiVan account.</li>
+<li>The details you give must be correct. Your transporter uses your name and phone number to find you.</li>
+</ul>
+
+<h2>4. Booking a trip</h2>
+<ul>
+<li>You can book a <strong>Booking</strong> trip (pickup at least 2 hours ahead) or a <strong>Live</strong> trip (pickup as soon as possible).</li>
+<li>You enter the pickup address, destination address, date and time, number of passengers and extra bags. Each passenger may bring <span class="fill">[1 bag of up to X kg and one small hand bag]</span>; extra bags cost extra and must be booked in advance.</li>
+<li>The price shown before you pay is the full price, including VAT where it applies. There are no hidden fees.</li>
+<li>Your booking is confirmed once your payment goes through. Your trip is then offered to transporters.</li>
+<li>DomiVan cannot guarantee that a transporter will accept every trip. If nobody accepts in time, we cancel the trip and refund you in full (see section 6).</li>
+</ul>
+
+<h2>5. Payment</h2>
+<ul>
+<li>You pay DomiVan in advance through Stripe, our payment provider, by card, Apple Pay, Google Pay or another method shown in the app. We never see or store your full card number.</li>
+<li>DomiVan pays the transporter after the trip and keeps the rest as its fee.</li>
+<li>Prices are in euros. Your bank may charge a currency conversion fee.</li>
+<li>After the trip you get DomiVan's invoice by email and on the trip in the app. You can add your company name, VAT number and address under Personal details so they appear on the invoice.</li>
+</ul>
+
+<h2>6. Cancellations and refunds</h2>
+<ul>
+<li><strong>Before a transporter accepts:</strong> you can cancel in the app at any time and get a full refund.</li>
+<li><strong>Nobody accepts:</strong> a Booking trip that has not been accepted 1 hour before pickup, or a Live trip that has not been accepted within 30 minutes, is cancelled automatically and refunded in full.</li>
+<li><strong>After a transporter accepts:</strong> you can cancel in the app until pickup. Before you confirm, the app shows what you get back. The refund depends on how long before the agreed pickup time you cancel: <strong>48 hours or more</strong>: full refund; <strong>between 48 and 12 hours</strong>: 50% refund; <strong>less than 12 hours</strong>: no refund. Part of the amount we keep goes to the transporter, who had reserved seats for you. The refund goes back to the card you paid with.</li>
+<li><strong>Transporter gives the trip back:</strong> we offer it to other transporters right away and tell you. While it waits for a new transporter you can cancel for a full refund, and if nobody accepts in time it is refunded in full, as above.</li>
+<li><strong>Transporter does not show up:</strong> contact us. We try to find another transporter, and if we cannot, you get a full refund.</li>
+<li><strong>You do not show up:</strong> if you are not at the pickup address within <span class="fill">[15]</span> minutes of the agreed time and cannot be reached, the transporter may leave and the fare is not refunded.</li>
+<li>Refunds go back to the payment method you used. Stripe usually takes 5 to 10 working days.</li>
+<li><strong>No right of withdrawal.</strong> Under EU consumer law (Article 16(l) of Directive 2011/83/EU), the 14-day right of withdrawal does not apply to passenger transport booked for a specific date. Your rights to cancel are the ones in this section.</li>
+</ul>
+
+<h2>7. Before and during the trip</h2>
+<ul>
+<li>About 24 hours before pickup (right away for Live trips), you and your transporter see each other's name and phone number, and can chat in the app.</li>
+<li>When your transporter sets off towards you, you can follow their location in the app until you are picked up.</li>
+<li>The pickup time is approximate. Long-distance trips depend on traffic, borders and other passengers, so the transporter may be earlier or later. Please keep your phone on.</li>
+<li>You must carry a valid passport or ID card and any visa or documents needed for the countries you travel through. The transporter may refuse a passenger who does not have them.</li>
+<li>Follow the driver's instructions, wear a seat belt, and do not smoke, drink alcohol or behave aggressively in the vehicle. You may not bring illegal, dangerous or prohibited items.</li>
+<li>The transporter may refuse or stop a trip for a passenger who is a danger to others. In that case no refund is due.</li>
+</ul>
+
+<h2>8. Messages and conduct</h2>
+<p>Use the chat only for your trip. Do not harass, threaten or insult anyone, and do not use DomiVan to arrange trips outside the app with transporters you met through it. We may suspend or close accounts that break these rules.</p>
+
+<h2>9. Problems and complaints</h2>
+<p>When your transporter arrives, tell them the 4-digit pickup code shown in the app once you are in the van, not before. After the trip you can tap <strong>Report a problem</strong> in the app for 24 hours; we then hold the transporter's payment while we look into it.</p>
+<p>If something goes wrong, tell us through Help and support as soon as possible, and within <span class="fill">[14 days]</span> after the trip. We will look into it and answer in the app. Lost items are handled between you and the transporter; we help you contact them.</p>
+<p>If we cannot solve your complaint together, you can go to the competent court (see section 13). <span class="fill">[LAWYER: name an out-of-court dispute body if DomiVan joins one.]</span></p>
+
+<h2>10. Liability</h2>
+<ul>
+<li>The transporter is liable for the transport itself, including damage or injury during the trip, in line with the law that applies to them.</li>
+<li>DomiVan is liable for running the marketplace with reasonable care. Our liability to you for any one booking is limited to the amount you paid for it, except where the law does not allow this limit, for example for death or personal injury caused by our negligence, or for intent or gross negligence.</li>
+<li>DomiVan does not provide travel insurance or insurance for luggage. <span class="fill">[LAWYER: check this section against Dutch and EU consumer law.]</span></li>
+</ul>
+
+<h2>11. Your data</h2>
+<p>How we use your personal data is explained in our <a href="/nl/privacy">Privacy Policy</a>.</p>
+
+<h2>12. Changes and ending your account</h2>
+<p>We may change these terms. We tell you in the app at least 30 days before an important change takes effect; bookings already made keep the terms that applied when you paid. You can delete your account at any time, see <a href="/nl/delete-account">Delete your account</a>. We may close your account if you seriously or repeatedly break these terms.</p>
+
+<h2>13. Law and courts</h2>
+<p>These terms are governed by Dutch law. If you are a consumer living in another EU country, you keep the protection of the mandatory consumer law of your country, and you may bring a claim in the courts where you live. Otherwise, disputes go to the competent court in the district of Limburg (Rechtbank Limburg).</p>
+
+<nav class="links">
+<a href="/nl/">DomiVan</a>
+<a href="/nl/terms" aria-current="page">Terms for travellers</a>
+<a href="/nl/transporter-terms">Terms for transporters</a>
+<a href="/nl/privacy">Privacy Policy</a>
+<a href="/nl/delete-account">Delete your account</a>
+</nav>
+</article>
+</div>
+</main>
+</div>
+
+<script type="application/json" id="dv-t">{"acct_h": "Je account", "back": "Terug", "tab_login": "Inloggen", "tab_create": "Account aanmaken", "google": "Doorgaan met Google", "apple": "Doorgaan met Apple", "redirecting": "{provider} wordt geopend…", "signing_in": "Je wordt ingelogd…", "f_name": "Volledige naam", "ph_name": "Voor- en achternaam", "f_email": "E-mail", "ph_email": "jij@voorbeeld.nl", "hint": "We mailen je een eenmalige code. Je hebt geen wachtwoord nodig.", "send": "Mail me een code", "sending": "Versturen…", "code_h": "Kijk in je e-mail", "code_sent": "We hebben een code gestuurd naar {email}", "f_code": "Code uit je e-mail", "verify": "Doorgaan", "verifying": "Controleren…", "change_email": "E-mailadres wijzigen", "resend": "Nieuwe code sturen", "resend_in": "Nieuwe code over {s} s", "resent": "We hebben je een nieuwe code gestuurd.", "legal": "Door verder te gaan ga je akkoord met de <a href=\"/nl/terms\">voorwaarden<\/a> en het <a href=\"/nl/privacy\">privacybeleid<\/a>.", "welcome": "Je bent ingelogd", "signed_in_as": "Ingelogd als", "my_trips": "Mijn ritten", "logout": "Uitloggen", "my_account": "Mijn account", "err_email": "Vul een geldig e-mailadres in.", "err_name": "Vul je naam in.", "err_code": "Vul de code uit de e-mail in.", "err_bad_code": "Deze code klopt niet of is verlopen. Controleer de e-mail of vraag een nieuwe code aan.", "no_account": "Er is nog geen account met dit e-mailadres.", "create_instead": "Account aanmaken", "err_rate": "Te veel pogingen. Wacht een minuut en probeer het dan opnieuw.", "err_wait": "Wacht even voordat je een nieuwe code aanvraagt.", "err_network": "We konden DomiVan niet bereiken. Controleer je verbinding en probeer het opnieuw.", "err_generic": "Er ging iets mis. Probeer het opnieuw.", "err_oauth": "Inloggen met {provider} is niet gelukt. Probeer het opnieuw of gebruik je e-mailadres.", "err_oauth_off": "Inloggen met {provider} is nog niet beschikbaar. Gebruik je e-mailadres.", "lang": "nl", "home": "/nl/", "or": "of", "h_price": "Je prijs", "h_pay": "Betaling", "h_done": "Rit geboekt", "checking": "We controleren je route…", "err_from": "Vul het ophaaladres in.", "err_to": "Vul het bestemmingsadres in.", "err_not_found": "We konden “{q}” niet vinden. Probeer de plaats en het land, of een postcode.", "err_search": "Adres zoeken reageert nu even niet. Probeer het zo opnieuw.", "err_route": "DomiVan verzorgt ritten binnen de EU, het Verenigd Koninkrijk en Zwitserland, ook binnen één land.", "err_short": "Een rit moet minstens {n} km zijn.", "err_when": "Kies een ophaaltijd over minstens 2 uur. Voor spoedritten kies je Live (nu).", "err_pax": "Passagiers: 1 tot 20.", "err_bags": "Extra tassen: 0 tot 40.", "van_h": "Kies je busje", "too_many": "Tot {n} passagiers", "note_label": "Opmerking voor de vervoerder (optioneel)", "ph_note": "Bijv. vluchtnummer, ingang", "asap": "Zo snel mogelijk", "km": "≈ {n} km", "total": "Totaal", "pay": "{price} betalen", "login_pay": "Log in om {price} te betalen", "preparing": "Betaling voorbereiden…", "paying": "Betalen…", "fine_print": "Je betaalt nu. De gegevens, de chat en het telefoonnummer van je vervoerder verschijnen 24 uur voor het ophalen. Gratis annuleren tot een vervoerder de rit accepteert.", "fine_print_live": "Je betaalt nu. De gegevens, de chat en het telefoonnummer van je vervoerder verschijnen zodra er een accepteert. Gratis annuleren tot een vervoerder de rit accepteert.", "lux_note": "Er zijn minder luxe busjes: als er niet op tijd een accepteert, krijg je je geld volledig terug.", "secure": "Betalingen lopen via Stripe. DomiVan ziet je kaartnummer nooit.", "err_pay_load": "Het betaalformulier is niet geladen. Controleer je verbinding en probeer het opnieuw.", "err_paid": "Je hebt deze rit al betaald. Je vindt hem onder Mijn ritten.", "err_pay": "De betaling is niet gelukt. Probeer het opnieuw of gebruik een andere betaalmethode.", "err_login_again": "Log opnieuw in om te betalen.", "done_h": "Je rit is geboekt!", "done_p": "We bieden je rit nu aan vervoerders aan. De gegevens, de chat en het telefoonnummer van je vervoerder verschijnen 24 uur voor het ophalen.", "done_p_live": "We sturen nu een melding naar vervoerders op je route. De gegevens, de chat en het telefoonnummer van je vervoerder verschijnen zodra er een accepteert.", "done_wait": "Je bank is de betaling nog aan het bevestigen. Zodra die rond is, bieden we je rit aan vervoerders aan.", "s_route": "Route", "s_pickup": "Ophalen", "s_van": "Busje", "s_paid": "Betaald", "another": "Nog een rit boeken", "retry": "Opnieuw proberen", "book_trip": "Rit boeken", "trip_h": "Je rit", "up_h": "Gepland", "past_h": "Afgelopen", "none_h": "Nog geen ritten", "none_p": "Ritten die je boekt, verschijnen hier.", "err_trips": "We konden je ritten niet laden. Controleer je verbinding en probeer het opnieuw.", "gone": "We konden deze rit niet vinden in je account.", "st_pending_payment": "Betaling wordt bevestigd", "st_bidding": "Op zoek naar vervoerder", "st_accepted": "Vervoerder toegewezen", "st_en_route": "Vervoerder onderweg", "st_picked_up": "Onderweg", "st_completed": "Afgerond", "st_cancelled": "Geannuleerd", "tag_live": "Live", "t_note": "Je opmerking", "n_bidding": "Je rit is betaald en wordt nu aangeboden aan vervoerders. Je kunt gratis annuleren tot er een accepteert.", "n_locked": "De gegevens en het telefoonnummer van je vervoerder verschijnen op {date}, 24 uur voor het ophalen.", "n_refunded": "Geen enkele vervoerder heeft deze rit op tijd aangenomen, dus je betaling is volledig terugbetaald.", "n_cancelled": "Deze rit is geannuleerd en je betaling is volledig terugbetaald.", "tr_h": "Je vervoerder", "seats": "{n} zitplaatsen", "call": "Bel {phone}", "pc_h": "Ophaalcode", "pc_p": "Geef deze code aan je chauffeur als je instapt.", "cancel": "Rit annuleren", "cancel_q": "Deze rit annuleren? Je krijgt het volledige bedrag terug.", "cancel_yes": "Ja, annuleren", "cancel_no": "Rit houden", "cancelling": "Annuleren…", "err_cancel": "Een vervoerder heeft deze rit al geaccepteerd. Mail naar support@domivan.com om hem te annuleren.", "cx_free": "Gratis annuleren tot {date}.", "cx_free_any": "Gratis annuleren.", "cx_part": "Als je nu annuleert, krijg je {pct} terug ({amount}).", "cx_none": "Als je nu annuleert, krijg je niets terug.", "cx_then_part": "{pct} terug vanaf {date}.", "cx_then_none": "Geen terugbetaling vanaf {date}.", "cx_q_part": "Deze rit annuleren? Je krijgt {amount} terug, {pct} van wat je hebt betaald.", "cx_q_none": "Deze rit annuleren? Het ophaalmoment is te dichtbij voor een terugbetaling, dus je krijgt niets terug.", "cx_late": "Komt de vervoerder te laat of helemaal niet? Mail dan liever naar support@domivan.com.", "n_cx_full": "Je hebt deze rit op tijd geannuleerd, dus je betaling is volledig terugbetaald.", "n_cx_part": "Je hebt deze rit geannuleerd. {refund} wordt teruggestort op je kaart; dat kan 5 tot 10 werkdagen duren. De annuleringskosten zijn {fee}.", "n_cx_none": "Je hebt deze rit kort voor het ophalen geannuleerd, dus je betaling is niet terugbetaald.", "err_cx_changed": "Wat je terugkrijgt als je annuleert, is net veranderd. Controleer het en probeer het opnieuw.", "err_cx_started": "Deze rit kan hier niet meer worden geannuleerd. Mail naar support@domivan.com.", "report": "Probleem melden", "report_until": "Is er iets mis met deze rit? Je kunt het melden tot {date}.", "report_ph": "Wat is er gebeurd?", "report_send": "Melding versturen", "report_done": "Je hebt een probleem met deze rit gemeld. We nemen hierover contact met je op.", "err_report_empty": "Vertel ons wat er is gebeurd.", "err_report_closed": "De termijn om een probleem met deze rit te melden is verstreken. Mail naar support@domivan.com.", "invoices_h": "Facturen", "invoice_trip": "Factuur {n}", "invoice_credit": "Creditnota {n}", "inv_by": "{name} heeft je uitgenodigd voor DomiVan", "inv_partner": "Een DomiVan-partner", "inv_choose": "Hoe wil je DomiVan gebruiken?", "inv_travel": "Ik wil reizen", "inv_travel_s": "Boek ritten met een busje, van deur tot deur", "inv_driver": "Ik ben vervoerder", "inv_driver_s": "Ontvang betaalde ritten voor je busje", "inv_saved": "Uitgenodigd door {name}", "inv_code": "Uitnodigingscode {code}", "inv_saved_p": "Je uitnodiging wordt aan je account toegevoegd als je inlogt of je aanmeldt.", "inv_drv_h": "Download de DomiVan Driver-app", "inv_drv_ios": "Als je op de knop tikt, kopiëren we je uitnodigingscode {code}. Op het aanmeldscherm van de app tik je dan op de plakknop.", "inv_drv_android": "Je uitnodigingscode {code} gaat mee met de download.", "inv_drv_btn": "DomiVan Driver downloaden", "inv_drv_web": "Of meld je aan via de website", "inv_ok": "De uitnodiging staat nu op je account.", "inv_h": "Uitnodigingscode", "inv_bad": "Deze uitnodigingslink is niet meer geldig. Je kunt DomiVan gewoon gebruiken.", "inv_too_late": "Je kunt een uitnodigingscode alleen toevoegen in de eerste 7 dagen na je aanmelding.", "inv_already": "Je account heeft al een uitnodiging.", "inv_booked": "Je kunt een uitnodigingscode alleen toevoegen vóór je eerste boeking.", "inv_own": "Je kunt je eigen uitnodigingscode niet gebruiken.", "inv_close": "Sluiten", "inv_join_done": "Meld je aan in de DomiVan Driver-app met {email}, dan wordt je uitnodiging automatisch toegevoegd.", "card_h": "Boek je rit", "f_pax": "Passagiers", "f_bags": "Extra tassen", "v_standard": "Standaard", "v_large": "Groot", "v_luxury": "Luxe", "c_standard": "Tot 8 passagiers", "c_large": "9 tot 20 zitplaatsen", "c_luxury": "V-Klasse en VIP Sprinter"}</script>
+</body>
+</html>

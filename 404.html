@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
   <head><script>(function (p) {
-  var m = /^\/(?:(ro|pl|bg|hu|es)\/)?r\/([A-Za-z0-9]{4,12})\/?$/.exec(p), lang = m && m[1];
+  var m = /^\/(?:(ro|pl|bg|hu|es|fr|de|nl|pt)\/)?r\/([A-Za-z0-9]{4,12})\/?$/.exec(p), lang = m && m[1];
   if (!m) { if (!/^\/book(\/|$)/.test(p)) location.replace('/'); return; }
   for (var ls = navigator.languages || [navigator.language || ''], i = 0; !lang && i < ls.length; i++) {
     var c = String(ls[i]).slice(0, 2).toLowerCase();
-    if (/^(en|ro|pl|bg|hu|es)$/.test(c)) lang = c;
+    if (/^(en|ro|pl|bg|hu|es|fr|de|nl|pt)$/.test(c)) lang = c;
   }
   location.replace((lang && lang !== 'en' ? '/' + lang + '/' : '/') + '?r=' + m[2].toUpperCase());
 })(location.pathname)</script>
@@ -41,6 +41,6 @@
     </noscript>
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
-  <script src="/book/_expo/static/js/web/entry-411aef48c75b9f4bc60e2dbe80204402.js" defer></script>
+  <script src="/book/_expo/static/js/web/entry-43756e0eb1c8d7955d24b7e13ef44fa4.js" defer></script>
 </body>
 </html>

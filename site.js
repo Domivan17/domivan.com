@@ -183,17 +183,16 @@
 
   // ---------------------------------------------------------------- prices
   //
-  // A copy of supabase/functions/_shared/pricing.ts (its rates are placeholders too). create-order
-  // prices the trip again on the server and that is what the client pays; this is the preview.
-  // Change both together.
+  // A copy of supabase/functions/_shared/pricing.ts. create-order prices the trip again on the
+  // server and that is what the client pays; this is the preview. Change both together.
 
   // The 27 EU members, the UK and Switzerland, either end, the same country included.
   var SERVED_CC = ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT',
     'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'GB', 'CH'];
   var MIN_KM = 100;
-  var RATES = { base: 30, perKm: 0.062, road: 1.28, surcharge: { GB: 30, CH: 10 }, bag: 10, round: 5 };
+  var RATES = { road: 1.28, surcharge: { GB: 30, CH: 10 }, bag: 10, round: 5, fee: 359 };
   var VANS = ['standard', 'large', 'luxury'];
-  var VAN = { standard: { max: 8, x: 1 }, large: { max: 20, x: 1.1 }, luxury: { max: 16, x: 1.6 } };
+  var VAN = { standard: { max: 8, km: 0.08 }, large: { max: 20, km: 0.11 }, luxury: { max: 16, km: 0.17 } };
 
   function inList(list, c) { return list.indexOf(String(c).toUpperCase()) >= 0; }
   function routeOk(a, b) { return inList(SERVED_CC, a.country) && inList(SERVED_CC, b.country); }
@@ -211,13 +210,13 @@
   }
   function quote(a, b, pax, bags, van) {
     var km = roadKm(a, b);
-    var per = RATES.base + RATES.perKm * km + surcharge(a, b);
-    var raw = (per * pax + RATES.bag * bags) * VAN[van].x;
-    return { km: km, cents: Math.max(RATES.round, Math.round(raw / RATES.round) * RATES.round) * 100 };
+    var per = VAN[van].km * km + surcharge(a, b);
+    var raw = per * pax + RATES.bag * bags;
+    return { km: km, cents: Math.max(RATES.round, Math.round(raw / RATES.round) * RATES.round) * 100 + RATES.fee };
   }
 
   // Euros, dates and countries the way the page's language writes them.
-  function locale(lang) { return lang === 'en' ? 'en-GB' : lang; }
+  function locale(lang) { return lang === 'en' ? 'en-GB' : lang === 'pt' ? 'pt-PT' : lang; }
   function money(cents, lang) {
     var f = cents % 100 ? 2 : 0;
     try {
@@ -230,7 +229,7 @@
     } catch (e) { return t.toLocaleString(); }
   }
   function countryName(cc, lang) {
-    try { return new Intl.DisplayNames([lang], { type: 'region' }).of(cc) || cc; } catch (e) { return cc; }
+    try { return new Intl.DisplayNames([locale(lang)], { type: 'region' }).of(cc) || cc; } catch (e) { return cc; }
   }
   function pad2(n) { return String(n).padStart(2, '0'); }
   // The value of a datetime-local field, and back. Both in the visitor's own time.
@@ -716,8 +715,15 @@
       payBtn.disabled = true;
       msg(p, '');
       p.classList.add('loading');
-      // Didn't load: the button tries again.
-      var failed = function () { p.classList.remove('loading'); dropPayment(); msg(p, L.err_pay_load); payBtn.textContent = L.retry; payBtn.disabled = false; };
+      // Didn't load: the button tries again. The element goes after Stripe's own
+      // loaderror handling is done (destroying it inside that throws).
+      var failed = function () {
+        p.classList.remove('loading');
+        var dead = pe;
+        pe = els = null;
+        setTimeout(function () { try { dead && dead.destroy(); } catch (e) {} });
+        msg(p, L.err_pay_load); payBtn.textContent = L.retry; payBtn.disabled = false;
+      };
       try {
         els = stripe.elements({ clientSecret: order.secret, locale: L.lang, appearance: APPEARANCE });
         pe = els.create('payment', { layout: 'tabs' });
@@ -1128,7 +1134,7 @@
   // Apple's Paste button) or the Join Transporters form, which sends it with the application.
   var REF_DAYS = 30, REF_CODE = /^[A-Z0-9]{4,12}$/;
   var GIFT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 11.5h15V19a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 19v-7.5ZM3.5 7.5h17v4h-17zM12 7.5v13M12 7.5c-1-2.6-2.3-4-3.8-4-1.3 0-2 .8-2 1.8 0 1.4 1.8 2.2 5.8 2.2Zm0 0c1-2.6 2.3-4 3.8-4 1.3 0 2 .8 2 1.8 0 1.4-1.8 2.2-5.8 2.2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  var VAN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.4 16.5H3.2a.7.7 0 0 1-.7-.7V7.5A1.5 1.5 0 0 1 4 6h10.6c.5 0 .9.2 1.2.6l3.9 4.9c.2.3.3.6.3.9v3.4a.7.7 0 0 1-.7.7h-.4M8.6 16.5h6.3M14.5 6.5v5h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
+  var VAN_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.4 16.5H3.2a.7.7 0 0 1-.7-.7V7.5A1.5 1.5 0 0 1 4 6h10.6c.5 0 .9.2 1.2.6l3.9 4.9c.2.3.3.6.3.9v3.4a.7.7 0 0 1-.7.7h-.4M8.6 16.5h6.3M14.5 6.5v5h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
   var inv = null, applying = false, invN = 0; // inv: what the invite panel shows ({ step, ... })
 
   function keptRef() {
@@ -1232,7 +1238,7 @@
     if (!r || v.step === 'check') return '';
     var app = v.step === 'driver' && driverStore();
     if (app) {
-      return head(VAN, T.inv_drv_h, fill(/apple\.com/.test(app) ? T.inv_drv_ios : T.inv_drv_android, { code: r.code }), false, true)
+      return head(VAN_ICON, T.inv_drv_h, fill(/apple\.com/.test(app) ? T.inv_drv_ios : T.inv_drv_android, { code: r.code }), false, true)
         + '<a class="btn big inv-store" href="' + esc(toStore(app)) + '" data-inv="store">' + esc(T.inv_drv_btn) + '</a>'
         + '<a class="link inv-web" href="' + esc(T.home + 'join') + '">' + esc(T.inv_drv_web) + '</a>';
     }
@@ -1240,7 +1246,7 @@
       return head(GIFT, fill(T.inv_by, { name: refBy(r) }), T.inv_choose)
         + '<div class="inv-opts">'
         + '<button type="button" class="inv-opt" data-inv="travel">' + IC.bag + '<span><b>' + esc(T.inv_travel) + '</b><small>' + esc(T.inv_travel_s) + '</small></span></button>'
-        + '<a class="inv-opt" href="' + esc(T.home + 'join') + '" data-inv="driver">' + VAN + '<span><b>' + esc(T.inv_driver) + '</b><small>' + esc(T.inv_driver_s) + '</small></span></a>'
+        + '<a class="inv-opt" href="' + esc(T.home + 'join') + '" data-inv="driver">' + VAN_ICON + '<span><b>' + esc(T.inv_driver) + '</b><small>' + esc(T.inv_driver_s) + '</small></span></a>'
         + '</div>';
     }
     return head(GIFT, fill(T.inv_saved, { name: refBy(r) }), T.inv_saved_p, true);
@@ -2340,7 +2346,7 @@
   // ---------------------------------------------------------------- router
 
   // Home, /join and the legal pages, in every language (/ro/, /ro/join, /ro/terms, ...).
-  var SITE = /^\/(?:(?:ro|pl|bg|hu|es)\/)?(?:index\.html|(?:join|terms|privacy|transporter-terms|delete-account)(?:\.html)?)?$/;
+  var SITE = /^\/(?:(?:ro|pl|bg|hu|es|fr|de|nl|pt)\/)?(?:index\.html|(?:join|terms|privacy|transporter-terms|delete-account)(?:\.html)?)?$/;
   var routing = !!(window.fetch && window.DOMParser && history.pushState && window.URLSearchParams);
   var htmlCache = {}, screens = {}, ys = {}, meta = null, curKey = '', hIdx = 0, navSeq = 0;
 

@@ -33,8 +33,9 @@ Pages serves `terms.html` at `/terms`, so the app links work without the `.html`
 
 ## Home page and languages
 
-The home page (`index.html`) and the Join Transporters sign-up page (`join.html`) exist in English and in Romanian, Polish, Bulgarian, Hungarian
-and Spanish (`ro/`, `pl/`, `bg/`, `hu/`, `es/`). The legal texts are English only; each language
+The home page (`index.html`) and the Join Transporters sign-up page (`join.html`) exist in English and in Romanian, Polish, Bulgarian, Hungarian,
+Spanish, French, German, Dutch and Portuguese (`ro/`, `pl/`, `bg/`, `hu/`, `es/`, `fr/`, `de/`, `nl/`, `pt/`),
+the same ten languages as the apps. The legal texts are English only; each language
 also gets a copy inside its own header (`ro/terms.html`, ...), so a visitor who opens the terms
 from a Romanian page stays in Romanian, and those copies point search engines to the English
 page (canonical). Don't edit the

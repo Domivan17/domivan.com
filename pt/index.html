@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DomiVan | Viagens de carrinha porta a porta pela Europa</title>
+<meta name="description" content="Reserva um lugar numa carrinha desde a tua porta na Polónia, Roménia, Bulgária, Hungria, Lituânia ou Letónia até à tua porta na Europa Ocidental, e vice-versa. Preço fixo, pagas na app e acompanhas a tua carrinha.">
+<meta property="og:title" content="DomiVan | Viagens de carrinha porta a porta pela Europa">
+<meta property="og:description" content="Transporte Door2Door. Reserva um lugar numa carrinha entre a Europa de Leste e a Europa Ocidental em poucos toques.">
+<meta property="og:url" content="https://domivan.com/pt/">
+<meta property="og:image" content="https://domivan.com/img/europe-night-900.webp">
+<link rel="canonical" href="https://domivan.com/pt/">
+<link rel="alternate" hreflang="en" href="https://domivan.com/">
+<link rel="alternate" hreflang="ro" href="https://domivan.com/ro/">
+<link rel="alternate" hreflang="pl" href="https://domivan.com/pl/">
+<link rel="alternate" hreflang="bg" href="https://domivan.com/bg/">
+<link rel="alternate" hreflang="hu" href="https://domivan.com/hu/">
+<link rel="alternate" hreflang="es" href="https://domivan.com/es/">
+<link rel="alternate" hreflang="fr" href="https://domivan.com/fr/">
+<link rel="alternate" hreflang="de" href="https://domivan.com/de/">
+<link rel="alternate" hreflang="nl" href="https://domivan.com/nl/">
+<link rel="alternate" hreflang="pt" href="https://domivan.com/pt/">
+<link rel="alternate" hreflang="x-default" href="https://domivan.com/">
+<meta name="theme-color" content="#050B18">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/landing.css?v=0cf33be1">
+<script src="/site.js?v=95368a69" defer></script>
+<script src="/hero-net.js?v=941616fd" defer></script>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 100 100">
+    <path d="M24 22v56" stroke="currentColor" stroke-opacity=".75" stroke-width="9" stroke-linecap="round" stroke-dasharray="1 15"/>
+    <path d="M24 14h20a36 36 0 0 1 0 72H35" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="24" cy="14" r="10" fill="var(--arrow, currentColor)"/>
+    <circle cx="24" cy="86" r="7.25" fill="none" stroke="currentColor" stroke-width="5.5"/>
+  </symbol>
+</svg>
+
+<!-- One night map for every page. Pages slide over it and it is never redrawn (site.js).
+     hero-net.js tilts it into a table and runs the live network of trips across it. The masks
+     fade the image out at its own edges, so the tilted map has no hard border. -->
+<div class="backdrop" aria-hidden="true">
+  <svg viewBox="0 120 1800 1140" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <linearGradient id="fade-y" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1381"><stop offset="0" stop-color="#000"/><stop offset=".1" stop-color="#fff"/><stop offset=".94" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+      <linearGradient id="fade-x" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1800" y2="0"><stop offset="0" stop-color="#000"/><stop offset=".06" stop-color="#fff"/><stop offset=".94" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+      <mask id="fade-v" maskUnits="userSpaceOnUse" x="0" y="0" width="1800" height="1381"><rect width="1800" height="1381" fill="url(#fade-y)"/></mask>
+      <mask id="fade-h" maskUnits="userSpaceOnUse" x="0" y="0" width="1800" height="1381"><rect width="1800" height="1381" fill="url(#fade-x)"/></mask>
+      <!-- brightness(1.22) contrast(1.1) saturate(1.3), applied when the map is drawn (landing.css), not on every frame -->
+      <filter id="lift" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB"><feComponentTransfer><feFuncR type="linear" slope="1.342" intercept="-.05"/><feFuncG type="linear" slope="1.342" intercept="-.05"/><feFuncB type="linear" slope="1.342" intercept="-.05"/></feComponentTransfer><feColorMatrix type="saturate" values="1.3"/></filter>
+    </defs>
+    <g mask="url(#fade-h)"><image mask="url(#fade-v)" href="/img/europe-night.webp?v=5663e10b" x="0" y="0" width="1800" height="1381" preserveAspectRatio="none"/></g>
+  </svg>
+</div>
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="/pt/"><span class="logo"><svg><use href="#mark"/></svg></span>DomiVan</a>
+    <nav>
+      <a href="/pt/#how">Como funciona</a>
+      <a href="/pt/#vans">Carrinhas</a>
+      <a class="btn small shiny" href="/pt/join" data-driver-app><span class="long">Torna-te transportador</span><span class="short">Transportadores</span></a>
+      <details class="lang">
+        <summary aria-label="Idioma"><span class="earth" aria-hidden="true"></span><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#FF0000"/><rect width="1.2" height="2" fill="#006600"/><circle cx="1.2" cy="1" r=".42" fill="#FFCC00"/><path d="M.98.76h.44v.34q0 .2-.22.26Q.98 1.3.98 1.1z" fill="#FF0000"/><path d="M1.09.86h.22v.24q0 .11-.11.15-.11-.04-.11-.15z" fill="#fff"/></svg>PT</summary>
+        <div class="menu">
+        <a href="/" hreflang="en" lang="en"><svg class="flag" viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><clipPath id="uk-t"><path d="M30 15h30v15zv15H0zH0V0zV0h30z"/></clipPath><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" clip-path="url(#uk-t)" stroke="#C8102E" stroke-width="4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></svg><span>English</span><b>EN</b></a>
+        <a href="/ro/" hreflang="ro" lang="ro"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0.000" y="0" width="1.000" height="2" fill="#002B7F"/><rect x="1.000" y="0" width="1.000" height="2" fill="#FCD116"/><rect x="2.000" y="0" width="1.000" height="2" fill="#CE1126"/></svg><span>Română</span><b>RO</b></a>
+        <a href="/pl/" hreflang="pl" lang="pl"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="1.000" fill="#FFFFFF"/><rect x="0" y="1.000" width="3" height="1.000" fill="#DC143C"/></svg><span>Polski</span><b>PL</b></a>
+        <a href="/bg/" hreflang="bg" lang="bg"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="0.667" width="3" height="0.667" fill="#00966E"/><rect x="0" y="1.333" width="3" height="0.667" fill="#D62612"/></svg><span>Български</span><b>BG</b></a>
+        <a href="/hu/" hreflang="hu" lang="hu"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#CD2A3E"/><rect x="0" y="0.667" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="1.333" width="3" height="0.667" fill="#436F4D"/></svg><span>Magyar</span><b>HU</b></a>
+        <a href="/es/" hreflang="es" lang="es"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.500" fill="#AA151B"/><rect x="0" y="0.500" width="3" height="1.000" fill="#F1BF00"/><rect x="0" y="1.500" width="3" height="0.500" fill="#AA151B"/></svg><span>Español</span><b>ES</b></a>
+        <a href="/fr/" hreflang="fr" lang="fr"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0.000" y="0" width="1.000" height="2" fill="#002654"/><rect x="1.000" y="0" width="1.000" height="2" fill="#FFFFFF"/><rect x="2.000" y="0" width="1.000" height="2" fill="#CE1126"/></svg><span>Français</span><b>FR</b></a>
+        <a href="/de/" hreflang="de" lang="de"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#000000"/><rect x="0" y="0.667" width="3" height="0.667" fill="#DD0000"/><rect x="0" y="1.333" width="3" height="0.667" fill="#FFCE00"/></svg><span>Deutsch</span><b>DE</b></a>
+        <a href="/nl/" hreflang="nl" lang="nl"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect x="0" y="0.000" width="3" height="0.667" fill="#AE1C28"/><rect x="0" y="0.667" width="3" height="0.667" fill="#FFFFFF"/><rect x="0" y="1.333" width="3" height="0.667" fill="#21468B"/></svg><span>Nederlands</span><b>NL</b></a>
+        <a href="/pt/" hreflang="pt" lang="pt" aria-current="page"><svg class="flag" viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#FF0000"/><rect width="1.2" height="2" fill="#006600"/><circle cx="1.2" cy="1" r=".42" fill="#FFCC00"/><path d="M.98.76h.44v.34q0 .2-.22.26Q.98 1.3.98 1.1z" fill="#FF0000"/><path d="M1.09.86h.22v.24q0 .11-.11.15-.11-.04-.11-.15z" fill="#fff"/></svg><span>Português</span><b>PT</b></a>
+        </div>
+      </details>
+      <a class="btn small login" href="#login" data-login><span class="long">Entrar / Criar conta</span><span class="short">Entrar</span></a>
+    </nav>
+  </div>
+</header>
+
+<div id="stage">
+<main id="page" class="page page-home" data-page="home">
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow">Europa Ocidental ⇄ Europa de Leste</p>
+      <h1>Transporte<br>Door2Door.</h1>
+      <p class="lead">Reserva um lugar numa carrinha desde a tua casa na Polónia, Roménia, Bulgária, Hungria, Lituânia ou Letónia diretamente até à tua morada na Alemanha, nos Países Baixos, no Reino Unido, em Portugal e&nbsp;não&nbsp;só. <span>Um preço fixo, pago&nbsp;na&nbsp;app.</span></p>
+      <div class="apps">
+        <div class="stores" id="download">
+          <span class="store"><svg viewBox="0 0 24 24"><path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.1ZM13.9 5c.7-.8 1.2-2 1-3.2-1 0-2.3.7-3 1.5-.7.8-1.2 1.9-1.1 3.1 1.2.1 2.3-.6 3.1-1.4Z" fill="currentColor"/></svg><span><small>Em breve na</small>App Store</span></span>
+          <span class="store"><svg viewBox="0 0 24 24"><path d="M3.6 1.8 13.5 12l-9.9 10.2c-.4-.2-.6-.6-.6-1.1V2.9c0-.5.2-.9.6-1.1Zm10.7 11 2.6 2.6-11.2 6.4 8.6-9Zm3.6-3.4 3 1.7c.8.5.8 1.3 0 1.8l-3 1.7-2.8-2.8 2.8-2.4ZM5.7 2.2l11.2 6.4-2.6 2.6-8.6-9Z" fill="currentColor"/></svg><span><small>Em breve no</small>Google Play</span></span>
+        </div>
+        <p class="note">Reserva hoje no site. As duas apps chegam em breve.</p>
+      </div>
+    </div>
+
+    <div class="deck" id="deck">
+    <!-- Booking happens here: site.js adds the price, payment and confirmation steps, which
+         slide in inside this card. Without JavaScript the form opens the web app at /book. -->
+    <section class="card book" id="book" data-stage="trip" aria-labelledby="book-h">
+      <div class="card-head"><span class="logo"><svg><use href="#mark"/></svg></span><h2 id="book-h">Reserva a tua viagem</h2></div>
+      <div class="panes">
+        <form class="pane bk-trip" data-pane="trip" action="/book/" method="get" autocomplete="on">
+        <div class="book-body">
+          <div class="kinds" role="radiogroup">
+            <label><input type="radio" name="kind" value="booking" checked><span>Agendar</span></label>
+            <label><input type="radio" name="kind" value="live"><span>Live (agora)</span></label>
+          </div>
+          <div class="route">
+            <div class="road" aria-hidden="true"><span class="start"></span><span class="dash"></span><span class="ring"></span></div>
+            <div class="addr">
+              <label><small>De</small><input name="from" required placeholder="Rua, número, localidade" autocomplete="street-address"></label>
+              <label><small>Para</small><input name="to" required placeholder="Rua, número, localidade"></label>
+            </div>
+            <button type="button" class="swap" aria-label="Trocar recolha e destino" title="Trocar recolha e destino"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v13m0 0-3-3m3 3 3-3M17 20V7m0 0-3 3m3-3 3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+          <label class="when"><small>Data e hora de recolha</small><input type="datetime-local" name="when"></label>
+          <p class="live-note">Os motoristas da tua rota são avisados de imediato.</p>
+          <div class="counts">
+            <div class="count"><small>Passageiros</small><div class="stepper"><button type="button" data-step="-1" aria-label="−">−</button><input name="pax" type="number" min="1" max="20" value="1" inputmode="numeric"><button type="button" data-step="1" aria-label="+">+</button></div></div>
+            <div class="count"><small>Malas extra</small><div class="stepper"><button type="button" data-step="-1" aria-label="−">−</button><input name="bags" type="number" min="0" max="40" value="0" inputmode="numeric"><button type="button" data-step="1" aria-label="+">+</button></div></div>
+          </div>
+          <p class="bags-note">Uma mala grande por passageiro é gratuita.</p>
+          <div class="msg" role="alert"></div>
+        </div>
+        <div class="book-foot">
+          <button class="btn big go" type="submit">Ver preço</button>
+          <p>Vês o preço total antes de pagar. Cancelamento gratuito até um transportador aceitar.</p>
+        </div>
+        </form>
+      </div>
+    </section>
+    </div>
+  </div>
+</section>
+
+
+<section class="wrap" id="how">
+  <h2>Como funciona</h2>
+  <p class="sub">Três passos, tudo na app DomiVan.</p>
+  <div class="steps">
+    <div class="step"><span class="num">1</span><h3>Indica as duas moradas</h3><p>Adiciona a morada de recolha e para onde vais, a data e de quantos lugares precisas.</p></div>
+    <div class="step"><span class="num">2</span><h3>Paga um preço fixo</h3><p>Vês o preço total antes de pagar. A tua reserva segue logo para transportadores verificados nessa rota.</p></div>
+    <div class="step"><span class="num">3</span><h3>Vão buscar-te a casa</h3><p>Antes da recolha vês o teu motorista e a carrinha, podes falar com ele por chat ou ligar-lhe, e no dia acompanhas a carrinha em direto.</p></div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <h2>Agenda a viagem ou parte hoje</h2>
+    <div class="two">
+      <div class="tile"><span class="tag">Agendar</span><h3>Planeia a tua viagem</h3><p>Escolhe a data e a hora que te dão jeito. Os transportadores da tua rota ficam com a viagem bem antes da recolha.</p></div>
+      <div class="tile"><span class="tag live">Live</span><h3>Precisas de partir já</h3><p>Viagem urgente? Os pedidos Live chegam de imediato aos motoristas da tua rota.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="vans">
+  <h2>Uma carrinha para cada viagem</h2>
+  <p class="sub">Desde um lugar só para ti até uma carrinha inteira para a família.</p>
+  <div class="vans">
+    <article class="van">
+      <div class="stage"><img src="/img/vans/standard.webp" alt="Padrão" width="800" height="500" loading="lazy"></div>
+      <div class="van-body">
+        <span class="tag">Viagens do dia a dia</span>
+        <h3>Padrão</h3><p class="cap">Até 8 passageiros</p><p>Carrinhas confortáveis para a maioria das viagens.</p>
+        <ul class="feats"><li>Ideal para 1 a 4 viajantes</li><li>Uma mala grande grátis por passageiro</li></ul>
+        <div class="van-foot"><span class="price">0,08 € por km e por pessoa</span><a class="btn small" href="#book" data-van="standard">Reservar lugar</a></div>
+      </div>
+    </article>
+    <article class="van lg">
+      <div class="stage"><img src="/img/vans/large.webp" alt="Grande" width="800" height="500" loading="lazy"></div>
+      <div class="van-body">
+        <span class="tag">Grupos e famílias</span>
+        <h3>Grande</h3><p class="cap">9 a 20 lugares</p><p>Carrinhas tipo Sprinter para grupos e muita bagagem.</p>
+        <ul class="feats"><li>Espaço para o grupo todo</li><li>Mais espaço para bagagem</li></ul>
+        <div class="van-foot"><span class="price">0,11 € por km e por pessoa</span><a class="btn small" href="#book" data-van="large">Reservar lugar</a></div>
+      </div>
+    </article>
+    <article class="van lux">
+      <div class="stage"><img src="/img/vans/luxury.webp" alt="Luxo" width="800" height="500" loading="lazy"></div>
+      <div class="van-body">
+        <span class="tag">Premium</span>
+        <h3>Luxo</h3><p class="cap">Classe V e Sprinter VIP</p><p>Carrinhas premium, só de transportadores aprovados.</p>
+        <ul class="feats"><li>Bancos em pele e mais espaço para as pernas</li><li>Carrinhas verificadas pela DomiVan</li></ul>
+        <div class="van-foot"><span class="price">0,17 € por km e por pessoa</span><a class="btn small" href="#book" data-van="luxury">Reservar lugar</a></div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="drivers" id="drivers">
+  <div class="wrap drivers-grid">
+    <div>
+      <span class="logo dark"><svg><use href="#mark"/></svg></span>
+      <h2>Conduz com a DomiVan</h2>
+      <p class="lead">Fazes viagens de carrinha entre o Leste e o Oeste? Recebe viagens pagas diretamente no telemóvel com a app&nbsp;DomiVan&nbsp;Driver.</p>
+      <ul class="checks">
+        <li><b>Aderir é gratuito.</b> Sem subscrição nem taxa de inscrição.</li>
+        <li><b>Viagens já pagas.</b> O cliente paga antes, por isso não andas atrás do dinheiro.</li>
+        <li><b>Tu escolhes.</b> Aceitas as viagens que encaixam na tua rota e no teu horário.</li>
+        <li><b>Pagamento no teu banco.</b> O teu pagamento é enviado assim que a viagem termina.</li>
+      </ul>
+      <p><a class="btn big shiny" href="/pt/join" data-driver-app>Torna-te transportador</a></p>
+      <p class="note light">A app DomiVan Driver chega em breve à App Store e ao Google Play. Para carrinhas de 6 a 20 lugares.</p>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="faq">
+  <h2>Perguntas</h2>
+  <details><summary>Como é definido o preço?</summary><p>A app calcula o preço com base na recolha e no destino, na classe da carrinha e no número de lugares. Vês o preço total antes de pagar, e depois não muda.</p></details>
+  <details><summary>Quando fico a saber quem conduz?</summary><p>Antes da recolha, a app mostra-te o motorista, a carrinha e a matrícula, e podes falar com ele por chat ou ligar-lhe. No dia, acompanhas a carrinha no mapa assim que estiver a caminho.</p></details>
+  <details><summary>E se nenhum transportador aceitar a minha viagem?</summary><p>Recebes o teu dinheiro de volta na totalidade, automaticamente.</p></details>
+  <details><summary>Posso cancelar?</summary><p>Sim. O valor que recebes de volta depende da antecedência com que cancelas. Consulta os <a href="/pt/terms">termos para viajantes</a>.</p></details>
+  <details><summary>Como obtenho ajuda?</summary><p>Abre a app e vai a Ajuda e suporte. A nossa equipa responde-te lá.</p></details>
+</section>
+
+<footer class="foot">
+  <div class="wrap foot-grid">
+    <div>
+      <a class="brand" href="/pt/"><span class="logo"><svg><use href="#mark"/></svg></span>DomiVan</a>
+      <p>A DomiVan é gerida pela StepsNest B.V., Weert, Países Baixos.<br>KvK 42105882</p>
+    </div>
+    <nav>
+      <a href="/pt/terms">Termos para viajantes</a>
+      <a href="/pt/transporter-terms">Termos para transportadores</a>
+      <a href="/pt/privacy">Política de Privacidade</a>
+      <a href="/pt/delete-account">Eliminar a tua conta</a>
+      <p class="fnote">Por agora, os documentos legais só estão disponíveis em inglês.</p>
+    </nav>
+  </div>
+  <p class="wrap copy">© 2026 DomiVan</p>
+</footer>
+</main>
+</div>
+
+<script type="application/json" id="dv-t">{"acct_h": "A tua conta", "back": "Voltar", "tab_login": "Entrar", "tab_create": "Criar conta", "google": "Continuar com o Google", "apple": "Continuar com a Apple", "redirecting": "A abrir {provider}…", "signing_in": "A iniciar sessão…", "f_name": "Nome completo", "ph_name": "Nome e apelido", "f_email": "E-mail", "ph_email": "tu@exemplo.pt", "hint": "Enviamos-te um código único por e-mail. Sem palavra-passe.", "send": "Enviar código de acesso", "sending": "A enviar…", "code_h": "Verifica o teu e-mail", "code_sent": "Enviámos um código para {email}", "f_code": "Código recebido por e-mail", "verify": "Continuar", "verifying": "A verificar…", "change_email": "Usar outro e-mail", "resend": "Enviar um novo código", "resend_in": "Novo código em {s} s", "resent": "Enviámos-te um novo código.", "legal": "Ao continuar, aceitas os <a href=\"/pt/terms\">Termos<\/a> e a <a href=\"/pt/privacy\">Política de Privacidade<\/a>.", "welcome": "Sessão iniciada", "signed_in_as": "Sessão iniciada como", "my_trips": "As minhas viagens", "logout": "Terminar sessão", "my_account": "A minha conta", "err_email": "Introduz um endereço de e-mail válido.", "err_name": "Escreve o teu nome.", "err_code": "Introduz o código que recebeste por e-mail.", "err_bad_code": "Este código está errado ou expirou. Verifica o e-mail ou pede um novo código.", "no_account": "Ainda não há nenhuma conta com este e-mail.", "create_instead": "Criar uma conta", "err_rate": "Demasiadas tentativas. Espera um minuto e tenta de novo.", "err_wait": "Espera um momento antes de pedires outro código.", "err_network": "Não foi possível contactar a DomiVan. Verifica a ligação e tenta de novo.", "err_generic": "Algo correu mal. Tenta de novo.", "err_oauth": "Não foi possível entrar com {provider}. Tenta de novo ou usa o teu e-mail.", "err_oauth_off": "Ainda não é possível entrar com {provider}. Usa o teu e-mail.", "lang": "pt", "home": "/pt/", "or": "ou", "h_price": "O teu preço", "h_pay": "Pagamento", "h_done": "Viagem reservada", "checking": "A verificar a tua rota…", "err_from": "Introduz a morada de recolha.", "err_to": "Introduz a morada de destino.", "err_not_found": "Não encontrámos «{q}». Experimenta a localidade e o país, ou um código postal.", "err_search": "A pesquisa de moradas não está a responder. Tenta de novo daqui a pouco.", "err_route": "A DomiVan faz viagens na UE, no Reino Unido e na Suíça, também dentro do mesmo país.", "err_short": "As viagens têm de ter pelo menos {n} km.", "err_when": "Escolhe uma recolha daqui a pelo menos 2 horas. Para viagens urgentes, escolhe Live (agora).", "err_pax": "Passageiros: 1 a 20.", "err_bags": "Malas extra: 0 a 40.", "van_h": "Escolhe a tua carrinha", "too_many": "Até {n} passageiros", "note_label": "Nota para o transportador (opcional)", "ph_note": "Ex.: número do voo, entrada", "asap": "O mais cedo possível", "km": "≈ {n} km", "total": "Total", "pay": "Pagar {price}", "login_pay": "Inicia sessão para pagar {price}", "preparing": "A preparar o pagamento…", "paying": "A pagar…", "fine_print": "Pagas agora. Os dados, o chat e o telefone do teu transportador aparecem 24 horas antes da recolha. Cancelamento gratuito até um transportador aceitar.", "fine_print_live": "Pagas agora. Os dados, o chat e o telefone do teu transportador aparecem assim que um aceitar. Cancelamento gratuito até um transportador aceitar.", "lux_note": "Há menos carrinhas de luxo: se nenhuma aceitar a tempo, recebes o reembolso total.", "secure": "Os pagamentos são processados pela Stripe. A DomiVan nunca vê o número do teu cartão.", "err_pay_load": "O formulário de pagamento não carregou. Verifica a ligação e tenta de novo.", "err_paid": "Já pagaste esta viagem. Vais encontrá-la em As minhas viagens.", "err_pay": "O pagamento não foi concluído. Tenta de novo ou usa outro método de pagamento.", "err_login_again": "Inicia sessão novamente para pagar.", "done_h": "Reserva feita!", "done_p": "Já estamos a oferecer a tua viagem aos transportadores. Os dados, o chat e o telefone do teu transportador aparecem 24 horas antes da recolha.", "done_p_live": "Já estamos a avisar os transportadores da tua rota. Os dados, o chat e o telefone do teu transportador aparecem assim que um aceitar.", "done_wait": "O teu banco ainda está a confirmar o pagamento. Oferecemos a tua viagem aos transportadores assim que estiver concluído.", "s_route": "Rota", "s_pickup": "Recolha", "s_van": "Carrinha", "s_paid": "Pago", "another": "Reservar outra viagem", "retry": "Tentar de novo", "book_trip": "Reservar uma viagem", "trip_h": "A tua viagem", "up_h": "Próximas", "past_h": "Anteriores", "none_h": "Ainda sem viagens", "none_p": "As viagens que reservares aparecem aqui.", "err_trips": "Não foi possível carregar as tuas viagens. Verifica a ligação e tenta de novo.", "gone": "Não encontrámos esta viagem na tua conta.", "st_pending_payment": "A confirmar o pagamento", "st_bidding": "À procura de transportador", "st_accepted": "Transportador atribuído", "st_en_route": "Transportador a caminho", "st_picked_up": "Em viagem", "st_completed": "Concluída", "st_cancelled": "Cancelada", "tag_live": "Live", "t_note": "A tua nota", "n_bidding": "A tua viagem está paga e já foi oferecida aos transportadores. Podes cancelar gratuitamente até um aceitar.", "n_locked": "Os dados e o número de telefone do teu transportador aparecem a {date}, 24 horas antes da recolha.", "n_refunded": "Nenhum transportador aceitou esta viagem a tempo, por isso o teu pagamento foi reembolsado na totalidade.", "n_cancelled": "Esta viagem foi cancelada e o teu pagamento foi reembolsado na totalidade.", "tr_h": "O teu transportador", "seats": "{n} lugares", "call": "Ligar para {phone}", "pc_h": "Código de recolha", "pc_p": "Diz este código ao teu motorista quando entrares na carrinha.", "cancel": "Cancelar viagem", "cancel_q": "Cancelar esta viagem? Recebes o reembolso total.", "cancel_yes": "Sim, cancelar", "cancel_no": "Manter viagem", "cancelling": "A cancelar…", "err_cancel": "Um transportador já aceitou esta viagem. Para a cancelar, escreve para support@domivan.com.", "cx_free": "Cancelamento gratuito até {date}.", "cx_free_any": "Cancelamento gratuito.", "cx_part": "Se cancelares agora, recebes {pct} de volta ({amount}).", "cx_none": "Se cancelares agora, não recebes reembolso.", "cx_then_part": "{pct} de volta a partir de {date}.", "cx_then_none": "Sem reembolso a partir de {date}.", "cx_q_part": "Cancelar esta viagem? Recebes {amount} de volta, {pct} do que pagaste.", "cx_q_none": "Cancelar esta viagem? Já está demasiado perto da recolha para haver reembolso, por isso não recebes nada de volta.", "cx_late": "O transportador está atrasado ou não vem? Em vez de cancelar, escreve para support@domivan.com.", "n_cx_full": "Cancelaste esta viagem a tempo, por isso o teu pagamento foi reembolsado na totalidade.", "n_cx_part": "Cancelaste esta viagem. Devolvemos {refund} ao teu cartão, o que pode demorar 5 a 10 dias úteis. A taxa de cancelamento é de {fee}.", "n_cx_none": "Cancelaste esta viagem perto da hora de recolha, por isso o teu pagamento não foi reembolsado.", "err_cx_changed": "O valor que recebes de volta se cancelares acabou de mudar. Verifica-o e tenta de novo.", "err_cx_started": "Esta viagem já não pode ser cancelada aqui. Escreve para support@domivan.com.", "report": "Reportar um problema", "report_until": "Algo correu mal nesta viagem? Podes reportá-lo até {date}.", "report_ph": "O que aconteceu?", "report_send": "Enviar", "report_done": "Reportaste um problema com esta viagem. Vamos contactar-te sobre isso.", "err_report_empty": "Conta-nos o que aconteceu.", "err_report_closed": "O prazo para reportar um problema nesta viagem já terminou. Escreve para support@domivan.com.", "invoices_h": "Faturas", "invoice_trip": "Fatura {n}", "invoice_credit": "Nota de crédito {n}", "inv_by": "{name} convidou-te para a DomiVan", "inv_partner": "Um parceiro da DomiVan", "inv_choose": "Como queres usar a DomiVan?", "inv_travel": "Quero viajar", "inv_travel_s": "Reserva viagens de carrinha porta a porta", "inv_driver": "Sou transportador", "inv_driver_s": "Recebe viagens pagas para a tua carrinha", "inv_saved": "Convite de {name}", "inv_code": "Código de convite {code}", "inv_saved_p": "O convite é adicionado à tua conta quando entrares ou te registares.", "inv_drv_h": "Descarrega a app DomiVan Driver", "inv_drv_ios": "Quando tocares no botão, copiamos o teu código de convite {code}. Na app, toca no botão Colar no ecrã de registo.", "inv_drv_android": "O teu código de convite {code} vai incluído no download.", "inv_drv_btn": "Descarregar DomiVan Driver", "inv_drv_web": "Ou candidata-te no site", "inv_ok": "O convite já está na tua conta.", "inv_h": "Código de convite", "inv_bad": "Este link de convite já não é válido. Podes continuar a usar a DomiVan normalmente.", "inv_too_late": "Os códigos de convite só podem ser adicionados nos primeiros 7 dias depois do registo.", "inv_already": "A tua conta já tem um convite.", "inv_booked": "Os códigos de convite só podem ser adicionados antes da primeira reserva.", "inv_own": "Não podes usar o teu próprio código de convite.", "inv_close": "Fechar", "inv_join_done": "Regista-te na app DomiVan Driver com {email} e o teu convite é adicionado automaticamente.", "card_h": "Reserva a tua viagem", "f_pax": "Passageiros", "f_bags": "Malas extra", "v_standard": "Padrão", "v_large": "Grande", "v_luxury": "Luxo", "c_standard": "Até 8 passageiros", "c_large": "9 a 20 lugares", "c_luxury": "Classe V e Sprinter VIP"}</script>
+</body>
+</html>
