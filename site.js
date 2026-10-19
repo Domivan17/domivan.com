@@ -228,6 +228,14 @@
       return new Intl.DateTimeFormat(locale(lang), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(t);
     } catch (e) { return t.toLocaleString(); }
   }
+  // A Book-ahead pickup is a 2-hour window from the time chosen (as in the apps:
+  // PICKUP_WINDOW_HOURS in src/lib/format.ts). "Mon 2 Nov, 07:30–09:30".
+  var WINDOW_MS = 2 * 3600e3;
+  function windowText(from, until, lang) {
+    try {
+      return dateText(from, lang) + '–' + new Intl.DateTimeFormat(locale(lang), { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(until);
+    } catch (e) { return dateText(from, lang); }
+  }
   function countryName(cc, lang) {
     try { return new Intl.DisplayNames([locale(lang)], { type: 'region' }).of(cc) || cc; } catch (e) { return cc; }
   }
@@ -621,7 +629,8 @@
         return '<span class="fact"' + (label ? ' title="' + esc(label) + '"' : '') + '>' + icon
           + (label ? '<span class="sr-only">' + esc(label) + ': </span>' : '') + esc(text) + '</span>';
       };
-      $('.facts', p).innerHTML = fact(IC.cal, trip.kind === 'live' ? L.asap : dateText(trip.at, L.lang))
+      $('.facts', p).innerHTML = fact(IC.cal, trip.kind === 'live' ? L.asap
+        : windowText(trip.at, new Date(trip.at.getTime() + WINDOW_MS), L.lang))
         + fact(IC.pax, trip.pax, L.f_pax) + (trip.bags ? fact(IC.bag, trip.bags, L.f_bags) : '')
         + fact(IC.km, fill(L.km, { n: quote(A, B, 1, 0, 'standard').km }));
       VANS.forEach(function (v) {
@@ -644,7 +653,8 @@
       $('.total b', P.price).textContent = price;
       if (priceBtn._label != null) priceBtn._label = label; // busy: shown once it is done
       else priceBtn.textContent = label;
-      $('.fine', P.price).textContent = (trip.kind === 'live' ? L.fine_print_live : L.fine_print) + (van === 'luxury' ? ' ' + L.lux_note : '');
+      $('.fine', P.price).textContent = (trip.kind === 'live' ? L.fine_print_live : L.fine_print + ' ' + L.shared)
+        + (van === 'luxury' ? ' ' + L.lux_note : '');
     }
     P.price.addEventListener('change', function (e) {
       if (e.target.name !== 'van') return;
@@ -769,7 +779,8 @@
       var p = P.done, t = trip, rows = [];
       $('.done-p', p).textContent = how === 'wait' ? L.done_wait : t && t.kind === 'live' ? L.done_p_live : L.done_p;
       if (t) {
-        rows.push([L.s_route, t.from.city + ' → ' + t.to.city], [L.s_pickup, t.kind === 'live' ? L.asap : dateText(t.at, L.lang)], [L.s_van, L['v_' + van]]);
+        rows.push([L.s_route, t.from.city + ' → ' + t.to.city],
+          [L.s_pickup, t.kind === 'live' ? L.asap : windowText(t.at, new Date(t.at.getTime() + WINDOW_MS), L.lang)], [L.s_van, L['v_' + van]]);
       }
       if (order && order.cents) rows.push([L.s_paid, money(order.cents, L.lang)]);
       $('.done-sum', p).innerHTML = rows.map(function (r) { return '<div><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('');
@@ -1450,7 +1461,7 @@
   // my_trips() can only be filtered and sorted on columns it is asked for, so client_id and
   // bid_started_at are in here.
   var ORDER_COLS = 'id,client_id,kind,status,van_class,pickup_address,pickup_city,pickup_country,dropoff_address,dropoff_city,dropoff_country,'
-    + 'pickup_at,passengers,extra_bags,notes,fare_cents,bid_started_at,cancel_reason,cancel_fee_cents,payout_on_hold,payout_release_at,payout_sent';
+    + 'pickup_at,pickup_until,passengers,extra_bags,notes,fare_cents,bid_started_at,cancel_reason,cancel_fee_cents,payout_on_hold,payout_release_at,payout_sent';
   var DONE = ['completed', 'cancelled'], ASSIGNED = ['accepted', 'en_route', 'picked_up'];
   var TONE = { pending_payment: 'gray', bidding: 'amber', accepted: 'blue', en_route: 'blue', picked_up: 'blue', completed: 'green', cancelled: 'gray' };
   var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1600,7 +1611,8 @@
     function msgHtml(where) { return '<div class="msg" role="alert">' + (note && note.where === where ? esc(note.text) : '') + '</div>'; }
     function drawTrip() {
       var o = dt.o, who = dt.who, at = new Date(o.pickup_at), opens = new Date(at.getTime() - 864e5), now = Date.now(), say = '', tone = '';
-      var facts = [[L.s_pickup, dateText(at, L.lang)], [L.f_pax, o.passengers]];
+      var facts = [[L.s_pickup, o.pickup_until ? windowText(at, new Date(o.pickup_until), L.lang) : dateText(at, L.lang)],
+        [L.f_pax, o.passengers]];
       if (o.extra_bags) facts.push([L.f_bags, o.extra_bags]);
       facts.push([L.s_van, L['v_' + o.van_class] || o.van_class], [L.s_paid, money(o.fare_cents, L.lang)]);
       var h = '<div class="t-top">' + badges(o) + '</div>'

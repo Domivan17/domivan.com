@@ -384,9 +384,8 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .feats { list-style: none; padding: 0; margin: 14px 0 18px; display: grid; gap: 6px; font-size: 15px; }
 .feats li { position: relative; padding-left: 26px; }
 .feats li::before { content: "✓"; position: absolute; left: 0; top: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--sky-soft); color: var(--sky-text); font-size: 11px; font-weight: 800; display: grid; place-items: center; }
-.van-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
-.price { font-weight: 800; font-size: 14px; line-height: 1.3; color: #fff; }
-.van-foot .btn { white-space: nowrap; flex: none; }
+.van-foot { margin-top: auto; display: flex; padding-top: 16px; border-top: 1px solid var(--line-soft); }
+.van-foot .btn { white-space: nowrap; flex: 1; text-align: center; }
 .van.lux { background: linear-gradient(160deg, rgba(22, 32, 58, .9), rgba(10, 15, 30, .92)); border-color: rgba(255, 176, 32, .25); color: #fff; }
 .van.lux .tag { background: #FFB02022; color: var(--amber); }
 .van.lux .cap { color: var(--amber); }
