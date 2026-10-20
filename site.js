@@ -440,6 +440,22 @@
     return stripeReq;
   }
 
+  // A booking or cancellation function that did not run at all (not deployed: 404; did not
+  // start: a 5xx without the function's own { error }) can't report itself: the page tells
+  // the Admin app, once per kind, with nothing about the visitor (report_function_failure).
+  var fnFailures = {};
+  function reportFnFailure(name, status, j) {
+    if (name !== 'create-order' && name !== 'cancel-order') return;
+    if (j.error || !(status === 404 || status >= 500)) return;
+    var code = typeof j.code === 'string' ? j.code : null, key = name + status + code;
+    if (fnFailures[key]) return;
+    fnFailures[key] = 1;
+    fetch(SB + '/rest/v1/rpc/report_function_failure', {
+      method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_app: 'website', p_platform: 'web', p_version: null, p_function: name, p_status: status, p_code: code })
+    }).catch(function () {});
+  }
+
   // POST to one of the project's edge functions as the signed-in visitor.
   function callFn(name, body, token) {
     return fetch(SB + '/functions/v1/' + name, {
@@ -450,6 +466,7 @@
         var j = {};
         try { j = txt ? JSON.parse(txt) : {}; } catch (e) {}
         if (r.ok) return j;
+        reportFnFailure(name, r.status, j);
         var e = new Error(j.error || 'HTTP ' + r.status);
         e.status = r.status;
         e.code = j.code;
