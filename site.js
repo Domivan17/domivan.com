@@ -1,22 +1,24 @@
 /* domivan.com in the browser: one page that never reloads.
  *
- * Router: clicks on links to the site's own pages (home, /join and the legal pages, in
- * every language) fetch the next page and swap only <main id="page">: the old page slides
- * out to the left and the new one in from the right (the other way on Back). The header
- * and the night map behind everything (.backdrop) are never redrawn, so the map keeps
- * moving. Any problem falls back to a normal page load.
+ * Router: links to the site's own pages in another language (and New trip from a page that
+ * isn't home) fetch the next page and swap only <main id="page">: the old page slides out to
+ * the left and the new one in from the right (the other way on Back). The header and the
+ * night map behind everything (.backdrop) are never redrawn, so the map keeps moving. Any
+ * problem falls back to a normal page load. Links to /join and the legal pages open them as
+ * panels instead (below); opened directly, they are pages as before.
  *
- * Account: "Log In / Create Account" opens the account card in place (URL #login). On the
- * home page it takes the Book your trip card's spot; elsewhere it slides in as its own
- * screen. Google and Apple go through Supabase's PKCE redirect, email through a one-time
- * code. The session is stored where supabase-js keeps it, so /book is signed in too.
- * Signed in, the same card is the account: Your account (#login), My trips (#trips) and one
- * trip (#trips/<id>) slide inside it, so nothing leaves the page. The header button (My
- * account) opens it, and closes it again when it already shows Your account.
+ * Panels, like the client app: the app's menu (New trip, My trips, Profile) floats at the
+ * bottom, and My trips, Profile, Join Transporters, the legal pages and Help slide in as a
+ * panel over the page (on computers a frame on the right, on phones the whole screen under the
+ * header); their steps slide sideways inside it. The panel is the account card: Log in /
+ * Create account, or Profile once signed in (#login), its steps (#login/details, ...), My trips
+ * (#trips) and one trip (#trips/<id>), Join Transporters (#join) and the legal pages (#terms,
+ * ...). Google and Apple go through Supabase's PKCE redirect, email through a one-time code.
+ * The session is stored where supabase-js keeps it, so /book is signed in too. The header
+ * button (Log in, or the first name) opens Profile, and closes it again.
  *
  * Phones (the one-column layout) open like the app: a signed-out visitor sees the account
- * card in the home page's spot first, and Book your trip once signed in. Transporters goes
- * to the DomiVan Driver app in the App Store or Google Play there (DRIVER_APP).
+ * card in the home page's spot first, and Book your trip and the menu once signed in.
  *
  * Booking (home): Book your trip prices the trip, takes the payment (Stripe's Payment Element)
  * and confirms it inside the card; each step slides in and the page never changes. The account
@@ -54,7 +56,7 @@ if (top !== self) top.location = location;
   var PHONE = window.matchMedia('(max-width: 860px)');
   var HANDHELD = window.matchMedia('(max-width: 860px), (pointer: coarse) and (max-height: 500px)');
   var DRIVER_APP = {
-    live: true,                                                            // false: every button keeps /join
+    live: false,  // false: every button keeps /join (Join Transporters). True once both store pages are public (404 on 2026-10-21)
     ios: 'https://apps.apple.com/app/id6823771794',                        // iPhone and iPad
     android: 'https://play.google.com/store/apps/details?id=eu.domivan.driver'
   };
@@ -1117,7 +1119,8 @@ if (top !== self) top.location = location;
       { id: 'fleet_size', q: J.q_fleet, type: 'one', grid: true, opts: ['1', '2-5', '6-10', '11+'].map(function (v) { return { v: v, t: v.replace('-', '–') }; }) },
       { id: 'van_classes', q: J.q_vans, sub: J.pick_all, type: 'many', opts: [
           { v: 'standard', t: J.van_std, s: J.van_std_cap }, { v: 'large', t: J.van_lg, s: J.van_lg_cap }, { v: 'luxury', t: J.van_lux, s: J.van_lux_cap }] },
-      { id: 'destinations', q: J.q_routes, sub: J.pick_all, type: 'many', grid: true, opts: ['DE', 'NL', 'BE', 'FR', 'UK', 'ES', 'IT', 'CH'].map(function (c) { return { v: c, t: J.countries[c], flag: c }; }) },
+      // The countries come with the page (JOIN_DESTINATIONS in scripts/build-site.py); the database takes the same list.
+      { id: 'destinations', q: J.q_routes, sub: J.pick_all, type: 'many', grid: true, opts: D.dest.map(function (c) { return { v: c, t: J.countries[c], flag: c }; }) },
       { id: 'passenger_insurance', q: J.q_insurance, type: 'one', opts: yesNo },
       { id: 'name', q: J.q_name, type: 'fields', fields: function () { return [{ k: 'full_name', label: J.f_name, ac: 'name' }]; } },
       { id: 'contact', q: J.q_contact, type: 'fields', fields: function () {
@@ -1238,6 +1241,7 @@ if (top !== self) top.location = location;
         box.innerHTML = '<div class="done-mark" aria-hidden="true">✓</div><h1>' + esc(J.done_h.replace('{name}', (a.full_name || '').split(' ')[0])) + '</h1>'
           + '<p class="qsub">' + esc(J.done_p) + '</p>'
           + (ref ? '<p class="qsub inv-done">' + GIFT + esc(fill(T.inv_join_done, { email: a.email })) + '</p>' : '')
+          + driverBadges(J.ios_small, J.play_small)
           + '<a class="btn big next" href="' + esc(J.home) + '">' + esc(J.done_cta) + '</a>';
         box.className = 'q';
       }, 180);
@@ -1341,11 +1345,15 @@ if (top !== self) top.location = location;
     applying = true;
     api('/rest/v1/rpc/apply_referral_code', { p_code: r.code }, s.access_token).then(function (res) {
       store.del(REF);
-      var why = { invalid_code: T.inv_bad, already_referred: T.inv_already, too_late: T.inv_too_late,
-        already_booked: T.inv_booked, own_code: T.inv_own }[res];
-      inv = res === 'ok' ? { step: 'ok', by: refBy(r) } : { step: 'note', msg: why || T.err_generic };
+      inv = res === 'ok' ? { step: 'ok', by: refBy(r) } : { step: 'note', msg: refWhy(res) };
       renderInvite();
     }, noop).then(function () { applying = false; });
+  }
+
+  // Why apply_referral_code didn't add a code, in the visitor's words.
+  function refWhy(res) {
+    return { invalid_code: T.inv_bad, already_referred: T.inv_already, too_late: T.inv_too_late,
+      already_booked: T.inv_booked, own_code: T.inv_own }[res] || T.err_generic;
   }
 
   // A store link that carries the kept code: Google Play hands &referrer= to the app after the
@@ -1644,12 +1652,12 @@ if (top !== self) top.location = location;
   var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   var justBooked = null; // the trip booked on this page (the booked step)
 
-  // The project's database as the signed-in visitor (PostgREST): a read, or with a body a
-  // function call. Row security decides what comes back.
-  function rest(path, token, body) {
+  // The project's database as the signed-in visitor (PostgREST): a read, with a body a function
+  // call (or with method PATCH, a change to rows). Row security decides what comes back.
+  function rest(path, token, body, method) {
     var h = { apikey: KEY, Authorization: 'Bearer ' + token };
     if (body) h['Content-Type'] = 'application/json';
-    return fetch(SB + '/rest/v1/' + path, { method: body ? 'POST' : 'GET', headers: h, body: body ? JSON.stringify(body) : undefined }).then(function (r) {
+    return fetch(SB + '/rest/v1/' + path, { method: method || (body ? 'POST' : 'GET'), headers: h, body: body ? JSON.stringify(body) : undefined }).then(function (r) {
       return r.text().then(function (txt) {
         var j = null;
         try { j = txt ? JSON.parse(txt) : null; } catch (e) {}
@@ -1959,23 +1967,10 @@ if (top !== self) top.location = location;
         if (tid === id && dt) { drawTrip(); into(note ? '.msg:not(:empty)' : '.t-done'); } // keeps the text when it didn't go
       });
     }
-    // An invoice (a PDF in the private invoices bucket) opens in a new tab through a link that
-    // works for five minutes. The tab opens at the tap, so the browser doesn't block it.
+    // An invoice opens in a new tab (openInvoice); if it can't, the trip says so.
     function openFile(path) {
-      var w = window.open('', '_blank');
-      if (w) w.opener = null;
       note = null;
-      token().then(function (t) {
-        return fetch(SB + '/storage/v1/object/sign/invoices/' + path.split('/').map(encodeURIComponent).join('/'), {
-          method: 'POST', body: JSON.stringify({ expiresIn: 300 }),
-          headers: { apikey: KEY, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }
-        });
-      }).then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)); }).then(function (j) {
-        if (!j || !j.signedURL) throw new Error('No link');
-        var url = SB + '/storage/v1' + j.signedURL;
-        if (w) w.location.href = url; else location.assign(url);
-      }).catch(function () {
-        if (w) w.close();
+      openInvoice(path, function () {
         note = { where: 'inv', text: L.err_generic };
         if (dt) { drawTrip(); into('.msg:not(:empty)'); }
       });
@@ -2004,6 +1999,7 @@ if (top !== self) top.location = location;
   // ---------------------------------------------------------------- account card
 
   var CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var CROSS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
   // Google's multicolour G and the Apple logo, as their sign-in guidelines ask.
   var GOOGLE = '<svg viewBox="0 0 48 48" aria-hidden="true">'
     + '<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>'
@@ -2013,6 +2009,17 @@ if (top !== self) top.location = location;
     + '</svg>';
   var APPLE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9-.1 0-2.7-1-2.7-4.1ZM13.9 5c.7-.8 1.2-2 1-3.2-1 0-2.3.7-3 1.5-.7.8-1.2 1.9-1.1 3.1 1.2.1 2.3-.6 3.1-1.4Z"/></svg>';
   var MAIL = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="m4.5 8 7.5 5.5L19.5 8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  // The Profile panel's icons, drawn like the app's (Ionicons outlines).
+  function ico(d) { return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
+  var PI = {
+    receipt: ico('M6 3.5h12v17l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4zM9 8h6M9 11.5h6M9 15h3.5'),
+    help: ico('M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 3.5V17A2.5 2.5 0 0 1 4 14.5zM10 9a2 2 0 1 1 2.6 1.9c-.4.2-.6.5-.6.9v.4M12 14.3h.01'),
+    user: ico('M12 4.2a3.8 3.8 0 1 1 0 7.6 3.8 3.8 0 0 1 0-7.6zM4.5 20c1.2-3.6 4-5.4 7.5-5.4s6.3 1.8 7.5 5.4'),
+    globe: ico('M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM3 12h18M12 3c2.6 2.6 3.9 5.6 3.9 9s-1.3 6.4-3.9 9c-2.6-2.6-3.9-5.6-3.9-9S9.4 5.6 12 3z'),
+    out: ico('M14 4.5H7.5A2.5 2.5 0 0 0 5 7v10a2.5 2.5 0 0 0 2.5 2.5H14M11 12h9.5M17 8.5l3.5 3.5-3.5 3.5'),
+    trash: ico('M4.5 6.5h15M9.5 6.5v-2h5v2M6.5 6.5l1 13.5h9l1-13.5M10 10.5v6M14 10.5v6'),
+    go: ico('M9.5 5.5 16 12l-6.5 6.5')
+  };
   var cards = 0;
 
   function field(name, label, type, ac, ph) {
@@ -2035,6 +2042,57 @@ if (top !== self) top.location = location;
       + '<p class="hint">' + esc(T.hint) + '</p>'
       + '</form></div>';
   }
+  // A row of the Profile panel's menus, as in the app: icon, label, value, chevron.
+  function menuItem(href, icon, label, value, cls) {
+    return '<a class="mi' + (cls ? ' ' + cls : '') + '" href="' + href + '"><span class="mi-ic">' + icon + '</span><span class="mi-t">' + esc(label) + '</span>'
+      + '<span class="mi-v">' + (value || '') + '</span><span class="mi-go">' + PI.go + '</span></a>';
+  }
+  function profileHtml() {
+    var cur = $('.top .lang .menu a[aria-current]'), lang = cur ? ($('.flag', cur) ? $('.flag', cur).outerHTML : '') + '<span>' + esc($('span', cur).textContent) + '</span>' : '';
+    var tile = function (href, icon, label) { return '<a class="pf-tile" href="' + href + '">' + icon + '<span>' + esc(label) + '</span></a>'; };
+    return '<div class="pf-head"><div class="me-ava"><span class="ava big" aria-hidden="true"></span><i class="ok" aria-hidden="true"></i></div>'
+      + '<div class="pf-who"><p class="me-hi">' + esc(T.welcome) + '</p><b class="me-name"></b><span class="me-mail"></span></div></div>'
+      + '<div class="pf-more">'
+      + '<div class="pf-tiles">' + tile('#trips', IC.cal, T.my_trips) + tile('#login/invoices', PI.receipt, T.pn_invoices) + tile('#login/help', PI.help, T.pn_help) + '</div>'
+      + '<h3 class="pf-sec">' + esc(T.pn_account) + '</h3><div class="mlist">'
+      + menuItem('#login/details', PI.user, T.pn_details, '<span class="pf-phone"></span>')
+      + menuItem('#login/invite', GIFT, T.pn_invite, '<span class="pf-until"></span>', 'pf-inv') + '</div>'
+      + '<h3 class="pf-sec">' + esc(T.pn_site) + '</h3><div class="mlist">'
+      + menuItem('#login/language', PI.globe, T.pn_language, lang)
+      + menuItem('#login/terms', IC.doc, T.pn_terms) + menuItem('#login/privacy', IC.lock, T.pn_privacy) + '</div>'
+      + '<div class="mlist"><button type="button" class="mi red out"><span class="mi-ic">' + PI.out + '</span><span class="mi-t">' + esc(T.logout) + '</span></button>'
+      + '<a class="mi red" href="#login/delete"><span class="mi-ic">' + PI.trash + '</span><span class="mi-t">' + esc(T.pn_delete) + '</span></a></div>'
+      + '</div>';
+  }
+
+  // The panel's views by address, each a pane of the account card. #login is Log in / Create
+  // account, or Profile once signed in; Profile's steps are #login/<step>. A legal page or Help
+  // stands on its own (#terms) or under Profile or Join Transporters (#login/terms, #join/terms),
+  // so the back arrow returns there. auth: signed out, Log in shows first.
+  var DOCS = ['terms', 'transporter-terms', 'privacy', 'delete-account'];
+  var PSTEPS = { details: 1, invoices: 1, invite: 1, delete: 1, language: 0, help: 0 }; // 1: needs an account
+  var AUTH = { login: 1, create: 1, code: 1 };
+  function viewOf(h) {
+    h = String(h || '');
+    var p = h.slice(1).split('/'), a = p[0], b = p[1], x = b == null ? a : b;
+    if (h.charAt(0) !== '#' || p.length > 2) return null;
+    if (a === 'trips') return b == null ? { pane: 'trips', auth: 1 } : UUID.test(b) ? { pane: 'trip', id: b, auth: 1 } : null;
+    if (b != null && a !== 'login' && a !== 'join') return null;
+    if (b == null && a === 'login') return { pane: 'me', auth: 1 };
+    if (b == null && a === 'join') return { pane: 'join', auth: 0 };
+    if (DOCS.indexOf(x) >= 0) return { pane: 'doc', doc: x, auth: 0 };
+    if (x === 'help') return { pane: 'help', auth: 0 };
+    if (a === 'login' && PSTEPS[x] != null) return { pane: x, auth: PSTEPS[x] };
+    return null;
+  }
+  function depth(h) { return h ? h.split('/').length : 0; }
+  function parentOf(h) { var i = h.lastIndexOf('/'); return i > 0 ? h.slice(0, i) : ''; }
+  function under(h, top) { return h === top || h.indexOf(top + '/') === 0; }
+  var DOC_T = { terms: 'pn_doc_terms', 'transporter-terms': 'pn_doc_tterms', privacy: 'pn_doc_privacy', 'delete-account': 'pn_doc_delete' };
+
+  // A site page for a panel (Join Transporters, a legal page, the home page's questions), in this
+  // language. The router's cache shares them.
+  function sitePart(name) { return load(T.home + name).then(parse).then(function (x) { return x.page; }); }
 
   function Account() {
     var n = ++cards, el = d.createElement('section');
@@ -2044,7 +2102,8 @@ if (top !== self) top.location = location;
     el.setAttribute('aria-labelledby', 'acct-h' + n);
     el.innerHTML = '<div class="card-head">'
       + '<button type="button" class="back-btn" aria-label="' + esc(T.back) + '" title="' + esc(T.back) + '">' + CHEV + '</button>'
-      + '<span class="logo"><svg><use href="#mark"/></svg></span><h2 id="acct-h' + n + '">' + esc(T.acct_h) + '</h2></div>'
+      + '<span class="logo"><svg><use href="#mark"/></svg></span><h2 id="acct-h' + n + '">' + esc(T.acct_h) + '</h2>'
+      + '<button type="button" class="x-btn" aria-label="' + esc(T.pn_close) + '" title="' + esc(T.pn_close) + '">' + CROSS + '</button></div>'
       + '<div class="acct-body">'
       + '<div class="kinds tabs" role="radiogroup" aria-label="' + esc(T.acct_h) + '">'
       + '<label><input type="radio" name="acct-tab' + n + '" value="login" checked><span>' + esc(T.tab_login) + '</span></label>'
@@ -2058,16 +2117,10 @@ if (top !== self) top.location = location;
       + '<button class="btn big go" type="submit">' + esc(T.verify) + '</button>'
       + '<div class="code-links"><button type="button" class="link chg">' + esc(T.change_email) + '</button><button type="button" class="link rs"></button></div>'
       + '</form></div>'
-      + '<div class="pane" data-pane="me"><div class="me">'
-      + '<div class="me-ava"><span class="ava big"></span><i class="ok" aria-hidden="true"></i></div>'
-      + '<p class="me-hi">' + esc(T.welcome) + '</p>'
-      + '<p class="me-who"><small>' + esc(T.signed_in_as) + '</small><b class="me-name"></b><span class="me-mail"></span></p>'
-      + '<a class="btn big" href="#trips">' + esc(T.my_trips) + '</a>'
-      + '<a class="btn ghost" href="' + esc(T.home) + '">' + esc(T.book_trip) + '</a>'
-      + '<button type="button" class="link out">' + esc(T.logout) + '</button>'
-      + '</div></div>'
-      + '<div class="pane tv" data-pane="trips"></div>'
-      + '<div class="pane tv" data-pane="trip"></div>'
+      + '<div class="pane tv" data-pane="me">' + profileHtml() + '</div>'
+      + ['details', 'invoices', 'invite', 'delete', 'language', 'help', 'doc', 'join', 'trips', 'trip'].map(function (p) {
+        return '<div class="pane tv" data-pane="' + p + '"></div>';
+      }).join('')
       + '</div></div>'
       + '<p class="acct-legal">' + T.legal + '</p>';
 
@@ -2076,16 +2129,15 @@ if (top !== self) top.location = location;
     $$('.pane', el).forEach(function (p) { P[p.dataset.pane] = p; setOn(p, false); });
     var codeIn = $('[name=code]', P.code);
     h2.tabIndex = -1;
-    // Signed in, the card shows `view`: Your account (#login), My trips (#trips) or one trip
-    // (#trips/<id>). Deeper views come in from the right, shallower ones from the left.
-    var view = '#login', trips = Trips(P.trips, P.trip);
+    // The view shown: Profile (#login), one of its steps, My trips (#trips), one trip
+    // (#trips/<id>), Join Transporters or a legal page. Deeper views come in from the right,
+    // shallower ones from the left.
+    var view = '#login', shown = '', trips = Trips(P.trips, P.trip);
 
     function show(name, dir, instant) {
       var to = P[name];
       if (to === cur) return;
-      el.classList.toggle('is-me', !!DEPTH[name]);
-      el.classList.toggle('is-list', DEPTH[name] > 1);
-      h2.textContent = name === 'trips' ? T.my_trips : name === 'trip' ? T.trip_h : T.acct_h;
+      el.classList.toggle('is-me', !AUTH[name]);
       var solo = el.parentNode && el.parentNode.classList.contains('solo'); // the card is as tall as its step
       swap(panes, cur, to, dir, instant || !el.isConnected || el.classList.contains('off'), null, solo ? panes.offsetHeight : null);
       cur = to;
@@ -2244,28 +2296,289 @@ if (top !== self) top.location = location;
     }, true);
     $('.out', P.me).addEventListener('click', function () { el.classList.remove('fresh'); logout(); });
     $('.back-btn', el).addEventListener('click', accountBack);
+    $('.x-btn', el).addEventListener('click', function () { closeLogin({ ui: true }); });
+
+    // ---- Profile and its steps. me: the profile row (name, phone, invoice details) and until
+    // when an invite code can still be added (referral_window(), null once it can't).
+    var me = null, meFor = null, meAt = 0, inviteUntil = null;
+    function uid() { var s = getSession(); return s ? uidOf(s) : null; }
+    function token() {
+      return refresh().then(function (s) {
+        if (!s) { var e = new Error('Signed out'); e.status = 401; throw e; }
+        return s.access_token;
+      });
+    }
+    // Refused as signed out: Log in again (the panel then comes back to this view).
+    function out(e) { if (e && e.status === 401) { clearSession(); return true; } return false; }
+    function spinner() { return '<div class="tload"><span class="spin" aria-hidden="true"></span></div>'; }
+    function oops(pane, again) {
+      pane.innerHTML = '<div class="tempty"><p>' + esc(T.err_generic) + '</p><button type="button" class="btn ghost pn-retry">' + esc(T.retry) + '</button></div>';
+      $('.pn-retry', pane).onclick = again;
+    }
+    function loadMe(force) {
+      var u = uid();
+      if (!u || (!force && meFor === u && Date.now() - meAt < 30000)) return drawMe();
+      meAt = Date.now();
+      token().then(function (t) {
+        return Promise.all([
+          rest('profiles?select=full_name,phone,billing_name,billing_vat_number,billing_address&id=eq.' + u, t),
+          rest('rpc/referral_window', t, {}).catch(nothing)
+        ]);
+      }).then(function (r) {
+        if (uid() !== u) return;
+        me = (r[0] && r[0][0]) || {}; meFor = u;
+        inviteUntil = r[1] && Date.parse(r[1]) > Date.now() ? new Date(r[1]) : null;
+        drawMe();
+        if (cur === P.details) details(); // a step that was waiting for it
+        if (cur === P.invite) invite();
+      }, function (e) {
+        meAt = 0;
+        if (!out(e) && cur === P.details && meFor !== u) oops(P.details, details);
+      });
+    }
+    function drawMe() {
+      var s = getSession(), u = (s && s.user) || {}, nm = (meFor === uid() && me && me.full_name) || nameOf(s);
+      $('.ava', P.me).textContent = (nm || u.email || '?').charAt(0).toUpperCase();
+      $('.me-name', P.me).textContent = nm || u.email || T.my_account;
+      $('.me-mail', P.me).textContent = nm ? u.email || '' : '';
+      $('.pf-phone', P.me).textContent = (meFor === uid() && me && me.phone) || '';
+      var inv = $('.pf-inv', P.me);
+      inv.hidden = !(meFor === uid() && inviteUntil);
+      $('.pf-until', P.me).textContent = inviteUntil ? fill(T.pn_invite_by, { date: clockText(inviteUntil, null, SOON, T.lang) }) : '';
+    }
+
+    function detailsHtml() {
+      var f = function (k, label, type, ac, ph) {
+        return '<label><small>' + esc(label) + '</small><input name="' + k + '" type="' + (type || 'text') + '"' + (ac ? ' autocomplete="' + ac + '"' : '')
+          + (ph ? ' placeholder="' + esc(ph) + '"' : '') + (k === 'email' ? ' disabled' : '') + '></label>';
+      };
+      return '<form class="pn-form" novalidate>' + f('full_name', T.pn_name, 'text', 'name') + f('phone', T.pn_phone, 'tel', 'tel')
+        + f('email', T.f_email, 'email', 'email')
+        + '<h3 class="pf-sec">' + esc(T.pn_bill_h) + '</h3><p class="pn-note">' + esc(T.pn_bill_p) + '</p>'
+        + f('billing_name', T.pn_bill_name, 'text', 'organization') + f('billing_vat_number', T.pn_bill_vat, 'text', 'off')
+        + f('billing_address', T.pn_bill_addr, 'text', 'street-address', T.pn_bill_addr_ph)
+        + '<div class="msg" role="alert"></div><button class="btn big go" type="submit">' + esc(T.pn_save) + '</button></form>';
+    }
+    function details() {
+      var u = uid();
+      if (!$('form', P.details)) {
+        P.details.innerHTML = detailsHtml();
+        $('form', P.details).addEventListener('submit', function (e) { e.preventDefault(); saveDetails(this); });
+      }
+      var f = $('form', P.details), wait = $('.tload', P.details);
+      if (meFor !== u) { // its fields come with the profile
+        f.hidden = true;
+        if (!wait) P.details.insertAdjacentHTML('afterbegin', spinner());
+        return loadMe(true);
+      }
+      if (wait) P.details.removeChild(wait);
+      f.hidden = false;
+      if (f._for === u && f._at > meAt) return;
+      f._for = u; f._at = Date.now();
+      ['full_name', 'phone', 'billing_name', 'billing_vat_number', 'billing_address'].forEach(function (k) { f.elements[k].value = me[k] || ''; });
+      f.elements.email.value = (getSession().user || {}).email || '';
+      msg(f, '');
+    }
+    function saveDetails(f) {
+      var btn = $('.go', f), v = function (k) { return f.elements[k].value.trim().replace(/\s+/g, ' '); };
+      var row = { full_name: v('full_name'), phone: v('phone'), billing_name: v('billing_name') || null,
+        billing_vat_number: v('billing_vat_number').toUpperCase() || null, billing_address: v('billing_address') || null };
+      if (row.full_name.length < 2) return msg(f, T.err_name, 'full_name');
+      if (btn.disabled) return;
+      var u = uid();
+      msg(f, '');
+      busy(btn, true);
+      token().then(function (t) { return rest('profiles?id=eq.' + u, t, row, 'PATCH'); }).then(function () {
+        if (uid() !== u) return;
+        me = Object.assign({}, me, row); meFor = u;
+        store.set(NAME, JSON.stringify({ id: u, n: row.full_name })); // the header's first name
+        authChanged(true);
+        drawMe();
+        msg(f, T.pn_saved, null, 'ok');
+      }, function (e) { if (!out(e)) msg(f, errText(e)); }).catch(noop).then(function () { busy(btn, false); });
+    }
+
+    // Every invoice and credit note of this account, newest first (row security picks them).
+    var invRows = null, invFor = null, invAt = 0;
+    function invoices() {
+      var u = uid();
+      if (invFor === u && invRows) drawInvoices(); else P.invoices.innerHTML = spinner();
+      if (invFor === u && Date.now() - invAt < 5000) return;
+      invAt = Date.now();
+      token().then(function (t) {
+        return rest('invoices?select=id,kind,number,total_cents,file_path,created_at&kind=in.(trip,credit_note)&file_path=not.is.null&order=created_at.desc&limit=100', t);
+      }).then(function (r) {
+        if (uid() !== u) return;
+        invRows = r || []; invFor = u;
+        drawInvoices();
+      }, function (e) { invAt = 0; if (!out(e) && !(invFor === u && invRows)) oops(P.invoices, invoices); });
+    }
+    function drawInvoices() {
+      if (!invRows.length) {
+        P.invoices.innerHTML = '<div class="tempty"><span class="tempty-ic" aria-hidden="true">' + PI.receipt + '</span><p>' + esc(T.pn_inv_none) + '</p></div>';
+        return;
+      }
+      P.invoices.innerHTML = invRows.map(function (v) {
+        return '<button type="button" class="t-file" data-path="' + esc(v.file_path) + '">' + IC.doc
+          + '<span>' + esc(fill(v.kind === 'credit_note' ? T.invoice_credit : T.invoice_trip, { n: v.number }))
+          + '<small>' + esc(clockText(new Date(v.created_at), null, DAY, T.lang)) + '</small></span><b>' + esc(money(v.total_cents, T.lang)) + '</b></button>';
+      }).join('') + '<div class="msg" role="alert"></div>';
+    }
+    P.invoices.addEventListener('click', function (e) {
+      var b = e.target.closest('.t-file');
+      if (b) openInvoice(b.dataset.path, function () { msg(P.invoices, T.err_generic); });
+    });
+
+    // Invite code: in the first 7 days after signing up, before the first booking (as in the app).
+    function invite() {
+      if (!$('form', P.invite)) {
+        P.invite.innerHTML = '<form class="pn-form" novalidate><p class="pn-note"></p>'
+          + '<label><small>' + esc(T.inv_h) + '</small><input name="code" class="pn-code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="ABC123"></label>'
+          + '<div class="msg" role="alert"></div><button class="btn big go" type="submit">' + esc(T.pn_code_add) + '</button></form>';
+        $('form', P.invite).addEventListener('submit', function (e) { e.preventDefault(); addCode(this); });
+      }
+      var f = $('form', P.invite);
+      $('.pn-note', f).textContent = inviteUntil ? fill(T.pn_code_until, { date: clockText(inviteUntil, null, SOON, T.lang) }) : '';
+      if (meFor !== uid()) loadMe(true);
+    }
+    function addCode(f) {
+      var btn = $('.go', f), code = f.elements.code.value.replace(/\s+/g, '').toUpperCase();
+      if (!REF_CODE.test(code)) return msg(f, T.pn_code_short, 'code');
+      if (btn.disabled) return;
+      msg(f, '');
+      busy(btn, true);
+      token().then(function (t) { return rest('rpc/apply_referral_code', t, { p_code: code }); }).then(function (res) {
+        if (res !== 'ok') return msg(f, refWhy(res), 'code');
+        store.del(REF);
+        inviteUntil = null;
+        drawMe();
+        msg(f, T.inv_ok, null, 'ok');
+      }, function (e) { if (!out(e)) msg(f, errText(e)); }).catch(noop).then(function () { busy(btn, false); });
+    }
+
+    // Delete account: the app's question, then delete-account (it waits while a trip, payout,
+    // refund or invoice is still to come, and says which). The login is gone then, so only this
+    // browser forgets it.
+    function deletePane() {
+      if ($('.pn-del', P.delete)) return msg(P.delete, '');
+      P.delete.innerHTML = '<div class="pn-del"><span class="tempty-ic" aria-hidden="true">' + PI.trash + '</span>'
+        + '<h3>' + esc(T.pn_delete_q) + '</h3><p>' + esc(T.pn_delete_p) + '</p></div>'
+        + '<div class="msg" role="alert"></div>'
+        + '<div class="t-two"><a class="btn ghost" href="#login">' + esc(T.pn_cancel) + '</a>'
+        + '<button type="button" class="btn danger pn-del-yes">' + esc(T.pn_delete_yes) + '</button></div>';
+      $('.pn-del-yes', P.delete).addEventListener('click', function () {
+        var btn = this;
+        if (btn.disabled) return;
+        msg(P.delete, '');
+        busy(btn, true, T.pn_deleting);
+        token().then(function (t) { return callFn('delete-account', {}, t); }).then(function () {
+          clearSession();
+          store.del(DRAFT);
+        }, function (e) { if (!out(e)) msg(P.delete, refusalText(e) || errText(e)); }).catch(noop).then(function () { busy(btn, false); });
+      });
+    }
+
+    // Language: the header's language links, each opening this page in that language on Profile.
+    function language() {
+      P.language.innerHTML = '<div class="mlist pn-langs">' + $$('.top .lang .menu a').map(function (a) {
+        var on = a.hasAttribute('aria-current');
+        return '<a class="mi' + (on ? ' on' : '') + '" href="' + esc(a.getAttribute('href')) + '#login" hreflang="' + esc(a.getAttribute('hreflang') || '') + '"'
+          + (on ? ' aria-current="true"' : '') + '><span class="mi-ic flagbox">' + ($('.flag', a) ? $('.flag', a).outerHTML : '') + '</span>'
+          + '<span class="mi-t">' + esc($('span', a).textContent) + '</span><span class="mi-v">' + (on ? IC.ok : '') + '</span></a>';
+      }).join('') + '</div>';
+    }
+
+    // Help: the home page's questions and answers, then where to write.
+    function help() {
+      if (P.help._lang === T.lang) return;
+      P.help._lang = T.lang;
+      P.help.innerHTML = spinner();
+      var fromPage = function (pg) { return $$('#faq details', pg); };
+      var have = page && $('#faq', page) ? Promise.resolve(fromPage(page).map(function (x) { return x.cloneNode(true); }))
+        : sitePart('').then(fromPage);
+      have.then(function (qs) {
+        if (!qs.length) throw new Error('No questions');
+        P.help.innerHTML = '<div class="pn-faq"></div><p class="pn-note">' + esc(T.pn_help_more).replace('{email}',
+          '<a href="mailto:support@domivan.com">support@domivan.com</a>') + '</p>';
+        qs.forEach(function (q) { q.open = false; $('.pn-faq', P.help).appendChild(q); });
+      }).catch(function () { P.help._lang = null; oops(P.help, help); });
+    }
+
+    // A legal page, or Join Transporters: its own page's content, fetched once per language.
+    function doc(name) {
+      var key = T.home + name;
+      if (P.doc._key === key) return docTitle();
+      P.doc._key = key;
+      P.doc.innerHTML = spinner();
+      P.doc.scrollTop = 0;
+      sitePart(name).then(function (pg) {
+        var a = $('article.legal', pg);
+        if (!a) throw new Error('Not a legal page');
+        if (P.doc._key !== key) return;
+        P.doc.innerHTML = '';
+        P.doc.appendChild(a);
+        docTitle();
+      }).catch(function () { P.doc._key = null; oops(P.doc, function () { doc(name); }); });
+    }
+    function docTitle() {
+      var h = $('article.legal h1', P.doc), v = viewOf(view);
+      if (h && v && v.pane === 'doc') h2.textContent = h.textContent;
+    }
+    function join() {
+      var key = T.home + 'join';
+      if (P.join._key === key) return;
+      P.join._key = key;
+      P.join.innerHTML = spinner();
+      sitePart('join').then(function (pg) {
+        var box = $('.join-inner', pg), data = $('#join-data', pg), form = box && $('form.frame', box);
+        if (!form || !data || P.join._key !== key) throw new Error('Not the Join page');
+        form.removeAttribute('id'); // the page /join has its own
+        P.join.innerHTML = '';
+        P.join.appendChild(box);
+        initJoin(form, JSON.parse(data.textContent));
+      }).catch(function () { P.join._key = null; oops(P.join, join); });
+    }
 
     function showView(instant) {
-      var name = paneOf(view), was = cur && cur.dataset.pane;
-      if (name === 'trips') trips.list();
-      if (name === 'trip') trips.open(view.slice(7));
-      show(name, DEPTH[was] > DEPTH[name] ? -1 : 1, instant);
+      var v = viewOf(view), signed = !!getSession(), was = shown, name = v.pane;
+      if (v.auth && !signed) return;
+      if (name === 'me') loadMe();
+      else if (name === 'details') details();
+      else if (name === 'invoices') invoices();
+      else if (name === 'invite') invite();
+      else if (name === 'delete') deletePane();
+      else if (name === 'language') language();
+      else if (name === 'help') help();
+      else if (name === 'doc') doc(v.doc);
+      else if (name === 'join') join();
+      else if (name === 'trips') trips.list();
+      else if (name === 'trip') trips.open(v.id);
+      h2.textContent = name === 'me' ? T.pn_profile : name === 'trips' ? T.my_trips : name === 'trip' ? T.trip_h : name === 'join' ? T.pn_join
+        : name === 'doc' ? T[DOC_T[v.doc]] : T['pn_' + name];
+      if (name === 'doc') docTitle();
+      var dir = !was ? 1 : depth(view) !== depth(was) ? (depth(view) > depth(was) ? 1 : -1) : TAB_ORDER(view) < TAB_ORDER(was) ? -1 : 1;
+      shown = view;
+      show(name, dir, instant);
+    }
+    function upArrow() {
+      var v = viewOf(view);
+      el.classList.toggle('has-up', !!parentOf(view) && !(v.auth && !getSession()));
     }
 
     function sync(instant) {
-      var s = getSession();
-      if (s) {
-        var nm = nameOf(s), u = s.user || {};
-        $('.ava', P.me).textContent = (nm || u.email || '?').charAt(0).toUpperCase();
-        $('.me-name', P.me).textContent = nm || u.email || T.my_account;
-        $('.me-mail', P.me).textContent = nm ? u.email || '' : '';
-        trips.user(uidOf(s));
-        showView(instant);
-      } else {
+      var s = getSession(), v = viewOf(view);
+      if (s) trips.user(uidOf(s));
+      else {
         el.classList.remove('fresh');
         trips.user(null);
-        if (!cur || DEPTH[cur.dataset.pane]) show(tab, -1, instant);
+        me = meFor = inviteUntil = null; invRows = invFor = null;
+        var df = $('form', P.details);
+        if (df) { df.reset(); df._for = null; }
       }
+      if (s) drawMe();
+      if (s || !v.auth) showView(instant);
+      else { shown = ''; h2.textContent = T.acct_h; if (!cur || !AUTH[cur.dataset.pane]) show(tab, -1, instant); }
+      upArrow();
     }
 
     // Back from Google or Apple.
@@ -2292,13 +2605,14 @@ if (top !== self) top.location = location;
     return {
       el: el, lang: T.lang, sync: sync, callback: callback, used: used,
       reset: function () { $$('.sso-btn', el).forEach(function (b) { busy(b, false); }); },
-      // Shows the view for an account URL (see acctHash). Signed out, Log in shows first and the
-      // view comes once signed in. The heading takes the focus when the card slides to another view.
+      // Shows the view for a panel address (see viewOf). Signed out, Log in shows first where the
+      // view needs an account, and the view comes once signed in. The heading takes the focus when
+      // the card slides to another view.
       route: function (h, instant) {
         var was = cur;
         view = h;
         sync(instant);
-        if (cur !== was && was && DEPTH[was.dataset.pane] && !instant && el.isConnected && !el.classList.contains('off')) h2.focus({ preventScroll: true });
+        if (cur !== was && was && !AUTH[was.dataset.pane] && !instant && el.isConnected && !el.classList.contains('off')) h2.focus({ preventScroll: true });
       }
     };
   }
@@ -2308,36 +2622,147 @@ if (top !== self) top.location = location;
     if (!acct || acct.lang !== T.lang) { acct = Account(); loadSettings(); }
     return acct;
   }
+  // Dates without a time: when an invoice was made, and until when an invite code can still be
+  // added (within the next 7 days, so no year).
+  var DAY = { day: 'numeric', month: 'short', year: 'numeric' }, SOON = { day: 'numeric', month: 'short' };
+  // Which of the app's tabs a view belongs to: My trips, then Profile, then the rest.
+  function TAB_ORDER(h) { return h.indexOf('#trips') === 0 ? 1 : h.indexOf('#login') === 0 ? 2 : 3; }
 
-  // ---------------------------------------------------------------- the account card in place
+  // An invoice (a PDF in the private invoices bucket) opens in a new tab through a link that
+  // works for five minutes. The tab opens at the tap, so the browser doesn't block it.
+  function openInvoice(path, failed) {
+    var w = window.open('', '_blank');
+    if (w) w.opener = null;
+    refresh().then(function (s) {
+      if (!s) throw new Error('Signed out');
+      return fetch(SB + '/storage/v1/object/sign/invoices/' + path.split('/').map(encodeURIComponent).join('/'), {
+        method: 'POST', body: JSON.stringify({ expiresIn: 300 }),
+        headers: { apikey: KEY, Authorization: 'Bearer ' + s.access_token, 'Content-Type': 'application/json' }
+      });
+    }).then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)); }).then(function (j) {
+      if (!j || !j.signedURL) throw new Error('No link');
+      var url = SB + '/storage/v1' + j.signedURL;
+      if (w) w.location.href = url; else location.assign(url);
+    }).catch(function () {
+      if (w) w.close();
+      failed();
+    });
+  }
+
+  // The DomiVan Driver app's store buttons (Join Transporters once sent; the home page's own are in
+  // scripts/site-template.html): "coming soon" until both store pages are public (DRIVER_APP.live).
+  function driverBadges(ios, play) {
+    var mark = '<span class="dmark" aria-hidden="true"><svg><use href="#mark"/></svg></span>';
+    var one = function (small, store, url) {
+      var inner = mark + '<span><small>' + esc(small) + '</small>' + store + '</span>';
+      return DRIVER_APP.live ? '<a class="dstore" href="' + esc(url) + '" rel="noopener">' + inner + '</a>' : '<span class="dstore">' + inner + '</span>';
+    };
+    return '<div class="dstores">' + one(ios, 'App Store', DRIVER_APP.ios) + one(play, 'Google Play', DRIVER_APP.android) + '</div>';
+  }
+
+  // ---------------------------------------------------------------- the panel
   //
-  // Its URLs: Log in, or Your account once signed in (#login), My trips (#trips) and one trip
-  // (#trips/<id>). The signed-in views form a stack, and so do their history entries: a deeper
-  // view pushes the views between (My trips from the booked step pushes Your account first), a
-  // shallower one goes back to its entry, so Back and the card's back arrow always go up one view.
-  // Entries pushed for the card carry au (the entry before is the view above this one) and ac (how
-  // many entries back the card was closed, when that is known).
+  // Its addresses are the views above. They form a stack, and so do their history entries: a
+  // deeper view pushes the views between, its parent is the entry before it (au), and another
+  // view of the same level (a tab, a sibling step) takes the entry's place, so Back and the back
+  // arrow always go up one view. Entries pushed for the panel also carry ac: how many entries
+  // back it was closed, when that is known, so closing it takes them all away.
+  //
+  // The panel is the account card in a frame over the page (.sheet): on computers on the right,
+  // on phones the whole screen under the header. On a phone before signing in, Log in stands in
+  // the home page's spot instead (like the app's first screen) until another view is opened.
 
-  var loginOpen = false, underY = 0;
-  var DEPTH = { me: 1, trips: 2, trip: 3 };
+  var loginOpen = false, sheet = null, scrim = null, tabbar = null;
   function acctHash(h) {
     h = h == null ? location.hash : h;
-    return h === '#login' || h === '#trips' || (h.indexOf('#trips/') === 0 && UUID.test(h.slice(7))) ? h : '';
+    return viewOf(h) ? h : '';
   }
-  function paneOf(h) { return h === '#trips' ? 'trips' : h.indexOf('#trips/') === 0 ? 'trip' : 'me'; }
-  function depth(h) { return h ? DEPTH[paneOf(h)] : 0; }
   function here(h) { return location.pathname + location.search + (h || ''); }
   function deckOf(p) { return p && $('.deck', p); }
-  function loginButton(on) { var b = $('.top .login'); if (b) b.classList.toggle('on', on); }
+  function loginButton(on) { var b = $('.top .login'); if (b) b.classList.toggle('on', on); syncTabs(); }
   function closeLangMenus() { $$('details.lang[open]').forEach(function (x) { x.open = false; }); }
   function focusCard() { if (acct) acct.el.focus({ preventScroll: true }); }
-  // Where the card is: the home page's spot, or the card itself on its own screen.
+  function inSheet() { return !!(acct && sheet && acct.el.parentNode === sheet); }
+  // Where the card is: the home page's spot, or the card itself in the panel.
   function spot() { var p = acct.el.parentNode; return p && p.classList.contains('deck') ? p : acct.el; }
 
+  function sheetBox() {
+    if (!sheet) {
+      scrim = d.createElement('div');
+      scrim.className = 'scrim';
+      scrim.hidden = true;
+      scrim.addEventListener('click', function () { closeLogin({ ui: true }); });
+      sheet = d.createElement('div');
+      sheet.className = 'sheet';
+      sheet.hidden = true;
+      d.body.appendChild(scrim);
+      d.body.appendChild(sheet);
+    }
+    return sheet;
+  }
+  // Once the panel is in, a phone shows the night map behind it instead of the page (like the
+  // app's screens); the page comes back as the panel starts to leave (panel-over, landing.css).
+  function openSheet(instant) {
+    var sh = sheetBox();
+    if (sh._end) sh._end();
+    if (!sh.hidden) return root.classList.add('panel-over');
+    sh.hidden = scrim.hidden = false;
+    if (instant || !moves()) return root.classList.add('panel-over');
+    var c = calm(), o = { duration: c ? 200 : 440, easing: EASE };
+    sh.animate(c ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: 'translateX(105%)' }, { transform: 'none' }], o)
+      .onfinish = function () { if (!sh.hidden && !sh._end) root.classList.add('panel-over'); };
+    scrim.animate([{ opacity: 0 }, { opacity: 1 }], o);
+  }
+  function closeSheet(instant) {
+    var sh = sheet;
+    if (!sh || (sh.hidden && !sh._end)) return;
+    root.classList.remove('panel-over');
+    var a = null, b = null;
+    var end = function () {
+      if (sh._end !== end) return;
+      sh._end = null;
+      if (a) a.cancel();
+      if (b) b.cancel();
+      sh.hidden = scrim.hidden = true;
+      $$('.acct-copy', sh).forEach(function (x) { sh.removeChild(x); });
+    };
+    sh._end = end;
+    if (instant || !moves()) return end();
+    var c = calm(), o = { duration: c ? 200 : 380, easing: EASE, fill: 'forwards' };
+    a = sh.animate(c ? [{ opacity: 1 }, { opacity: 0 }] : [{ transform: 'none' }, { transform: 'translateX(105%)' }], o);
+    b = scrim.animate([{ opacity: 1 }, { opacity: 0 }], o);
+    a.onfinish = end;
+  }
+  // The card goes into the panel. Coming from the home page's spot (a phone before signing in),
+  // it leaves a still copy there, so nothing under the panel moves.
+  function mountInSheet(instant) {
+    var a = account(), sh = sheetBox(), from = a.el.parentNode;
+    if (from !== sh) {
+      // A copy left by the last panel (still sliding away), or the card of the language before.
+      $$('.acct', sh).forEach(function (x) { sh.removeChild(x); });
+      if (from && from.classList.contains('deck')) leaveCopy(a.el);
+      else if (from) from.removeChild(a.el);
+      setOn(a.el, true);
+      a.el.classList.remove('gate');
+      sh.appendChild(a.el);
+    }
+    a.route(acctHash() || '#login', true);
+    openSheet(instant);
+    syncTabs();
+  }
+
   function mountInDeck(deck, instant) {
-    var a = account();
+    var a = account(), copy = $('.acct-copy', deck);
     if (deck._end) deck._end();
-    if (a.el.parentNode !== deck) { leaveCopy(a.el); setOn(a.el, false); deck.appendChild(a.el); }
+    var from = a.el.parentNode;
+    if (from && from !== deck) { if (from === sheet) leaveCopy(a.el); else from.removeChild(a.el); } // the panel slides away with a copy
+    if (copy) { // back from the panel: in place of its still copy
+      setOn(a.el, true);
+      deck.replaceChild(a.el, copy);
+    } else if (from !== deck) {
+      setOn(a.el, false);
+      deck.appendChild(a.el);
+    }
     a.route(acctHash() || '#login', true);
     a.el.classList.toggle('gate', gated());
     if (deck._front === a.el) return;
@@ -2345,15 +2770,26 @@ if (top !== self) top.location = location;
       if (deck._front === a.el && gated()) setSolo(deck, true, instant);
     });
   }
-  // The card is moving to the home page while the screen it was on slides away: that screen
-  // keeps a still copy of it until it has gone.
+  // A still copy of the card where it was (the home page's spot while the card is in the panel,
+  // or the panel while it slides away after the card went back to the spot).
   function leaveCopy(el) {
     if (!el.isConnected) return;
     var c = el.cloneNode(true);
     $$('[id], [name]', c).forEach(function (x) { x.removeAttribute('id'); x.removeAttribute('name'); });
-    setOn(c, false);
-    c.classList.remove('off');
+    c.classList.add('acct-copy');
+    c.setAttribute('inert', '');
+    c.setAttribute('aria-hidden', 'true');
     el.parentNode.replaceChild(c, el);
+  }
+  // Signed in while the card was in the panel: the home page's spot gets Book your trip back.
+  function restoreBook(deck) {
+    var copy = $('.acct-copy', deck), book = $('.book', deck);
+    if (deck._end) deck._end();
+    if (copy) deck.removeChild(copy);
+    deck.classList.remove('solo');
+    setOn(book, true);
+    deck._front = book;
+    relayoutMap();
   }
   // Book your trip comes back into the home page's spot. Once the account card has slid away it
   // leaves the spot, so the booking card keeps its own height. On phones, after signing in on
@@ -2379,42 +2815,35 @@ if (top !== self) top.location = location;
   }
   // Signed out on a phone: the home page shows Log in / Create account first, like the app.
   function gated() { return PHONE.matches && !getSession(); }
-  // Puts the right card in the home page's spot: the account card while it is open or while a
-  // phone visitor hasn't signed in, else Book your trip. Run when the page is shown, when the
-  // session changes and when the window crosses the phone width.
+  // Puts the right card in the home page's spot: the account card while a phone visitor hasn't
+  // signed in (or is being welcomed there), else Book your trip. Run when the page is shown,
+  // when the session changes and when the window crosses the phone width. While the card is in
+  // the panel the spot waits (closeLogin puts it right).
   function syncDeck(instant) {
     var deck = deckOf(page);
-    if (!deck) return;
+    syncTabs();
+    if (!deck || inSheet()) return;
     var g = gated();
     if (g && !(acct && deck._front === acct.el)) mountInDeck(deck, instant);
     var a = acct;
     if (!a || deck._front !== a.el) return;
-    var fresh = a.el.classList.contains('fresh') && !!getSession(), solo = deck.classList.contains('solo');
+    var fresh = a.el.classList.contains('fresh') && !!getSession(), solo = deck.classList.contains('solo'), h = acctHash();
     if (!g && !loginOpen) {
       if (fresh) loginOpen = true; // just signed in on it: the welcome shows, then signedIn() moves on to Book your trip
       else if (getSession() || !a.used()) { loginButton(false); return toBook(deck, instant); }
-      else { // the layout widened (a phone turned sideways) mid sign-in: it stays, as the account card opened from the header
+      else { // the layout widened (a phone turned sideways) mid sign-in: it moves into the panel
         loginOpen = true;
         history.replaceState(history.state, '', here('#login'));
+        mountInSheet(true);
+        return restoreBook(deck);
       }
     }
     // No back arrow during the welcome either: it moves on by itself. Signed in on the way to My
     // trips, the card takes the spot's full height at once (the list scrolls inside it).
-    var alone = g || (fresh && solo && depth(acctHash()) < 2);
+    var alone = g || (fresh && solo && (!h || h === '#login'));
     a.el.classList.toggle('gate', alone);
     if (!deck._end) setSolo(deck, alone, instant);
     loginButton(true);
-  }
-  function accountScreen() {
-    var s = d.createElement('main'), box = d.createElement('div'), a = account();
-    s.className = 'page page-account';
-    box.className = 'acct-stage';
-    s.appendChild(box);
-    setOn(a.el, true);
-    a.el.classList.remove('gate');
-    box.appendChild(a.el);
-    a.route(acctHash() || '#login', true);
-    return s;
   }
   // The home page's booking card comes back when the page is shown again.
   function resetDeck(p) {
@@ -2436,76 +2865,84 @@ if (top !== self) top.location = location;
     }
   }
 
-  // Opens the card on a view (Log in or Your account unless o.view says otherwise).
+  // The panel on a view (Profile, or Log in, unless o.view says otherwise). On a phone before
+  // signing in, a view that needs an account shows Log in in the home page's spot.
   function openLogin(o) {
     o = o || {};
-    var deck = deckOf(page), h = o.view || '#login';
-    if (loginOpen) return o.fromUrl ? acct.route(h) : goAccount(h);
-    if (deck && !o.fromUrl && h === '#login' && gated()) { // phones: the card is already there, Log in first
+    var deck = deckOf(page), h = o.view || '#login', v = viewOf(h);
+    if (loginOpen) return o.fromUrl ? routeView(h) : goAccount(h);
+    var inDeck = !!deck && gated() && v.auth && !inSheet();
+    if (inDeck && !o.fromUrl && h === '#login') { // phones: the card is already there, Log in first
       syncDeck(true);
       reveal(deck, o.instant);
       return focusCard();
     }
     if (!o.fromUrl && acctHash() !== h) {
       if (o.replace) history.replaceState(Object.assign({}, history.state, { au: null, ac: null }), '', here(h));
-      else pushViews(0, h);
+      else pushViews('', h);
     }
     loginOpen = true;
     loginButton(true);
     closeLangMenus();
-    if (deck) {
+    if (inDeck) {
       mountInDeck(deck, o.instant);
       reveal(deck, o.instant);
-    } else {
-      underY = window.scrollY;
-      slideScreen(screen, accountScreen(), o.instant ? 0 : 1, 0);
-    }
+    } else mountInSheet(o.instant);
     focusCard();
   }
-  // Pushes the history entries for the views from depth `from` down to h. The booking card stays
-  // on its step in all of them.
+  // Pushes the history entries for the views from `from` (a view above h, or none) down to h.
+  // The booking card stays on its step in all of them.
   function pushViews(from, h) {
-    var st = history.state || {}, ac = from ? st.ac : 0, views = ['#login', '#trips', h].slice(0, depth(h));
+    var st = history.state || {}, ac = from ? st.ac : 0, segs = h.split('/');
     history.replaceState(Object.assign({}, st, { y: window.scrollY }), '');
-    for (var i = from; i < views.length; i++) {
+    for (var i = depth(from); i < segs.length; i++) {
       if (ac != null) ac++;
-      history.pushState({ dv: stamp(), y: 0, bk: st.bk, au: true, ac: ac }, '', here(views[i]));
+      history.pushState({ dv: stamp(), y: 0, bk: st.bk, au: i > 0, ac: ac }, '', here(segs.slice(0, i + 1).join('/')));
     }
   }
-  // Another view of the card (a link to #login, #trips or a trip). Opens the card if it is closed.
+  // Shows a view in the panel; a view opened from the card in the home page's spot moves it
+  // into the panel (a phone before signing in keeps Log in there).
+  function routeView(h) {
+    var deck = deckOf(page);
+    if (!inSheet() && !(deck && acct && acct.el.parentNode === deck && gated() && viewOf(h).auth)) return mountInSheet();
+    acct.route(h);
+    syncTabs();
+  }
+  // Another view (a link to #login, #trips, a trip, a Profile step, a legal page...). Opens the
+  // panel if it is closed.
   function goAccount(h) {
     if (!loginOpen) return openLogin({ view: h });
-    var now = acctHash(), dn = depth(now), dh = depth(h), st = history.state || {};
+    var now = acctHash(), st = history.state || {};
     if (h !== now && routing) {
-      if (dh > dn) pushViews(dn, h);
-      else if (dh < dn && st.ac != null) return history.go(dh - dn); // popstate shows it
-      else if (dh === dn - 1 && st.au) return history.back();
-      else history.replaceState(dh === dn ? st : Object.assign({}, st, { au: null, ac: null }), '', here(h));
+      if (!now || under(h, now)) pushViews(now, h);
+      else if (parentOf(now) === h && st.au) return history.back(); // popstate shows it
+      else history.replaceState(Object.assign({}, st, { au: parentOf(h) && parentOf(h) === parentOf(now) ? st.au : null }), '', here(h));
     }
-    acct.route(h);
-    reveal(spot());
+    routeView(h);
+    if (!inSheet()) reveal(spot());
   }
-  // The card's back arrow: up one view (a trip to My trips, My trips to Your account); from Your
-  // account, or Log in, the card closes.
+  // The back arrow: up one view (a trip to My trips, a Profile step to Profile); from a view at
+  // the top, or from Log in, the panel closes.
   function accountBack() {
-    var dn = depth(acctHash()), st = history.state || {};
-    if (dn <= 1 || !getSession()) return closeLogin({ ui: true });
+    var now = acctHash(), up = parentOf(now), st = history.state || {};
+    if (!up || (viewOf(now).auth && !getSession())) return closeLogin({ ui: true });
     if (routing && st.au) return history.back(); // popstate shows the view above
-    goAccount(dn === 3 ? '#trips' : '#login');
+    goAccount(up);
   }
-  // The header button (Log In / Create Account, or My account once signed in) opens the card. From
-  // My trips or a trip it goes back to Your account, and when the card already shows that, it
-  // closes it: Book your trip (or the page it was opened on) slides back. A double click opens it
-  // once; a card scrolled out of sight is brought back instead.
+  // The header button (Log In / Create Account, or the first name once signed in) opens Profile.
+  // From any other view it goes to Profile, and when the panel already shows that, it closes
+  // it. A double click opens it once; a card scrolled out of sight is brought back instead.
   var tapAt = 0;
   function accountButton() {
     var quick = Date.now() - tapAt < 600;
     tapAt = Date.now();
     if (!loginOpen) return openLogin();
     if (quick) return;
-    if (depth(acctHash()) > 1) return goAccount('#login');
-    var r = acct.el.getBoundingClientRect();
-    if (r.bottom < headerH() + 80 || r.top > window.innerHeight - 80) { reveal(spot()); return focusCard(); }
+    if (acctHash() && acctHash() !== '#login') return goAccount('#login');
+    if (!inSheet()) {
+      var r = acct.el.getBoundingClientRect();
+      if (r.bottom < headerH() + 80 || r.top > window.innerHeight - 80) { reveal(spot()); return focusCard(); }
+    }
     closeLogin({ ui: true });
   }
 
@@ -2522,24 +2959,29 @@ if (top !== self) top.location = location;
     }
     loginOpen = false;
     loginButton(false);
-    var a = acct, deck = a && a.el.parentNode && a.el.parentNode.classList.contains('deck') ? a.el.parentNode : null;
-    if (deck) { if (gated()) syncDeck(o.instant); else toBook(deck, o.instant); } // phones stay on the card until signed in
-    else if (screen !== page) slideScreen(screen, page, o.instant ? 0 : -1, underY);
+    var a = acct, deck = deckOf(page);
+    if (a && inSheet()) {
+      closeSheet(o.instant);
+      if (deck && gated()) mountInDeck(deck, true); // a phone before signing in: Log in in the spot again
+      else if (deck && $('.acct-copy', deck)) restoreBook(deck);
+    } else if (a && deck && a.el.parentNode === deck) {
+      if (gated()) syncDeck(o.instant); else toBook(deck, o.instant); // phones stay on the card until signed in
+    }
     if (a) setTimeout(function () { if (!loginOpen) a.el.classList.remove('fresh'); }, 600);
     var bk = curBook();
     if (bk) bk.loginClosed();
   }
 
-  // The URL changed (Back, Forward, a typed #hash): the card follows it.
+  // The URL changed (Back, Forward, a typed #hash): the panel follows it.
   function syncLogin() {
     var h = acctHash();
     if (h && !loginOpen) openLogin({ fromUrl: true, view: h });
     else if (!h && loginOpen) closeLogin();
-    else if (h) acct.route(h);
+    else if (h) routeView(h);
   }
 
   // Signed in from the account card: on the home page, slide back to Book your trip after a
-  // moment (not on the way to My trips). Tapping anything in the card, or leaving the page,
+  // moment (not on the way to another view). Tapping anything in the card, or leaving the page,
   // cancels that.
   var autoClose = 0;
   function cancelAutoClose() { clearTimeout(autoClose); autoClose = 0; }
@@ -2547,12 +2989,65 @@ if (top !== self) top.location = location;
     var s = getSession();
     if (s) fetchName(s);
     cancelAutoClose();
-    if (loginOpen && deckOf(page) && depth(acctHash()) < 2) {
+    if (loginOpen && deckOf(page) && (acctHash() || '#login') === '#login') {
       autoClose = setTimeout(function () {
         autoClose = 0;
         if (loginOpen && getSession() && deckOf(page)) closeLogin({ ui: true, focus: false });
       }, 1600);
     }
+  }
+
+  // ---------------------------------------------------------------- the app's menu
+  //
+  // New trip, My trips and Profile, as in the client app (a floating bar, the open one in gold).
+  // New trip is Book your trip on the home page; the others open the panel. Phones show it once
+  // signed in, like the app (before, Log in is the first screen).
+  var TABS = [
+    ['new', '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M12 7.5v9M7.5 12h9" stroke="#0A1122" stroke-width="2.2" stroke-linecap="round"/></svg>'],
+    ['trips', '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 9.5h17M8 3v3.5M16 3v3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 13h.01M12 13h.01M16 13h.01M8 16.5h.01M12 16.5h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>',
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 5h11a3 3 0 0 1 3 3v1.5h-17V8a3 3 0 0 1 3-3zM3.5 11h17v6.5a3 3 0 0 1-3 3h-11a3 3 0 0 1-3-3z" fill="currentColor"/><path d="M8 3v3.5M16 3v3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17.3h.01M12 17.3h.01" stroke="#0A1122" stroke-width="2.4" stroke-linecap="round"/></svg>'],
+    ['me', '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="10" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6.3 18.6c1.3-2.2 3.3-3.3 5.7-3.3s4.4 1.1 5.7 3.3" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><circle cx="12" cy="10" r="3.4" fill="#0A1122"/><path d="M6 18.8c1.4-2.4 3.5-3.6 6-3.6s4.6 1.2 6 3.6" fill="#0A1122"/></svg>']
+  ];
+  function syncTabs() {
+    if (!tabbar) return;
+    if (tabbar._lang !== T.lang) {
+      tabbar._lang = T.lang;
+      tabbar.setAttribute('aria-label', T.pn_profile);
+      var href = { new: T.home, trips: '#trips', me: '#login' }, label = { new: T.pn_new, trips: T.pn_trips, me: T.pn_profile };
+      tabbar.innerHTML = TABS.map(function (t) {
+        return '<a href="' + esc(href[t[0]]) + '" data-tab="' + t[0] + '"><span class="chip"><i class="o">' + t[1] + '</i><i class="f">' + t[2] + '</i></span>'
+          + '<span>' + esc(label[t[0]]) + '</span></a>';
+      }).join('');
+    }
+    var h = loginOpen && inSheet() ? acctHash() || '#login' : '', on = !h ? 'new' : h.indexOf('#trips') === 0 ? 'trips' : h.indexOf('#login') === 0 ? 'me' : '';
+    $$('a', tabbar).forEach(function (a) {
+      var x = a.dataset.tab === on;
+      a.classList.toggle('on', x);
+      if (x) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+    tabbar.hidden = gated();
+    root.classList.toggle('has-tabs', !tabbar.hidden);
+  }
+  // New trip: Book your trip on the home page (the panel closes); from another page, home.
+  function newTrip() {
+    var deck = deckOf(page);
+    if (!deck) {
+      if (routing) navigate(T.home, { push: true, dir: -1 }); else location.assign(T.home);
+      return;
+    }
+    if (loginOpen && inSheet()) closeLogin({ ui: true, focus: false });
+    reveal(deck);
+  }
+  // A link to Join Transporters or a legal page opens its panel; under Profile or Join
+  // Transporters a legal page is one of their steps, so the back arrow returns there.
+  function panelOf(u) {
+    var m = /^\/(?:(ro|pl|bg|hu|es|fr|de|nl|pt)\/)?(join|terms|privacy|transporter-terms|delete-account)(?:\.html)?$/.exec(u.pathname);
+    if (!m || (m[1] ? '/' + m[1] + '/' : '/') !== T.home) return '';
+    if (m[2] === 'join') return '#join';
+    var top = loginOpen && inSheet() ? (acctHash() || '').split('/')[0] : '';
+    return (top === '#login' || top === '#join' ? top + '/' : '#') + m[2];
   }
 
   // ---------------------------------------------------------------- router
@@ -2629,7 +3124,7 @@ if (top !== self) top.location = location;
 
   // Keeps the page we are leaving (and where it was scrolled to) for Back and Forward.
   function leave() {
-    ys[hIdx] = screen !== page ? underY : window.scrollY;
+    ys[hIdx] = window.scrollY;
     screens[hIdx] = { key: curKey, meta: meta, page: page };
     var keys = Object.keys(screens).map(Number).sort(function (x, y) { return y - x; });
     keys.slice(12).forEach(function (k) { delete screens[k]; });
@@ -2672,26 +3167,19 @@ if (top !== self) top.location = location;
   }
 
   function arrive(next, dir, hash, y) {
-    var from = screen, prev = page;
+    var from = screen, prev = page, open = acctHash(hash);
     loginOpen = false;
+    closeSheet(true); // a panel over the page that leaves goes with it
     loginButton(false);
     applyChrome(next.meta);
     page = next.page;
     curKey = next.key;
-    var to = page;
-    if (acctHash(hash)) { // Back or Forward onto an open account card
-      loginOpen = true;
-      loginButton(true);
-      if (deckOf(page)) mountInDeck(deckOf(page), true);
-      else { underY = y; y = 0; to = accountScreen(); }
-    } else if (hash && !y) {
-      y = function () { var el = anchor(page, hash); return el ? yOf(el) : 0; };
-    }
+    if (!open && hash && !y) y = function () { var el = anchor(page, hash); return el ? yOf(el) : 0; };
     syncDeck(true);
-    slideScreen(from, to, dir, y, function () { if (prev !== page) resetDeck(prev); });
+    slideScreen(from, page, dir, y, function () { if (prev !== page) resetDeck(prev); });
     initPage(page, true);
     renderInvite();
-    if (to !== page) focusCard();
+    if (open) openLogin({ fromUrl: true, instant: true, view: open }); // Back or Forward onto an open panel, or a language picked in Profile
     else focusPage(page, from);
     announce(d.title);
   }
@@ -2711,8 +3199,11 @@ if (top !== self) top.location = location;
       return;
     }
     if (a.hasAttribute('data-login')) { e.preventDefault(); accountButton(); return; }
+    if (a.dataset.tab === 'new') { e.preventDefault(); newTrip(); return; }
     var u = sitePage(a);
     if (!u) { cancelAutoClose(); return; } // leaving for /book or another site: nothing may pull us back
+    var pv = !samePage(u) && routing && panelOf(u);
+    if (pv) { e.preventDefault(); goAccount(pv); return; } // Join Transporters or a legal page: its panel
     if (samePage(u)) { // this page
       if (acctHash(u.hash)) { e.preventDefault(); goAccount(acctHash(u.hash)); return; } // a view of the account card
       if (!u.hash) {
@@ -2789,6 +3280,9 @@ if (top !== self) top.location = location;
     history.replaceState(Object.assign({}, st, { dv: hIdx }), '');
 
     initPage(page, false);
+    tabbar = d.createElement('nav');
+    tabbar.className = 'tabbar';
+    d.body.appendChild(tabbar);
     authChanged(true);
     syncDeck(true);
     refresh().then(function (s) { if (s) fetchName(s); startRef(); });
@@ -2817,7 +3311,7 @@ if (top !== self) top.location = location;
     d.addEventListener('submit', function (e) { if (!e.defaultPrevented) cancelAutoClose(); });
     window.addEventListener('pagehide', function () {
       cancelAutoClose();
-      try { history.replaceState(Object.assign({}, history.state, { y: screen === page ? window.scrollY : underY }), ''); } catch (e) {}
+      try { history.replaceState(Object.assign({}, history.state, { y: window.scrollY }), ''); } catch (e) {}
     });
     window.addEventListener('pageshow', function (e) {
       if (!e.persisted) return;

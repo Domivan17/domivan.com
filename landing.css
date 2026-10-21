@@ -230,7 +230,6 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .acct.is-me .acct-body { align-content: stretch; } /* Your account sits in the middle (its pane centres it); My trips fills it */
 .panes { display: grid; position: relative; }
 .pane { grid-area: 1 / 1; display: grid; gap: 12px; align-content: start; }
-.pane[data-pane="me"] { align-content: center; }
 .sso { display: grid; gap: 10px; }
 .sso-btn { position: relative; display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; height: 50px; padding: 0 52px; border-radius: 14px; font: inherit; font-size: 16.5px; font-weight: 700; letter-spacing: -0.005em; cursor: pointer; transition: background .15s, transform .1s, opacity .15s; }
 .sso-btn svg { position: absolute; left: 18px; top: 50%; width: 22px; height: 22px; margin-top: -11px; }
@@ -268,29 +267,18 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .acct-legal { margin: 0; padding: 12px 26px 18px; color: var(--muted); font-size: 12.5px; line-height: 1.5; text-align: center; }
 .acct-legal a { color: var(--soft); }
 .acct-legal a:hover { color: #fff; }
-.me { display: grid; justify-items: center; text-align: center; gap: 4px; }
-.me-ava { position: relative; margin-bottom: 10px; }
+.me-ava { position: relative; }
 .ava.big { width: 76px; height: 76px; border-radius: 26px; background: linear-gradient(var(--primary), var(--primary-dark)); color: #fff; display: grid; place-items: center; font-size: 32px; font-weight: 800; box-shadow: 0 14px 32px -10px rgba(0, 100, 210, .8); }
 .me-ava .ok { position: absolute; right: -6px; bottom: -6px; width: 28px; height: 28px; border-radius: 50%; background: #12A150; border: 3px solid #0F1A33; display: none; place-items: center; }
 .me-ava .ok::after { content: "✓"; color: #fff; font-size: 13px; font-weight: 800; font-style: normal; }
 .acct.fresh .me-ava .ok { display: grid; animation: pop .45s cubic-bezier(.3, 1.6, .5, 1); }
-.me-hi { display: none; margin: 0 0 4px; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: #fff; }
+.me-hi { display: none; margin: 0; font-size: 15px; font-weight: 800; color: #9BE3B5; }
 .acct.fresh .me-hi { display: block; }
-.me-who { margin: 0 0 14px; display: grid; gap: 2px; }
-.me-who small { margin: 0; color: var(--muted); font-weight: 600; font-size: 13px; }
-.acct.fresh .me-who small { display: none; }
-.me-name { font-size: 19px; color: #fff; overflow-wrap: anywhere; }
+.me-name { font-size: 20px; font-weight: 800; color: #fff; overflow-wrap: anywhere; }
 .me-mail { color: var(--soft); font-size: 14.5px; overflow-wrap: anywhere; }
-.me .btn { width: 100%; }
-.me .out { margin-top: 8px; color: var(--muted); }
-.me .out:hover { color: #fff; }
 .btn.ghost { background: transparent; border: 1.5px solid rgba(255, 255, 255, .2); color: #fff; font: inherit; font-weight: 700; font-size: 16px; padding: 12px 20px; border-radius: 16px; cursor: pointer; margin-top: 6px; }
 .btn.ghost:hover { background: rgba(255, 255, 255, .08); }
 @keyframes pop { from { transform: scale(.3); opacity: 0; } }
-/* The account card on pages without a booking card: its own screen, centred. */
-.acct-stage { min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px); display: grid; place-items: center; padding: 40px 16px 64px; }
-.acct-stage .acct { width: 100%; max-width: 460px; }
-.acct-stage .acct.is-list { min-height: min(700px, calc(100vh - 130px)); min-height: min(700px, calc(100dvh - 130px)); }
 
 /* My trips and one trip (site.js): views of the account card once signed in. They scroll inside
    the card, which keeps the size of the spot it shares with Book your trip (the panes are taken
@@ -361,6 +349,123 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .btn.ghost.danger { background: transparent; border: 1.5px solid rgba(255, 155, 138, .45); color: #FFB4A8 !important; }
 .btn.ghost.danger:hover { background: rgba(255, 120, 100, .1); }
 .tv .btn.ghost, .tv .btn.danger { padding: 12px 14px; }
+
+/* The panel (site.js): the account card in a frame over the page, like a screen of the client
+   app. Computers: on the right, between the header and the app's menu, the page dimmed behind
+   it. Phones: the whole screen under the header, the menu floating over its bottom. Nearly
+   solid, so it stands out from the map (the app's night-map cards). */
+.scrim { position: fixed; top: 64px; left: 0; right: 0; bottom: 0; z-index: 17; background: rgba(5, 11, 24, .55); }
+.sheet { position: fixed; z-index: 18; top: 80px; right: 16px; bottom: 100px; width: min(440px, calc(100% - 32px)); display: flex; }
+.sheet[hidden], .scrim[hidden], .tabbar[hidden] { display: none; }
+.sheet > .acct { flex: 1; min-width: 0; min-height: 0; background: rgba(20, 31, 58, .94); border-color: rgba(255, 255, 255, .2); border-radius: 28px 10px 28px 10px; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: 0 40px 90px -30px rgba(0, 0, 0, .85); }
+.sheet .acct .card-head .logo { display: none; }
+.sheet .acct h2 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet .acct h2:focus { outline: none; }
+.sheet .acct .back-btn { display: none; }
+.sheet .acct.has-up .back-btn { display: grid; }
+.sheet .acct-body { min-height: 0; overflow-y: auto; }
+.sheet .acct.is-me .acct-body { overflow: visible; grid-template-rows: minmax(0, 1fr); }
+.x-btn { display: none; width: 38px; height: 38px; margin: -4px -6px -4px auto; border-radius: 12px; border: 0; background: rgba(255, 255, 255, .08); color: var(--soft); place-items: center; cursor: pointer; flex: none; transition: background .15s, color .15s; }
+.x-btn:hover { background: rgba(255, 255, 255, .14); color: #fff; }
+.x-btn:focus-visible { outline: 2px solid var(--sky); }
+.x-btn svg { width: 20px; height: 20px; }
+.sheet .x-btn { display: grid; }
+.acct .pane.tv { overscroll-behavior: contain; }
+@media (max-width: 860px) {
+  .scrim { display: none; }
+  .sheet { top: 64px; left: 0; right: 0; bottom: 0; width: auto; }
+  .sheet > .acct { border-radius: 0; border-width: 1px 0 0; box-shadow: none; }
+  .sheet .acct .pane.tv { padding-bottom: 104px; } /* clear of the menu */
+  .panel-over #stage { visibility: hidden; } /* the night map shows behind the panel, as in the app */
+}
+
+/* The client app's menu: New trip, My trips, Profile in a floating bar, the open one in gold
+   in a leaf-shaped chip (src/app/(tabs)/_layout.tsx). */
+.tabbar { position: fixed; z-index: 21; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(400px, calc(100% - 32px)); height: 68px; display: flex; align-items: center; padding: 0 8px; border-radius: 34px; background: rgba(10, 17, 34, .94); border: 1px solid rgba(255, 255, 255, .2); box-shadow: 0 10px 20px rgba(0, 0, 0, .3); }
+.tabbar a { flex: 1; display: grid; justify-items: center; gap: 2px; color: #7C8BA3; font-size: 11.5px; font-weight: 700; text-decoration: none; }
+.tabbar .chip { width: 44px; height: 30px; display: grid; place-items: center; border-radius: 14px 6px 14px 6px; transition: background .2s; }
+.tabbar i { font-style: normal; }
+.tabbar svg { display: block; width: 22px; height: 22px; }
+.tabbar .f, .tabbar a.on .o { display: none; }
+.tabbar a.on .f { display: block; }
+.tabbar a:hover { color: var(--soft); }
+.tabbar a.on { color: #FFE2A8; }
+.tabbar a.on .chip { background: rgba(255, 255, 255, .1); }
+.tabbar a:focus-visible { outline: none; }
+.tabbar a:focus-visible .chip { box-shadow: 0 0 0 2px var(--sky); }
+.has-tabs #stage { padding-bottom: 92px; }
+@media (max-width: 860px) { body:has(.sheet input:focus, .sheet textarea:focus, #page input:focus, #page textarea:focus) .tabbar { display: none; } } /* the keyboard is up */
+
+/* Profile (signed in), as in the app: who you are, three tiles, then menus of rows. */
+.pf-head { display: flex; align-items: center; gap: 14px; }
+.pf-head .ava.big { width: 64px; height: 64px; border-radius: 23px 9px 23px 9px; font-size: 26px; }
+.pf-who { display: grid; gap: 4px; min-width: 0; }
+.pf-who .me-mail { justify-self: start; max-width: 100%; padding: 4px 10px; border-radius: 10px; background: rgba(255, 255, 255, .1); color: var(--text); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-who .me-mail:empty { display: none; }
+.pf-more { display: grid; gap: 14px; }
+.pf-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.pf-tile { display: grid; justify-items: center; gap: 6px; padding: 16px 4px; border-radius: 22px 8px 22px 8px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .14); color: #fff; font-size: 14px; font-weight: 600; text-align: center; text-decoration: none; transition: background .15s; }
+.pf-tile:hover { background: rgba(255, 255, 255, .1); }
+.pf-tile:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
+.pf-tile svg { width: 24px; height: 24px; }
+.pf-tile span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-sec { margin: 6px 0 -6px 2px; font-size: 17px; font-weight: 800; color: #fff; letter-spacing: -0.01em; }
+.mlist { display: grid; grid-template-columns: minmax(0, 1fr); border-radius: 24px 8px 24px 8px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .14); overflow: hidden; }
+.mi { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 10px 14px; border: 0; background: none; color: #fff; font: inherit; font-size: 16px; text-align: left; text-decoration: none; cursor: pointer; transition: background .15s; }
+.mi:hover { background: rgba(255, 255, 255, .06); }
+.mi:focus-visible { outline: 2px solid var(--sky); outline-offset: -2px; }
+.mi + .mi::before { content: ""; position: absolute; left: 62px; right: 0; top: 0; border-top: 1px solid rgba(255, 255, 255, .08); }
+.mi[hidden] { display: none; }
+.mi-ic { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 13px 5px 13px 5px; background: rgba(43, 139, 242, .2); color: #6FB0F8; }
+.mi-ic svg { width: 19px; height: 19px; }
+.mi-ic.flagbox { background: none; }
+.mi-ic .flag { width: 26px; height: 18px; }
+.mi-t { flex: 1 1 auto; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mi-v { flex: 0 1 auto; max-width: 52%; display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--muted); font-size: 14.5px; white-space: nowrap; overflow: hidden; }
+.mi-v > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mi-v:empty { display: none; }
+.mi-v svg { width: 20px; height: 20px; color: var(--sky-text); }
+.mi-go { width: 16px; height: 16px; flex: none; color: var(--faint); }
+.mi-go svg { display: block; width: 100%; height: 100%; }
+.mi.red { color: #FF6B6F; }
+.mi.red .mi-ic { background: rgba(255, 107, 111, .16); color: #FF6B6F; }
+.mi.on { background: var(--sky-soft); }
+/* Profile's steps: a form, the invoices, the invite code, the question before deleting. */
+.pn-form { display: grid; gap: 12px; }
+.pn-form[hidden] { display: none; }
+.pn-form input:disabled { opacity: .6; }
+.pn-form .pf-sec { margin: 8px 0 -4px 2px; }
+.pn-note { margin: 0; color: var(--soft); font-size: 14.5px; line-height: 1.45; text-wrap: pretty; }
+.pn-note a { color: var(--sky); }
+.card .pn-code { text-transform: uppercase; letter-spacing: .2em; font-weight: 700; }
+.t-file small { display: block; margin: 0; color: var(--muted); font-size: 13px; font-weight: 600; }
+.pn-del { display: grid; justify-items: center; gap: 8px; padding-top: 6px; text-align: center; }
+.pn-del h3 { margin: 4px 0 0; font-size: 20px; }
+.pn-del p { margin: 0; color: var(--soft); font-size: 15px; line-height: 1.5; text-wrap: pretty; }
+.pn-del .tempty-ic { color: #FF9B8A; background: rgba(255, 107, 111, .14); border-color: rgba(255, 107, 111, .3); }
+.tv .t-two .btn { width: auto; margin: 0; display: grid; place-items: center; text-align: center; }
+/* Help: the home page's questions. */
+.pn-faq { display: grid; gap: 8px; }
+.pn-faq details { padding: 12px 14px; border-radius: 16px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .1); }
+.pn-faq summary { cursor: pointer; font-weight: 700; color: #fff; line-height: 1.4; }
+.pn-faq details p { margin: 8px 0 0; color: var(--soft); font-size: 15px; line-height: 1.5; }
+/* A legal page or Join Transporters in the panel: their own pages' content, without its frame. */
+.acct .pane[data-pane="doc"] .legal { padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; overflow: visible; font-size: 15.5px; }
+.acct .pane[data-pane="doc"] .legal h1 { display: none; }
+.acct .pane[data-pane="doc"] .legal h2 { font-size: 19px; margin-top: 28px; }
+.acct .pane[data-pane="join"] .join-inner { max-width: none; text-align: left; }
+.acct .pane[data-pane="join"] .eyebrow { display: none; }
+.acct .pane[data-pane="join"] .join-time { margin: 0 0 12px; text-align: center; }
+.acct .pane[data-pane="join"] .frame { padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; overflow: visible; }
+.acct .pane[data-pane="join"] .q h1 { font-size: 24px; }
+.acct .pane.tv > * { min-width: 0; } /* a wide child (the Join form's grid) never pushes the panel wider */
+.acct .pane[data-pane="join"] .opts.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.acct .pane[data-pane="join"] .opts.grid .opt { padding: 13px 12px; gap: 10px; }
+.acct .pane[data-pane="join"] .opts.grid .opt b { font-size: 15px; overflow-wrap: anywhere; }
+.acct .pane[data-pane="join"] .opts.grid .tick { display: none; }
+/* The welcome on a phone in the home page's spot (before Book your trip comes): the head alone. */
+.deck .acct .pane.tv[data-pane="me"] { position: static; padding: 6px 0 18px; overflow: visible; -webkit-mask-image: none; mask-image: none; align-content: center; }
+.deck .acct .pf-more { display: none; }
 
 /* Sections below the hero: dark glass panels over the map. */
 .steps, .vans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
@@ -537,6 +642,21 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
   .inv-opts { grid-template-columns: 1fr; }
 }
 
+/* How DomiVan Driver works (four tiles) and the Driver app's store buttons, navy with the amber
+   dot like its icon ("coming soon" until the store pages are public). */
+.drv-how-h { margin: 36px 0 14px; font-size: 22px; color: #fff; }
+.drv-how { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.dtile { padding: 16px 18px; border-radius: 22px 8px 22px 8px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .12); }
+.dtile b { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; color: #fff; font-size: 17px; }
+.dtile b i { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: 9px 4px 9px 4px; background: var(--amber-soft); color: var(--amber-text); font-style: normal; font-size: 14px; }
+.dtile p { margin: 0; color: #CBD5E1; font-size: 15px; line-height: 1.5; }
+@media (max-width: 640px) { .drv-how { grid-template-columns: minmax(0, 1fr); } }
+.dstores { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+.dstore { display: inline-flex; align-items: center; gap: 10px; padding: 7px 16px 7px 8px; border-radius: 14px; background: linear-gradient(var(--navy), var(--navy-dark)); border: 1px solid rgba(255, 226, 168, .35); color: #fff; font-weight: 700; font-size: 17px; line-height: 1.1; text-decoration: none; }
+.dstores .dstore small { display: block; margin: 0 0 1px; color: #FFE2A8; font-size: 11px; font-weight: 600; }
+.dmark { width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: 10px; background: linear-gradient(var(--navy), var(--navy-dark)); box-shadow: 0 0 0 1px #ffffff33; color: #fff; --arrow: var(--amber); }
+.dmark svg { width: 64%; height: 64%; }
+.q .dstores { margin: 18px 0 4px; }
 /* Join Transporters: one question per frame over the night map */
 .join { min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px); padding: 48px 16px 56px; display: grid; place-items: start center; }
 .join-inner { position: relative; z-index: 1; width: 100%; max-width: 560px; text-align: center; }
@@ -636,7 +756,6 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
   .acct .pane.tv { left: -18px; right: -18px; padding-left: 18px; padding-right: 18px; }
   .sso-btn { font-size: 16px; padding: 0 46px; }
   .sso-btn svg { left: 16px; }
-  .acct-stage { padding: 20px 20px 40px; place-items: start center; }
   .book .total { display: none; } /* the chosen van and Pay show the price; the price step stays within the card */
 }
 
@@ -665,5 +784,5 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
   .backdrop .scan { display: none; }
   .q, .progress span, .kinds::before { transition: none; }
   .acct.fresh .me-ava .ok, .book[data-stage="done"] .tick { animation: none; }
-  .book .back-btn { transition: none; }
+  .book .back-btn, .tabbar .chip { transition: none; }
 }

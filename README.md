@@ -66,33 +66,55 @@ account card in (`dvNet.relayout()`), when something on the page changes size, o
 as the page scrolls over the fixed map. No glow or outline is drawn along coastlines or borders.
 Tuning knobs (camera, speeds, colours) are listed at the top of each section of the script.
 
-## Sliding pages
+## The app's menu and the panels
 
-Every page shares one header and the fixed night map. `site.js` catches clicks on links to
-other domivan.com pages, fetches the page and slides it in from the right (Back slides the
-other way), so the header and the background (and its animation) never reload. It keeps the address bar, title,
-language and Back/Forward working, and falls back to a normal page load if anything fails
-(and for `/book`, which is the app). With reduced motion turned on, pages crossfade instead.
+The site works like the DomiVan client app: its menu floats at the bottom (New trip, My trips,
+Profile, the open one in gold), and everything else slides in as a panel over the page, which
+stays where it is. On computers the panel is a frame on the right, between the header and the
+menu, with the page dimmed behind it; on phones it fills the screen under the header and the
+night map shows behind it, as in the app. Steps inside a panel slide sideways; the back arrow,
+Back and Forward walk them; the cross, Escape, a click beside the panel or Back from its first
+view close it. With reduced motion turned on, panels and steps fade instead.
+
+| Address | Panel | Opened by |
+| --- | --- | --- |
+| `#login` | Log in / Create account, or Profile once signed in | Profile in the menu, the header button |
+| `#login/details`, `/invoices`, `/invite`, `/language`, `/help`, `/delete` | Profile's steps | Profile |
+| `#login/terms`, `#login/privacy` | a legal page under Profile | Profile |
+| `#trips`, `#trips/<id>` | My trips, one trip | My trips in the menu, Profile |
+| `#join` | Join Transporters (the form of `/join`) | the Transporters buttons |
+| `#terms`, `#transporter-terms`, `#privacy`, `#delete-account` | a legal page | the footer links |
+
+New trip is Book your trip on the home page (from another page it goes home). Join Transporters
+and the legal pages stay real pages too (`/join`, `/terms`, ... in every language), for links,
+search engines, the apps and the stores: opened directly they show as before; clicked on the site
+they open as panels, with their own page's content (fetched once, in the page's language). Help
+shows the home page's questions. Profile › Language opens the same page in another language,
+back on Profile.
+
+Pages: every page shares one header and the fixed night map. A language link fetches the page in
+that language and slides it in (Back slides the other way), so the header and the background
+(and its animation) never reload; it keeps the address bar, title, language and Back/Forward
+working, and falls back to a normal page load if anything fails (and for `/book`, which is the app).
 
 ## Log in / Create account
 
-The header button opens the account card in place (address `#login`): on the home page it
-slides in where the Book your trip card is, on other pages it opens in the middle of the
-screen. Google and Apple come first, then email with a one-time code. It talks to the same
+Profile (and the header button) opens the account card in the panel (address `#login`). Google
+and Apple come first, then email with a one-time code. It talks to the same
 Supabase project as the app (`/auth/v1`, publishable key in `site.js`) and stores the session
 the way supabase-js does, so `/book` sees the same sign-in.
 
 On phones (the one-column layout, up to 860 px wide) the home page opens like the app: below the
 header there is only the "Western Europe ⇄ Eastern Europe" label, then the account card on Log in
-(no back arrow), then the App Store and Google Play badges. The headline and the lead are hidden
-there (the headline stays for screen readers). Once signed in, the card slides on to Book your
-trip, and that is what a signed-in visitor sees first; logging out brings the account card back.
-Computers and tablets in the two-column layout keep Book your trip first. The Transporters buttons
-(header, and Join Transporters on the home page) take iPhones and iPads to the DomiVan Driver app
-in the App Store and Android phones to it on Google Play (`DRIVER_APP` in `site.js`), also a big
-phone turned sideways; computers, tablets in landscape and other phones keep the Join Transporters
-form. The links themselves stay `/join`. Until both store listings are public, set
-`DRIVER_APP.live` to `false` and every button keeps the form.
+(no back arrow), then the App Store and Google Play badges, and no menu yet (the app's first
+screen has none either). The headline and the lead are hidden there (the headline stays for
+screen readers). Once signed in, the card slides on to Book your trip and the menu comes; logging
+out brings the account card back. A panel opened meanwhile (Join Transporters, a legal page)
+borrows the card and gives it back when it closes. Computers and tablets in the two-column layout
+keep Book your trip first, with the menu. With `DRIVER_APP.live` (`site.js`) on, the Transporters
+buttons take iPhones and iPads to the DomiVan Driver app in the App Store and Android phones to it
+on Google Play; it is off until both store pages are public (on 2026-10-21 both answered 404), so
+every button opens Join Transporters.
 
 Supabase setup it needs (Authentication in the dashboard):
 
@@ -107,14 +129,24 @@ Supabase setup it needs (Authentication in the dashboard):
   name and email of that account, and list Google and Apple as sign-in providers (the lawyer's
   wording; the policy now only mentions one-time codes).
 
-## My account and My trips
+## Profile and My trips
 
-Signed in, the account card is the account, and nothing leaves the page: Your account (`#login`),
-My trips (`#trips`) and one trip (`#trips/<id>`) slide inside it, on the home page in place of
-Book your trip and elsewhere in the middle of the screen. The header button (My account) opens the
-card, and closes it again when it already shows Your account (from My trips it goes back to Your
-account). Back, Forward and the card's back arrow walk the same steps; a link to `#trips` opened
-signed out shows Log in first and then My trips.
+Signed in, the panel is the account, like the app's Profile: the name and email, tiles for My
+trips, Invoices and Help, then Account (Personal details; Invite code during the 7 days after
+signing up, before the first booking, `referral_window()`), Website (Language, Terms, Privacy),
+Log out and Delete account. Most of its words are the client app's own (`APP_TEXTS` in
+`scripts/panel_strings.py`, read from `src/i18n/<lang>.json`). The header button opens Profile, and
+closes it again when it already shows Profile. A link to `#trips` opened signed out shows Log in
+first and then My trips.
+
+- Personal details: name, phone and the invoice details (company, VAT number, billing address),
+  saved to the visitor's own `profiles` row (the columns the app may change too).
+- Invoices: every invoice and credit note of the account, newest first (a PDF in a new tab, as in
+  a trip).
+- Invite code: `apply_referral_code`, as an invite link does.
+- Delete account: the app's question, then `delete-account`, which waits while a trip, payout,
+  refund or invoice is still to come and says which (the apps' words); after it, this browser is
+  signed out.
 
 - My trips: upcoming trips (soonest first), then past ones, each with its status, route, pickup
   time and price. Trips whose payment never went through are left out, except the one just booked.
@@ -140,8 +172,8 @@ card keeps its size). Back and the card's back arrow go one step back.
   room for the passengers is greyed out), a note for the transporter and Pay. The prices come
   from a copy of `supabase/functions/_shared/pricing.ts` in `site.js` (`RATES`, `VAN`): change
   both together. The server prices the order again (`create-order`), and that is what is paid.
-- Signed out, Pay reads "Log in to pay": the account card slides over Book your trip, and once
-  signed in the card slides back already on the payment step. Google and Apple leave the page,
+- Signed out, Pay reads "Log in to pay": the panel opens on Log in, and once signed in it closes
+  with Book your trip already on the payment step. Google and Apple leave the page,
   so the trip waits in `sessionStorage` (`domivan-trip`) and comes back with the visitor.
 - Payment: `create-order` (as the signed-in visitor) creates the order and its PaymentIntent,
   then Stripe's Payment Element opens in the card (Stripe.js from js.stripe.com, test key in
@@ -170,7 +202,17 @@ changes, then publish this folder as usual.
 ## Join Transporters (`/join`)
 
 https://domivan.com/join is the transporter sign-up: one question per frame (country, company
-details, licence, fleet, van classes, routes, insurance, contact). Copy is in
+details, licence, fleet, van classes, routes, insurance, contact). On the site it opens as a panel
+(`#join`). "Where do you drive to?" offers 16 countries (`JOIN_DESTINATIONS` in `build-site.py`):
+Germany, the Netherlands, Belgium, France, the UK, Spain, Italy and Switzerland, and since
+2026-10-21 Austria, Czechia, Denmark, Sweden, Ireland, Portugal, Luxembourg and Greece. The
+database takes the same list (`20261022160000_join_destinations.sql`): go live with that migration
+before the pages, or an application naming a new country is refused. Once sent, the form shows the
+DomiVan Driver app's store buttons ("coming soon" until `DRIVER_APP.live`).
+
+The home page's Drive with DomiVan section has "How DomiVan Driver works" (Offers, Bundle runs,
+Payouts, VIT partners; `scripts/driver_strings.py`, never the platform fee) and the same store
+buttons. Copy is in
 `scripts/join_strings.py`, layout in `scripts/join-template.html` (built by `build-site.py`),
 logic in `site.js`. Applications go to the Supabase table `transporter_applications`
 (migration `20261017050000_transporter_applications.sql`): anyone can insert, nobody can read
