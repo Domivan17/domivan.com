@@ -35,6 +35,8 @@
  * Hand-written, no build step. Strings come from each page (#dv-t, built by
  * scripts/build-site.py from scripts/account_strings.py, book_strings.py and trips_strings.py).
  */
+// Never inside another site's frame (clickjacking): GitHub Pages can't send frame-ancestors.
+if (top !== self) top.location = location;
 (function () {
   'use strict';
 
@@ -1489,8 +1491,7 @@
       access_token: s.access_token, token_type: s.token_type || 'bearer', expires_in: expiresIn,
       expires_at: s.expires_at || Math.round(Date.now() / 1000) + expiresIn, refresh_token: s.refresh_token, user: s.user || null
     };
-    if (s.provider_token) keep.provider_token = s.provider_token;
-    if (s.provider_refresh_token) keep.provider_refresh_token = s.provider_refresh_token;
+    // Google's and Apple's own tokens (provider_token) are not kept: the site never uses them.
     store.set(STORE, JSON.stringify(keep));
     authChanged();
     return keep;
@@ -1527,6 +1528,7 @@
   function logout() {
     var s = getSession();
     clearSession();
+    store.del(DRAFT); // a Join form started on this computer goes with the person
     if (!s) return;
     var stale = s.refresh_token && (!s.expires_at || s.expires_at - Date.now() / 1000 < 60);
     (stale ? renew(s).then(function (n) { return n.access_token; }) : Promise.resolve(s.access_token))
