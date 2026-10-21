@@ -223,30 +223,59 @@
       return new Intl.NumberFormat(locale(lang), { style: 'currency', currency: 'EUR', currencyDisplay: 'narrowSymbol', minimumFractionDigits: f, maximumFractionDigits: f }).format(cents / 100);
     } catch (e) { return '€' + (cents / 100).toFixed(f); }
   }
-  function dateText(t, lang) {
+
+  // Times. A pickup is entered and shown on the pickup's own clock, as in the apps
+  // (src/lib/format.ts): 08:00 in Bucharest is 08:00 in Bucharest, also for a visitor in Berlin,
+  // with " (GMT+3)" after it when the visitor's clock differs then. The zones and their clocks
+  // are the apps' own: site/zones.js (window.DvZones), built from
+  // supabase/functions/_shared/zones.ts by scripts/make-site-zones.mjs and loaded before this
+  // script. Other moments (until when a problem can be reported, when a cancellation gets
+  // dearer) are on the visitor's own clock. Only clockText writes a moment down
+  // (scripts/check-time-zones.mjs).
+  var Z = window.DvZones || null; // missing only if zones.js didn't load: pickups then go by the visitor's clock
+  var DATE_TIME = { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' };
+  var TIME = { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' };
+  // A moment in the page's language, on a zone's clock or (zone null) on the visitor's own.
+  function clockText(t, zone, parts, lang) {
+    if (zone && Z) return Z.wallText(Z.wallAt(zone, t), parts, locale(lang));
     try {
-      return new Intl.DateTimeFormat(locale(lang), { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(t);
-    } catch (e) { return t.toLocaleString(); }
+      return new Intl.DateTimeFormat(locale(lang), Object.assign({}, parts, { timeZone: undefined })).format(t);
+    } catch (e) { return t.toISOString().slice(0, 16).replace('T', ' ') + ' UTC'; }
   }
-  // A Book-ahead pickup is a 2-hour window from the time chosen (as in the apps:
-  // PICKUP_WINDOW_HOURS in src/lib/format.ts). "Mon 2 Nov, 07:30–09:30".
+  function dateText(t, lang) { return clockText(t, null, DATE_TIME, lang); }
+  // A pickup's zone: a place's (from the address search), or the one a trip keeps (my_trips()).
+  function placeZone(p) { return Z && p ? Z.tripZone(p.country, p.lat, p.lng) : null; }
+  function tripZoneOf(o) { return Z ? o.pickup_tz || Z.tripZone(o.pickup_country) : null; }
+  // A pickup on its own clock, "Mon 2 Nov, 07:30", and a Book-ahead pickup's 2-hour window from
+  // the time chosen (as in the apps: PICKUP_WINDOW_HOURS in src/lib/format.ts),
+  // "Mon 2 Nov, 07:30–09:30"; " (GMT+3)" after it when the visitor's clock differs.
   var WINDOW_MS = 2 * 3600e3;
-  function windowText(from, until, lang) {
-    try {
-      return dateText(from, lang) + '–' + new Intl.DateTimeFormat(locale(lang), { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(until);
-    } catch (e) { return dateText(from, lang); }
+  function pickupText(from, until, zone, lang) {
+    return clockText(from, zone, DATE_TIME, lang) + (until ? '–' + clockText(until, zone, TIME, lang) : '')
+      + (zone && Z ? Z.zoneNote(from, zone) : '');
   }
   function countryName(cc, lang) {
     try { return new Intl.DisplayNames([locale(lang)], { type: 'region' }).of(cc) || cc; } catch (e) { return cc; }
   }
   function pad2(n) { return String(n).padStart(2, '0'); }
-  // The value of a datetime-local field, and back. Both in the visitor's own time.
-  function localDT(t) { return t.getFullYear() + '-' + pad2(t.getMonth() + 1) + '-' + pad2(t.getDate()) + 'T' + pad2(t.getHours()) + ':' + pad2(t.getMinutes()); }
+  // The value of a datetime-local field: a clock reading, on no clock in particular
+  // ({ year, month, day, hour, minute }, as zones.js), and back.
+  function wallDT(x) { return x.year + '-' + pad2(x.month) + '-' + pad2(x.day) + 'T' + pad2(x.hour) + ':' + pad2(x.minute); }
   function parseDT(v) {
     var m = /^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d)/.exec(v || '');
     if (!m) return null;
-    var t = new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5]);
-    return isNaN(t.getTime()) ? null : t;
+    var x = { year: +m[1], month: +m[2], day: +m[3], hour: +m[4], minute: +m[5] };
+    var t = new Date(Date.UTC(x.year, x.month - 1, x.day, x.hour, x.minute));
+    return t.getUTCMonth() === x.month - 1 && t.getUTCDate() === x.day && t.getUTCHours() === x.hour ? x : null;
+  }
+  // The moment a reading stands for on the pickup's clock (the visitor's without a zone).
+  function wallMoment(x, zone) {
+    return zone && Z ? Z.wallToDate(zone, x) : new Date(x.year, x.month - 1, x.day, x.hour, x.minute);
+  }
+  // What a zone's clocks (the visitor's without one) show at a moment.
+  function wallOf(t, zone) {
+    return zone && Z ? Z.wallAt(zone, t)
+      : { year: t.getFullYear(), month: t.getMonth() + 1, day: t.getDate(), hour: t.getHours(), minute: t.getMinutes() };
   }
 
   // ---------------------------------------------------------------- address search
@@ -403,7 +432,8 @@
 
   // ---------------------------------------------------------------- payments (Stripe)
 
-  var STRIPE_PK = 'pk_test_51UR6TkFGe72W5Sn03sZiyUxy2RrnSKKlK570gs7cXFLr0qkjfHJTSiKBUJNKft1VlOMPLOh7NpOJWa2RQgaHSrL900EXEru4Se'; // public key, same as the apps (test mode, the "DomiVan" sandbox)
+  // Stripe's public key, the apps' one: scripts/build-site.py writes it here from src/lib/stripe-key.json.
+  var STRIPE_PK = 'pk_test_51USkYXBQ58pih65E3U9JgtzJPXb0VOpqTMhlb4Ui5ajjJ2pDU8pntJlb97HAkHWuK2CFEeDrvK5rUZoWll2Dam1G00RNAqvZsm';
   // Stripe's Payment Element in the card's colours: dark fields, the site's blue.
   var APPEARANCE = {
     theme: 'night',
@@ -422,6 +452,16 @@
       '.Tab--selected': { border: '1.5px solid #8CBDF5', backgroundColor: '#1E2A4A' }
     }
   };
+  // The browser's country (pl-PL: PL), or undefined. create-order adds the local payment methods
+  // of that country (Bancontact in Belgium, Bizum in Spain...) to those of the trip's countries.
+  function browserCountry() {
+    var langs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || '']);
+    for (var i = 0; i < langs.length; i++) {
+      var m = /^[a-z]{2,3}-([a-z]{2})/i.exec(langs[i] || '');
+      if (m) return m[1].toUpperCase();
+    }
+    return undefined;
+  }
   // Stripe.js has to come from js.stripe.com. Fetched once, when a price is first shown.
   var stripeReq = null;
   function loadStripe() {
@@ -470,6 +510,9 @@
         var e = new Error(j.error || 'HTTP ' + r.status);
         e.status = r.status;
         e.code = j.code;
+        e.params = j.params;
+        // create-order's booking_exists names the trip already booked (in params, or on its own).
+        e.orderId = (j.params && j.params.orderId) || j.orderId || null;
         throw e;
       });
     });
@@ -569,12 +612,27 @@
     }
 
     // ---- step 1: the trip
-    var when = el.when, t0 = new Date(Date.now() + 864e5);
-    t0.setHours(8, 0, 0, 0);
-    when.value = localDT(t0);
-    when.min = localDT(new Date());
-    var sync = function () { card.classList.toggle('is-live', el.kind.value === 'live'); };
+    // The pickup time is a reading on the pickup's clock (08:00 tomorrow to start with).
+    var when = el.when, t0 = wallOf(new Date(Date.now() + 864e5), null);
+    when.value = wallDT({ year: t0.year, month: t0.month, day: t0.day, hour: 8, minute: 0 });
+    when.min = wallDT(wallOf(new Date(), null));
+    // Under it, once the pickup is known and the visitor's clock differs then: whose clock it
+    // is ("Local time in Romania (GMT+3)."), as in the app.
+    var zoneNote = d.createElement('p');
+    zoneNote.className = 'bags-note zone-note';
+    zoneNote.hidden = true;
+    when.parentNode.parentNode.insertBefore(zoneNote, when.parentNode.nextSibling);
+    function clockNote() {
+      var p = el.from._place, zone = placeZone(p), x = parseDT(when.value), at = zone && x ? wallMoment(x, zone) : null;
+      var gmt = at ? Z.zoneOffset(zone, at) : 0, show = !!at && el.kind.value !== 'live' && gmt !== -at.getTimezoneOffset();
+      zoneNote.hidden = !show;
+      zoneNote.textContent = show ? fill(L.zone_note, { country: countryName(p.country, L.lang), gmt: Z.gmtLabel(gmt) }) : '';
+      if (zone) when.min = wallDT(wallOf(new Date(), zone)); // the pickup's today
+    }
+    var sync = function () { card.classList.toggle('is-live', el.kind.value === 'live'); clockNote(); };
     f.addEventListener('change', sync);
+    f.addEventListener('input', clockNote);
+    f.addEventListener('dv-pick', clockNote);
     sync();
     // Every change to the trip: the price shown is no longer for this form.
     function edited() { dirty = true; ed++; }
@@ -585,6 +643,7 @@
       a.value = b.value; b.value = v;
       a._place = b._place; b._place = p;
       edited();
+      clockNote();
       msg(f, '');
     });
     $$('[data-step]', f).forEach(function (b) {
@@ -601,13 +660,13 @@
     f.addEventListener('submit', function (e) { e.preventDefault(); getPrice(); });
 
     function getPrice() {
-      if (busy) return;
-      var a = el.from.value.trim(), b = el.to.value.trim(), kind = el.kind.value === 'live' ? 'live' : 'booking', at = null;
+      if (busy || paying) return;
+      var a = el.from.value.trim(), b = el.to.value.trim(), kind = el.kind.value === 'live' ? 'live' : 'booking', wall = null;
       if (!a) return msg(f, L.err_from, el.from);
       if (!b) return msg(f, L.err_to, el.to);
       if (kind === 'booking') {
-        at = parseDT(when.value);
-        if (!at || at.getTime() < Date.now() + 2 * 3600e3) return msg(f, L.err_when, when);
+        wall = parseDT(when.value);
+        if (!wall) return msg(f, L.err_when, when);
       }
       var pax = +el.pax.value, bags = +(el.bags.value || 0);
       if (!(pax >= 1 && pax <= 20 && pax % 1 === 0)) return msg(f, L.err_pax, el.pax);
@@ -624,6 +683,9 @@
         if (!r[1]) return msg(f, fill(L.err_not_found, { q: b }), el.to);
         if (!routeOk(r[0], r[1])) return msg(f, L.err_route);
         if (roadKm(r[0], r[1]) < MIN_KM) return msg(f, fill(L.err_short, { n: MIN_KM }));
+        // The time is on the pickup's clock: at least 2 hours from now there, as create-order checks.
+        var at = wall ? wallMoment(wall, placeZone(r[0])) : null;
+        if (at && at.getTime() < Date.now() + 2 * 3600e3) return msg(f, L.err_when, when);
         trip = { kind: kind, from: r[0], to: r[1], at: at, pax: pax, bags: bags };
         order = null;
         fillPrice();
@@ -647,7 +709,7 @@
           + (label ? '<span class="sr-only">' + esc(label) + ': </span>' : '') + esc(text) + '</span>';
       };
       $('.facts', p).innerHTML = fact(IC.cal, trip.kind === 'live' ? L.asap
-        : windowText(trip.at, new Date(trip.at.getTime() + WINDOW_MS), L.lang))
+        : pickupText(trip.at, new Date(trip.at.getTime() + WINDOW_MS), placeZone(trip.from), L.lang))
         + fact(IC.pax, trip.pax, L.f_pax) + (trip.bags ? fact(IC.bag, trip.bags, L.f_bags) : '')
         + fact(IC.km, fill(L.km, { n: quote(A, B, 1, 0, 'standard').km }));
       VANS.forEach(function (v) {
@@ -687,40 +749,46 @@
       return {
         kind: trip.kind, pickup: place(trip.from), dropoff: place(trip.to),
         pickupAt: (trip.kind === 'live' ? new Date() : trip.at).toISOString(),
-        passengers: trip.pax, extraBags: trip.bags, vanClass: van, notes: notes.value.trim() || undefined
+        passengers: trip.pax, extraBags: trip.bags, vanClass: van, notes: notes.value.trim() || undefined,
+        payCountry: browserCountry() // which local payment methods to show
       };
     }
     // Creates the order (the server prices it and starts a Stripe payment for it), then slides
-    // on to Stripe's form. Signed out: the account card first.
+    // on to Stripe's form. Signed out: the account card first. The order, its payment and Stripe's
+    // form belong to the person signed in when it was made (order.uid): signing out, or another
+    // account signing in, drops them (auth below), so nobody pays someone else's trip.
     function startPay() {
-      if (busy || !trip) return;
+      if (busy || paying || !trip) return;
       if (!getSession()) {
         wantPay = true;
         save(true);
         openLogin();
         return;
       }
-      var c = cents();
+      var c = cents(), payer = null;
       busy = true;
       lock(true);
       busyBtn(priceBtn, true, L.preparing);
       msg(P.price, '');
       refresh().then(function (s) {
         if (!s) { var e = new Error('Signed out'); e.status = 401; throw e; }
+        payer = uidOf(s);
         return callFn('create-order', orderBody(), s.access_token);
       }).then(function (r) {
         if (!r || !r.orderId || !r.clientSecret) throw new Error('No payment in the reply');
-        order = { id: r.orderId, secret: r.clientSecret, cents: r.fareCents || c };
+        if (signedInAs() !== payer) return false; // signed out or another account meanwhile: not theirs to pay
+        order = { id: r.orderId, secret: r.clientSecret, cents: r.fareCents || c, uid: payer };
         save(false);
-        return loadStripe().then(function (st) { stripe = st; }, function () { var e = new Error('Stripe.js'); e.stripe = true; throw e; });
-      }).then(function () {
-        if (step !== 'price' || !card.isConnected) return; // went back meanwhile: Pay starts it again
+        return loadStripe().then(function (st) { stripe = st; return true; }, function () { var e = new Error('Stripe.js'); e.stripe = true; throw e; });
+      }).then(function (ok) {
+        if (!ok || !order || step !== 'price' || !card.isConnected) return; // went back meanwhile: Pay starts it again
         mountPayment();
         go('pay');
       }).catch(function (e) {
         if (e.status === 401) { msg(P.price, L.err_login_again); clearSession(); }
+        else if (e.code === 'booking_exists' && UUID.test(e.orderId || '')) { msg(P.price, L.err_paid); openBooked(e.orderId); }
         else if (e.status === 409) msg(P.price, L.err_paid);
-        else msg(P.price, e.stripe ? L.err_pay_load : errText(e));
+        else msg(P.price, e.stripe ? L.err_pay_load : refusalText(e) || errText(e));
       }).then(function () {
         busy = false;
         lock(false);
@@ -732,6 +800,25 @@
     function lock(on) {
       $('.vpick', P.price).disabled = on;
       notes.readOnly = on;
+    }
+    function signedInAs() { var s = getSession(); return s ? uidOf(s) : null; }
+    // This trip is booked already (create-order's booking_exists: its payment went through or is
+    // still being confirmed): that trip opens in My trips instead of a second payment.
+    function openBooked(id) {
+      justBooked = id;
+      openLogin({ view: '#trips/' + id });
+    }
+    // The person the order was made for signed out, or another one signed in: the order, its
+    // payment and Stripe's form go, and the card goes back to the price (the trip stays, typed on
+    // this page). A booked trip's summary goes too.
+    function dropCheckout() {
+      if (step === 'done') { reset(); go('trip', { history: false }); }
+      order = null;
+      wantPay = false;
+      dropPayment();
+      if (step === 'pay') go('price', { history: false });
+      if (routing && step !== 'trip') history.replaceState(Object.assign({}, history.state, { bk: step, bkp: null, bkr: null }), '');
+      save(false);
     }
     function mountPayment() {
       var p = P.pay, price = money(order.cents, L.lang);
@@ -753,7 +840,10 @@
       };
       try {
         els = stripe.elements({ clientSecret: order.secret, locale: L.lang, appearance: APPEARANCE });
-        pe = els.create('payment', { layout: 'tabs' });
+        // The account's email is filled in where a method asks for one (Klarna, Link).
+        var who = getSession(), opts = { layout: 'tabs', business: { name: 'DomiVan' } };
+        if (who && who.user && who.user.email) opts.defaultValues = { billingDetails: { email: who.user.email } };
+        pe = els.create('payment', opts);
         pe.on('ready', function () { p.classList.remove('loading'); payBtn.disabled = false; });
         pe.on('loaderror', failed);
         pe.mount($('.pe', p));
@@ -763,12 +853,15 @@
       if (pe) { try { pe.destroy(); } catch (e) {} }
       pe = els = null;
     }
+    // Pays the order on the payment step, as the person it was made for. What it confirms (the
+    // order, the trip and the van) is kept for its answer: the success screen shows that trip.
     function confirmPay() {
-      if (paying) return;
+      if (paying || !order) return;
+      if (order.uid !== signedInAs()) return dropCheckout();
       if (!pe) {
         return loadStripe().then(function (st) { stripe = st; mountPayment(); }, function () { msg(P.pay, L.err_pay_load); });
       }
-      var p = P.pay;
+      var p = P.pay, paid = { order: order, trip: trip, van: van };
       paying = true;
       busyBtn(payBtn, true, L.paying);
       msg(p, '');
@@ -776,28 +869,32 @@
       // Cards finish here (3-D Secure opens over the page); bank redirects come back to this page.
       stripe.confirmPayment({
         elements: els, redirect: 'if_required',
-        confirmParams: { return_url: location.origin + location.pathname + '?booked=' + encodeURIComponent(order.id) }
+        confirmParams: { return_url: location.origin + location.pathname + '?booked=' + encodeURIComponent(paid.order.id) }
       }).then(function (r) {
         if (r && r.error) {
           if (r.error.type !== 'validation_error') msg(p, r.error.message || L.err_pay); // Stripe marks the field itself
           return;
         }
+        if (paid.order.uid !== signedInAs()) return; // signed out meanwhile: it shows in their My trips
         var s = r && r.paymentIntent && r.paymentIntent.status;
-        booked(s === 'processing' ? 'wait' : 'ok');
+        booked(s === 'processing' ? 'wait' : 'ok', null, paid);
       }, function () { msg(p, L.err_pay); }).then(function () {
         paying = false;
         busyBtn(payBtn, false);
+        if (order && order.uid !== signedInAs()) dropCheckout();
       });
     }
     payBtn.addEventListener('click', confirmPay);
 
-    // ---- step 4: booked
-    function booked(how, o) {
+    // ---- step 4: booked. paid: what a payment on this page confirmed (else the trip shown).
+    function booked(how, o, paid) {
+      if (paid) { trip = paid.trip; van = paid.van; order = paid.order; }
       var p = P.done, t = trip, rows = [];
       $('.done-p', p).textContent = how === 'wait' ? L.done_wait : t && t.kind === 'live' ? L.done_p_live : L.done_p;
       if (t) {
         rows.push([L.s_route, t.from.city + ' → ' + t.to.city],
-          [L.s_pickup, t.kind === 'live' ? L.asap : windowText(t.at, new Date(t.at.getTime() + WINDOW_MS), L.lang)], [L.s_van, L['v_' + van]]);
+          [L.s_pickup, t.kind === 'live' ? L.asap : pickupText(t.at, new Date(t.at.getTime() + WINDOW_MS), placeZone(t.from), L.lang)],
+          [L.s_van, L['v_' + van]]);
       }
       if (order && order.cents) rows.push([L.s_paid, money(order.cents, L.lang)]);
       $('.done-sum', p).innerHTML = rows.map(function (r) { return '<div><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('');
@@ -817,6 +914,7 @@
       dirty = false;
       el.from.value = el.to.value = notes.value = '';
       el.from._place = el.to._place = null;
+      clockNote();
       msg(f, '');
       tripStore.del();
     }
@@ -848,6 +946,7 @@
       }
     }
     back.addEventListener('click', function () {
+      if (paying) return; // the payment's answer shows on this step
       var prev = step === 'pay' ? 'price' : 'trip', st = history.state || {};
       if (routing && st.bk === step && st.bkp && !st.bkr) return history.back(); // popstate takes it back a step
       go(prev, { history: false });
@@ -860,7 +959,7 @@
       tripStore.set({
         t: Date.now(), lang: L.lang, kind: trip.kind, from: trip.from, to: trip.to, fromText: el.from.value, toText: el.to.value,
         when: when.value, at: trip.at ? trip.at.getTime() : null, pax: trip.pax, bags: trip.bags, van: van, notes: notes.value,
-        pay: !!pay, order: order ? { id: order.id, cents: order.cents } : null
+        pay: !!pay, order: order ? { id: order.id, cents: order.cents, uid: order.uid } : null
       });
     }
     function placeOk(x) { return !!x && typeof x.city === 'string' && typeof x.country === 'string' && isFinite(x.lat) && isFinite(x.lng); }
@@ -873,6 +972,7 @@
       el.from._place = s.from;
       el.to._place = s.to;
       if (s.when) when.value = s.when;
+      clockNote();
       el.pax.value = s.pax;
       el.bags.value = s.bags;
       notes.value = s.notes || '';
@@ -880,25 +980,47 @@
       if (trip.kind === 'booking' && !trip.at) { trip = null; return false; }
       prefer = s.van;
       fillPrice();
-      if (s.order) order = { id: s.order.id, cents: s.order.cents };
+      // Only the order of the person signed in now (its payment is not kept: Pay makes it again).
+      if (s.order && s.order.uid && s.order.uid === signedInAs()) order = { id: s.order.id, cents: s.order.cents, uid: s.order.uid };
       return true;
     }
 
-    // Back from the bank: booked, or the payment step again with what went wrong.
+    // Back from the bank (?booked=...): booked, or the price again with what went wrong. The URL
+    // only says to look (anyone can type it): Stripe says how the payment really went
+    // (retrievePaymentIntent with the client secret the bank's return brings), and the trip shown
+    // is the one kept for this visitor's own order.
+    function bankReturn(sb, had) {
+      var where = had ? P.price : f;
+      if (had) {
+        go('price', { instant: true, history: false });
+        history.replaceState(Object.assign({}, history.state, { bk: 'price', bkr: 1 }), '');
+      }
+      busy = true;
+      busyBtn(had ? priceBtn : $('.go', f), true, L.pay_checking);
+      var pi = /^(pi_[A-Za-z0-9]+)_secret_[A-Za-z0-9]+$/.exec(sb.secret || '');
+      (pi && (!sb.pi || sb.pi === pi[1]) ? loadStripe().then(function (st) { return st.retrievePaymentIntent(sb.secret); })
+        : Promise.reject(new Error('No payment in the return'))).then(function (r) {
+        var intent = r && r.paymentIntent;
+        if (!intent || intent.id !== pi[1]) throw new Error('No payment');
+        return intent.status;
+      }).then(function (status) {
+        if (status === 'succeeded' || status === 'processing') {
+          if (!had) { trip = null; order = null; }
+          booked(status === 'processing' ? 'wait' : 'ok', { instant: true });
+        } else {
+          msg(where, L.err_pay);
+        }
+      }, function () { msg(where, L.err_pay_check); }).then(function () {
+        busy = false;
+        busyBtn(priceBtn, false);
+        busyBtn($('.go', f), false);
+        syncPrice();
+      });
+    }
     var s = tripStore.get(), sb = stripeBack;
     if (sb) {
       stripeBack = null;
-      var had = restore(s) && !!order && order.id === sb.id;
-      if (sb.status === 'succeeded' || sb.status === 'processing') {
-        if (!had) { trip = null; order = null; }
-        booked(sb.status === 'processing' ? 'wait' : 'ok', { instant: true });
-      } else if (had) {
-        go('price', { instant: true, history: false });
-        history.replaceState(Object.assign({}, history.state, { bk: 'price', bkr: 1 }), '');
-        msg(P.price, L.err_pay);
-      } else {
-        msg(f, L.err_pay);
-      }
+      bankReturn(sb, restore(s) && !!order && order.id === sb.id);
     } else if (oauthBack && s && s.pay && restore(s)) {
       // Back from Google or Apple after "Log in to pay": the price again, and the payment step
       // as soon as the session is in (auth).
@@ -921,6 +1043,8 @@
     return {
       // The session changed: the button's wording, and on to payment after "Log in to pay".
       auth: function () {
+        // While Stripe confirms, the form stays until its answer (confirmPay drops it then).
+        if (order && !paying && order.uid !== signedInAs()) dropCheckout();
         syncPrice();
         if (getSession() && $('.msg', P.price).textContent === L.err_login_again) msg(P.price, '');
         if (getSession() && wantPay && step === 'price' && !busy) { wantPay = false; startPay(); }
@@ -935,6 +1059,10 @@
       // Back or Forward between this page's entries: true when the card took it.
       pop: function (target) {
         if (!P[target] || target === step) return false;
+        if (paying) { // Back while the payment is on its way: the card stays on it
+          history.replaceState(Object.assign({}, history.state, { bk: step, bkp: null, bkr: null }), '');
+          return true;
+        }
         if (STEPS[target] < STEPS[step] && step !== 'done') { go(target, { history: false }); return true; }
         if (step === 'done') { reset(); go('trip', { history: false }); }
         else if (target === 'price' && trip && !dirty) { go('price', { history: false }); return true; } // Forward again, nothing changed
@@ -1330,6 +1458,19 @@
     if (rateLimited(e)) return T.err_rate;
     return T.err_generic;
   }
+  // A booking refused for a reason the function names (create-order's { code, params }): the
+  // apps' own words for it (T.refusals, from their language files, see build-site.py), the
+  // numbers filled in and a van class by its name. Null for any other failure.
+  function refusalText(e) {
+    var text = e && e.code && T.refusals && T.refusals[e.code];
+    if (!text) return null;
+    var p = {}, k;
+    for (k in e.params || {}) p[k] = e.params[k];
+    var van = T['v_' + p.vanClass];
+    if (van) p.vanClass = T.lang === 'de' ? van : van.toLocaleLowerCase(T.lang);
+    text = fill(text, p);
+    return /\{\w+\}/.test(text) ? null : text;
+  }
 
   var settings = null, settingsReq = null; // which sign-in providers are switched on
   function loadSettings() {
@@ -1355,13 +1496,29 @@
     return keep;
   }
   function clearSession(instant) { store.del(STORE); store.del(NAME); authChanged(false, instant); }
-  // Renews an expired (or nearly expired) session when a page opens.
+  // One renewal per refresh token at a time: callers asking while one is on its way share it
+  // (Supabase would refuse the token used twice).
+  var renewing = null;
+  function renew(s) {
+    var rt = s.refresh_token;
+    if (renewing && renewing.rt === rt) return renewing.p;
+    var p = api('/auth/v1/token?grant_type=refresh_token', { refresh_token: rt });
+    renewing = { rt: rt, p: p };
+    var done = function () { if (renewing && renewing.p === p) renewing = null; };
+    p.then(done, done);
+    return p;
+  }
+  // Renews an expired (or nearly expired) session when a page opens. Its answer counts only for
+  // the session it started from: after Log out, or another sign-in, while it was on its way (a
+  // slow network), it neither brings the old account back nor signs the new one out.
   function refresh() {
     var s = getSession();
     if (!s || !s.refresh_token || (s.expires_at && s.expires_at - Date.now() / 1000 > 60)) return Promise.resolve(s);
-    return api('/auth/v1/token?grant_type=refresh_token', { refresh_token: s.refresh_token }).then(setSession, function (e) {
+    var rt = s.refresh_token;
+    var same = function () { var c = getSession(); return !!c && c.refresh_token === rt; };
+    return renew(s).then(function (n) { return same() ? setSession(n) : getSession(); }, function (e) {
       // Signed out elsewhere. The page opened on Book your trip; a phone swaps to Log in at once.
-      if (e.status === 400 || e.status === 401 || e.status === 403) clearSession(true);
+      if (same() && (e.status === 400 || e.status === 401 || e.status === 403)) clearSession(true);
       return getSession();
     });
   }
@@ -1372,8 +1529,7 @@
     clearSession();
     if (!s) return;
     var stale = s.refresh_token && (!s.expires_at || s.expires_at - Date.now() / 1000 < 60);
-    (stale ? api('/auth/v1/token?grant_type=refresh_token', { refresh_token: s.refresh_token }).then(function (n) { return n.access_token; })
-      : Promise.resolve(s.access_token))
+    (stale ? renew(s).then(function (n) { return n.access_token; }) : Promise.resolve(s.access_token))
       .then(function (t) { if (t) return api('/auth/v1/logout', {}, t); }).catch(noop);
   }
 
@@ -1427,13 +1583,13 @@
   }
 
   // Back from a bank's page after paying for a trip: ?booked=<order>&redirect_status=... (Stripe
-  // adds payment_intent and its client secret too). Cleans the URL; the booking card shows how
-  // it went (stripeBack).
+  // adds payment_intent and its client secret too). Cleans the URL; the booking card asks Stripe
+  // how it went (stripeBack, bankReturn).
   function takeBooked() {
     if (!window.URLSearchParams) return;
     var q = new URLSearchParams(location.search), id = q.get('booked'), status = q.get('redirect_status');
     if (!id || !status) return;
-    stripeBack = { id: id, status: status };
+    stripeBack = { id: id, pi: q.get('payment_intent'), secret: q.get('payment_intent_client_secret') };
     ['booked', 'payment_intent', 'payment_intent_client_secret', 'redirect_status'].forEach(function (k) { q.delete(k); });
     var rest = q.toString();
     history.replaceState(history.state, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
@@ -1476,9 +1632,11 @@
   // confirmed.
 
   // my_trips() can only be filtered and sorted on columns it is asked for, so client_id and
-  // bid_started_at are in here.
+  // bid_started_at are in here. refund_state and refunded_cents: the client's refund as the
+  // database knows it (20261021220000_app_fixes).
   var ORDER_COLS = 'id,client_id,kind,status,van_class,pickup_address,pickup_city,pickup_country,dropoff_address,dropoff_city,dropoff_country,'
-    + 'pickup_at,pickup_until,passengers,extra_bags,notes,fare_cents,bid_started_at,cancel_reason,cancel_fee_cents,payout_on_hold,payout_release_at,payout_sent';
+    + 'pickup_at,pickup_until,pickup_tz,passengers,extra_bags,notes,fare_cents,bid_started_at,cancel_reason,cancel_fee_cents,payout_on_hold,payout_release_at,payout_sent,'
+    + 'refund_state,refunded_cents';
   var DONE = ['completed', 'cancelled'], ASSIGNED = ['accepted', 'en_route', 'picked_up'];
   var TONE = { pending_payment: 'gray', bidding: 'amber', accepted: 'blue', en_route: 'blue', picked_up: 'blue', completed: 'green', cancelled: 'gray' };
   var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1571,7 +1729,7 @@
     function row(o) {
       return '<a class="trow" href="#trips/' + esc(o.id) + '"><span class="trow-top">' + badges(o) + '</span>'
         + '<b class="trow-route">' + esc(o.pickup_city) + ' → ' + esc(o.dropoff_city) + '</b>'
-        + '<span class="trow-foot"><span>' + esc(dateText(new Date(o.pickup_at), L.lang)) + '</span><b>' + esc(money(o.fare_cents, L.lang)) + '</b></span>'
+        + '<span class="trow-foot"><span>' + esc(pickupText(new Date(o.pickup_at), null, tripZoneOf(o), L.lang)) + '</span><b>' + esc(money(o.fare_cents, L.lang)) + '</b></span>'
         + '<span class="go-ic" aria-hidden="true">' + CHEV + '</span></a>';
     }
     listPane.addEventListener('click', function (e) { if (e.target.closest('.t-retry')) list(); });
@@ -1628,7 +1786,7 @@
     function msgHtml(where) { return '<div class="msg" role="alert">' + (note && note.where === where ? esc(note.text) : '') + '</div>'; }
     function drawTrip() {
       var o = dt.o, who = dt.who, at = new Date(o.pickup_at), opens = new Date(at.getTime() - 864e5), now = Date.now(), say = '', tone = '';
-      var facts = [[L.s_pickup, o.pickup_until ? windowText(at, new Date(o.pickup_until), L.lang) : dateText(at, L.lang)],
+      var facts = [[L.s_pickup, pickupText(at, o.pickup_until ? new Date(o.pickup_until) : null, tripZoneOf(o), L.lang)],
         [L.f_pax, o.passengers]];
       if (o.extra_bags) facts.push([L.f_bags, o.extra_bags]);
       facts.push([L.s_van, L['v_' + o.van_class] || o.van_class], [L.s_paid, money(o.fare_cents, L.lang)]);
@@ -1639,8 +1797,9 @@
       // What happens next.
       if (o.status === 'bidding') { say = L.n_bidding; tone = ' amber'; }
       else if (o.status === 'pending_payment') say = L.done_wait;
-      else if (o.status === 'cancelled') say = o.cancel_reason === 'no_transporter' ? L.n_refunded : cancelled(o);
+      else if (o.status === 'cancelled') say = cancelled(o);
       else if (ASSIGNED.indexOf(o.status) >= 0 && !who && o.kind !== 'live' && opens > now) say = fill(L.n_locked, { date: dateText(opens, L.lang) });
+      else say = refundNote(o); // a trip that went ahead with part of it refunded (or a refund under way)
       if (say) h += '<p class="t-note' + tone + '">' + esc(say) + '</p>';
       if (who) {
         var van = [who.van_plate, who.van_seats ? fill(L.seats, { n: who.van_seats }) : '', who.van_class ? L['v_' + who.van_class] : ''].filter(Boolean).join(' · ');
@@ -1703,12 +1862,34 @@
       if (!cx.fee_cents) return L.cancel_q;
       return cx.refund_cents > 0 ? fill(L.cx_q_part, { amount: money(cx.refund_cents, L.lang), pct: pct(cx.refund_pct) }) : L.cx_q_none;
     }
-    // A cancelled trip: what came back. Cancelled by the client after acceptance, the fee shows.
+    // A cancelled trip: why, and where the refund stands as the database knows it, as in the app
+    // (src/lib/refund-notes.ts): "refunded" only once Stripe made the refund, never for a trip that
+    // was not paid, a refund still being made or retried, or a payment the bank disputed.
     function cancelled(o) {
-      if (o.cancel_reason !== 'client_cancelled' || o.cancel_fee_cents == null) return L.n_cancelled;
-      var back = o.fare_cents - o.cancel_fee_cents;
-      if (!o.cancel_fee_cents) return L.n_cx_full;
-      return back > 0 ? fill(L.n_cx_part, { refund: money(back, L.lang), fee: money(o.cancel_fee_cents, L.lang) }) : L.n_cx_none;
+      var fee = o.cancel_fee_cents, why;
+      switch (o.cancel_reason) {
+        case 'no_transporter': why = L.n_why_none; break;
+        case 'not_paid': why = L.n_why_unpaid; break;
+        case 'complaint_refund': why = L.n_why_checked; break;
+        case 'fraud_warning': why = L.n_why_fraud; break;
+        case 'disputed': why = L.n_why_disputed; break;
+        case 'client_cancelled':
+          why = fee == null ? L.n_why_you : !fee ? L.n_why_in_time
+            : fee < o.fare_cents ? fill(L.n_why_fee, { fee: money(fee, L.lang) }) : L.n_cx_none;
+          break;
+        default: why = L.n_why_other;
+      }
+      return [why, refundNote(o)].filter(Boolean).join(' ');
+    }
+    function refundNote(o) {
+      var got = +o.refunded_cents || 0;
+      switch (o.refund_state) {
+        case 'pending': return L.n_ref_pending;
+        case 'retrying': return L.n_ref_retrying;
+        case 'failed': return L.n_ref_failed;
+        case 'refunded': return got > 0 ? fill(got >= o.fare_cents ? L.n_ref_full : L.n_ref_part, { amount: money(got, L.lang) }) : '';
+        default: return '';
+      }
     }
 
     function redraw(focus) {
