@@ -155,6 +155,13 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .sugg li b { display: block; font-size: 15px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sugg li span { display: block; font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sugg li:hover, .sugg li[aria-selected="true"] { background: rgba(255, 255, 255, .1); }
+/* My location, the first row while the field has the focus. */
+.sugg li.here b { display: flex; align-items: center; gap: 8px; color: var(--sky-text); }
+.sugg li.here svg { width: 18px; height: 18px; flex: none; }
+.sugg li.here:not(:last-child) { margin-bottom: 4px; box-shadow: 0 5px 0 -4px rgba(255, 255, 255, .12); }
+.sugg li.here.busy svg { animation: here-look 0.9s ease-in-out infinite alternate; }
+@keyframes here-look { to { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .sugg li.here.busy svg { animation: none; } }
 /* Price: the route, the trip in short, one tile per van with its price, a note, then Pay. */
 .trip-sum { display: grid; gap: 12px; }
 .legs { display: grid; gap: 8px; }
@@ -436,6 +443,12 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .pn-form { display: grid; gap: 12px; }
 .pn-form[hidden] { display: none; }
 .pn-form input:disabled { opacity: .6; }
+/* Report content (#report): the reason as two choices, and the thank-you once sent. */
+.rep-why { display: grid; gap: 10px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.rep-why legend { padding: 0; margin-bottom: 2px; }
+.rep .consent { margin-top: 0; }
+.rep-done { display: grid; gap: 14px; }
+.rep-done[hidden] { display: none; }
 .pn-form .pf-sec { margin: 8px 0 -4px 2px; }
 .pn-note { margin: 0; color: var(--soft); font-size: 14.5px; line-height: 1.45; text-wrap: pretty; }
 .pn-note a { color: var(--sky); }
@@ -779,6 +792,32 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 /* Very small phones signed in: only the round initial, so the header still fits. */
 @media (max-width: 340px) { .login .nm { display: none; } .top nav .login.signed { padding: 3px; } }
 @media (max-width: 1100px) { .top nav .login .long { display: none; } .top nav .login .short { display: inline; } }
+
+/* The first visit's language card (site.js, "language card"): a white veil that softens the page,
+   and a light card in the middle with the ten languages. html.lgated keeps the page still under it. */
+html.lgated { overflow: hidden; }
+.lgate { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(255, 255, 255, .76); backdrop-filter: blur(6px) saturate(120%); -webkit-backdrop-filter: blur(6px) saturate(120%); color-scheme: light; animation: lgate-in .3s ease-out both; }
+.lgate.out { pointer-events: none; }
+.lgate-card { width: min(560px, 100%); max-height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 28px 24px 24px; text-align: center; color: #0F172A; background: #fff; border: 1px solid rgba(15, 23, 42, .06); border-radius: 28px 10px 28px 10px; box-shadow: 0 30px 70px -24px rgba(5, 11, 24, .45); animation: lgate-up .42s cubic-bezier(.22, .8, .24, 1) both; }
+.lgate-card .logo { width: 52px; height: 52px; border-radius: 16px; }
+.lgate-card h2 { color: #0F172A; font-size: clamp(24px, 3.6vw, 30px); margin: 14px 0 22px; }
+.lgate-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; }
+.lgate-list button { display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 12px 16px; text-align: left; font: inherit; font-size: 17px; font-weight: 600; color: #0F172A; background: #F4F6FA; border: 1.5px solid #E6E9F0; border-radius: 16px 6px 16px 6px; cursor: pointer; transition: background-color .15s, border-color .15s; }
+.lgate-list button span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lgate-list button:hover { background: #fff; border-color: #9DBFEA; }
+.lgate-list button:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.lgate-list button.on { color: var(--primary-dark); background: #E3EEFB; border-color: var(--primary); }
+.lgate-list .flag { width: 30px; height: 20px; flex: none; border-radius: 3px; box-shadow: 0 0 0 1px rgba(15, 23, 42, .12); }
+@keyframes lgate-in { from { opacity: 0; } }
+@keyframes lgate-up { from { opacity: 0; transform: translateY(14px) scale(.98); } }
+@media (max-width: 420px) {
+  .lgate-card { padding: 22px 14px 14px; }
+  .lgate-card h2 { margin: 12px 0 16px; }
+  .lgate-list { gap: 8px; }
+  .lgate-list button { min-height: 52px; padding: 10px 12px; gap: 10px; font-size: 16px; }
+}
+@media (max-width: 330px) { .lgate-list { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .lgate, .lgate-card { animation: none; } }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

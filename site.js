@@ -190,9 +190,11 @@ if (top !== self) top.location = location;
   // A copy of supabase/functions/_shared/pricing.ts. create-order prices the trip again on the
   // server and that is what the client pays; this is the preview. Change both together.
 
-  // The 27 EU members, the UK and Switzerland, either end, the same country included.
+  // The 27 EU members, the UK and Switzerland, either end, the same country included (except NO_DOMESTIC_CC).
   var SERVED_CC = ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT',
     'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'GB', 'CH'];
+  // No trip may start and end inside these (NO_DOMESTIC_TRIPS): the Netherlands needs a taxi licence for it.
+  var NO_DOMESTIC_CC = ['NL'];
   var MIN_KM = 100;
   var RATES = { road: 1.28, surcharge: { GB: 30, CH: 10 }, bag: 10, round: 5, fee: 359 };
   var VANS = ['standard', 'large', 'luxury'];
@@ -200,6 +202,10 @@ if (top !== self) top.location = location;
 
   function inList(list, c) { return list.indexOf(String(c).toUpperCase()) >= 0; }
   function routeOk(a, b) { return inList(SERVED_CC, a.country) && inList(SERVED_CC, b.country); }
+  function domesticClosed(a, b) {
+    var x = String(a.country).toUpperCase();
+    return x === String(b.country).toUpperCase() && inList(NO_DOMESTIC_CC, x);
+  }
   function toRad(x) { return (x * Math.PI) / 180; }
   function roadKm(a, b) {
     var dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
@@ -348,12 +354,73 @@ if (top !== self) top.location = location;
       .then(function (p) { if (!p && down === 2) throw new Error('Address search is down'); return p; });
   }
 
+  // My location, as in the apps (src/lib/my-location.ts): the browser's position, read once when
+  // the visitor picks the row, becomes the address Photon finds there. A vague position (over
+  // 200 m: try again, or type) or one outside Europe goes nowhere; Photon gets the point rounded
+  // to about 10 m. The place fills the field like a picked suggestion, and the price checks it
+  // like any other (routeOk, domesticClosed). Nothing keeps the position, except that a booked
+  // trip keeps that point as its pickup or destination. Browsers give it only on https (and
+  // localhost). Answers { place } or { problem }, never fails.
+  var HERE_OK = !!(window.isSecureContext && navigator.geolocation);
+  var HERE_TEXT = {
+    denied: 'here_denied', blocked: 'here_blocked', vague: 'here_vague', timeout: 'here_timeout',
+    unavailable: 'here_unavailable', busy: 'err_search', not_found: 'here_not_found', not_served: 'here_not_served'
+  };
+  function hereRound(v) { return Math.round(v * 1e4) / 1e4; }
+  // What the browser says about location for the site: 'granted', 'prompt', 'denied', or '' when it doesn't tell.
+  function geoState() {
+    try {
+      return navigator.permissions.query({ name: 'geolocation' }).then(function (p) { return p.state; }, function () { return ''; });
+    } catch (e) { return Promise.resolve(''); }
+  }
+  // What Photon names at a point: the nearest house or street, else the nearest named place (a
+  // village), as addressAt in the apps (src/lib/place-search.ts).
+  function reverseAt(lat, lng, layers) {
+    return fetch('https://photon.komoot.io/reverse?lat=' + lat + '&lon=' + lng + '&lang=en&limit=1' + layers, { headers: { Accept: 'application/json' } })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      }).then(function (j) {
+        var s = j.features && j.features[0] ? fromPhoton(j.features[0]) : null;
+        return s && { address: s.label, city: s.city, country: s.country, lat: lat, lng: lng };
+      });
+  }
+  function addressAt(lat, lng) {
+    return reverseAt(lat, lng, '&layer=house&layer=street').then(function (p) { return p || reverseAt(lat, lng, ''); });
+  }
+  function placeHere() {
+    return geoState().then(function (state) {
+      if (state === 'denied') return { problem: 'blocked' };
+      return new Promise(function (done) {
+        navigator.geolocation.getCurrentPosition(function (p) { done(p.coords); }, function (e) {
+          if (e.code !== 1) return done({ problem: e.code === 3 ? 'timeout' : 'unavailable' });
+          // A closed prompt can come again; Block only through the site settings.
+          geoState().then(function (s) { done({ problem: s === 'denied' ? 'blocked' : 'denied' }); });
+        }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+      });
+    }).then(function (c) {
+      if (c.problem) return c;
+      if (c.accuracy > 200) return { problem: 'vague' };
+      var lat = hereRound(c.latitude), lng = hereRound(c.longitude), E = EUROPE;
+      if (lng < E.west || lng > E.east || lat < E.south || lat > E.north) return { problem: 'not_served' };
+      return addressAt(lat, lng).then(function (p) {
+        return !p ? { problem: 'not_found' } : inList(SERVED_CC, p.country) ? { place: p } : { problem: 'not_served' };
+      }, function () { return { problem: 'busy' }; });
+    }).catch(function () { return { problem: 'unavailable' }; });
+  }
+  var HERE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="1.9"/>'
+    + '<circle cx="12" cy="12" r="2.4" fill="currentColor"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>';
+
   // Suggestions under an address field while the visitor types (a combobox: arrows, Enter, Escape).
   // Picking one keeps that exact place on the field (input._place); typing again drops it.
+  // With HERE_OK, the first row while the field has the focus is My location; what stops it
+  // goes to the form as a dv-here event (its detail the text, '' to clear it).
   var sgN = 0;
   function Suggest(input) {
     var label = input.closest('label'), box = d.createElement('div'), list = d.createElement('ul'), id = 'sg' + (++sgN);
-    var items = [], active = -1, timer = 0, ctl = null, seq = 0;
+    var items = [], shown = [], active = -1, timer = 0, ctl = null, seq = 0;
+    // My location's row, and its answer only while nothing was typed since it was asked for.
+    var here = HERE_OK ? { here: true } : null, locating = false, hereN = 0;
     box.className = 'af';
     label.parentNode.insertBefore(box, label);
     box.appendChild(label);
@@ -375,14 +442,17 @@ if (top !== self) top.location = location;
       input.removeAttribute('aria-activedescendant');
     }
     function render() {
-      list.innerHTML = items.map(function (s, i) {
+      shown = (here && (locating || d.activeElement === input) ? [here] : []).concat(items);
+      list.innerHTML = shown.map(function (s, i) {
+        var a = '<li role="option" id="' + id + '-' + i + '" aria-selected="false" data-i="' + i + '"';
+        if (s.here) return a + ' class="here' + (locating ? ' busy' : '') + '"><b>' + HERE_ICON + esc(locating ? T.here_finding : T.here_row) + '</b></li>';
         var parts = s.label.split(', ');
-        return '<li role="option" id="' + id + '-' + i + '" aria-selected="false" data-i="' + i + '"><b>' + esc(parts[0]) + '</b>'
+        return a + '><b>' + esc(parts[0]) + '</b>'
           + (parts.length > 1 ? '<span>' + esc(parts.slice(1).join(', ')) + '</span>' : '') + '</li>';
       }).join('');
       active = -1;
-      list.hidden = !items.length;
-      input.setAttribute('aria-expanded', items.length ? 'true' : 'false');
+      list.hidden = !shown.length;
+      input.setAttribute('aria-expanded', shown.length ? 'true' : 'false');
     }
     function mark(i) {
       active = i;
@@ -390,18 +460,48 @@ if (top !== self) top.location = location;
       input.setAttribute('aria-activedescendant', id + '-' + i);
     }
     function choose(i) {
-      var s = items[i];
+      var s = shown[i];
       if (!s) return;
+      if (s.here) return locate();
       input.value = s.label;
       input._place = s;
       close();
       input.dispatchEvent(new CustomEvent('dv-pick', { bubbles: true }));
     }
+    function tell(text) { input.dispatchEvent(new CustomEvent('dv-here', { bubbles: true, detail: text })); }
+    function locate() {
+      if (locating) return;
+      var n = ++hereN;
+      locating = true;
+      render();
+      tell('');
+      placeHere().then(function (r) {
+        if (n !== hereN) return;
+        locating = false;
+        if (!r.place) {
+          render();
+          return tell(T[HERE_TEXT[r.problem]] || T.here_unavailable);
+        }
+        input.value = r.place.address;
+        input._place = r.place;
+        items = [];
+        close();
+        // A new trip for the form (edited) and its clock (the pickup's zone).
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        input.dispatchEvent(new CustomEvent('dv-pick', { bubbles: true }));
+      });
+    }
+    input.addEventListener('focus', function () {
+      if (input._place) items = [];
+      if (here) render();
+    });
     input.addEventListener('input', function () {
       input._place = null;
+      hereN++;
+      locating = false;
       clearTimeout(timer);
       var q = input.value.trim();
-      if (q.length < 3) { seq++; items = []; return close(); }
+      if (q.length < 3) { seq++; items = []; return here ? render() : close(); }
       timer = setTimeout(function () {
         var n = ++seq;
         if (ctl) ctl.abort();
@@ -415,7 +515,7 @@ if (top !== self) top.location = location;
     });
     input.addEventListener('keydown', function (e) {
       if (list.hidden) return;
-      var n = items.length;
+      var n = shown.length;
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
         mark(e.key === 'ArrowDown' ? (active + 1) % n : active <= 0 ? n - 1 : active - 1);
@@ -428,7 +528,7 @@ if (top !== self) top.location = location;
         close();
       }
     });
-    input.addEventListener('blur', function () { setTimeout(close, 120); });
+    input.addEventListener('blur', function () { setTimeout(function () { if (!locating) close(); }, 120); });
     list.addEventListener('mousedown', function (e) { e.preventDefault(); }); // the field keeps the focus (and a phone its keyboard)
     list.addEventListener('click', function (e) { var li = e.target.closest('li'); if (li) choose(+li.dataset.i); });
     return { close: close };
@@ -659,6 +759,8 @@ if (top !== self) top.location = location;
     });
     Suggest(el.from);
     Suggest(el.to);
+    // My location could not fill a field: why, where the form's messages go.
+    f.addEventListener('dv-here', function (e) { msg(f, e.detail); });
     // Picked the pickup: on to the destination if it is still empty.
     f.addEventListener('dv-pick', function (e) { if (e.target === el.from && !el.to.value.trim()) el.to.focus({ preventScroll: true }); });
     f.addEventListener('submit', function (e) { e.preventDefault(); getPrice(); });
@@ -686,6 +788,7 @@ if (top !== self) top.location = location;
         if (!r[0]) return msg(f, fill(L.err_not_found, { q: a }), el.from);
         if (!r[1]) return msg(f, fill(L.err_not_found, { q: b }), el.to);
         if (!routeOk(r[0], r[1])) return msg(f, L.err_route);
+        if (domesticClosed(r[0], r[1])) return msg(f, L.err_domestic);
         if (roadKm(r[0], r[1]) < MIN_KM) return msg(f, fill(L.err_short, { n: MIN_KM }));
         // The time is on the pickup's clock: at least 2 hours from now there, as create-order checks.
         var at = wall ? wallMoment(wall, placeZone(r[0])) : null;
@@ -1830,6 +1933,11 @@ if (top !== self) top.location = location;
           + (who.phone ? '<a class="btn big" href="tel:' + esc(who.phone.replace(/[^\d+]/g, '')) + '">' + esc(fill(L.call, { phone: who.phone })) + '</a>' : '')
           + '</section>';
       }
+      // Who carries a paid trip (art. 8:1166 BW): DomiVan's company, and the transporter's once contact opens.
+      if (o.bid_started_at) {
+        h += '<p class="t-note t-carrier">' + esc(L.t_carrier + (who && who.company_name ? ' ' + fill(L.t_carried_by, { company: who.company_name }) : ''))
+          + '</p>';
+      }
       if (dt.code && (o.status === 'accepted' || o.status === 'en_route')) {
         h += '<section class="t-sec"><h3>' + esc(L.pc_h) + '</h3><b class="t-digits">' + esc(dt.code) + '</b><p>' + esc(L.pc_p) + '</p></section>';
       }
@@ -1893,6 +2001,10 @@ if (top !== self) top.location = location;
         case 'complaint_refund': why = L.n_why_checked; break;
         case 'fraud_warning': why = L.n_why_fraud; break;
         case 'disputed': why = L.n_why_disputed; break;
+        // Set by DomiVan's staff (20261026140000_staff_cancel): a no-show keeps the fare, the others refund all of it.
+        case 'client_no_show': why = L.n_why_no_show; break;
+        case 'carrier_no_show': why = L.n_why_carrier_no_show; break;
+        case 'staff_cancelled': why = L.n_why_staff; break;
         case 'client_cancelled':
           why = fee == null ? L.n_why_you : !fee ? L.n_why_in_time
             : fee < o.fare_cents ? fill(L.n_why_fee, { fee: money(fee, L.lang) }) : L.n_cx_none;
@@ -2092,6 +2204,8 @@ if (top !== self) top.location = location;
     if (b == null && a === 'join') return { pane: 'join', auth: 0 };
     if (DOCS.indexOf(x) >= 0) return { pane: 'doc', doc: x, auth: 0 };
     if (x === 'help') return { pane: 'help', auth: 0 };
+    if (x === 'report') return { pane: 'report', auth: 0 };
+    if (x === 'feedback') return { pane: 'feedback', auth: 0 };
     if (a === 'login' && PSTEPS[x] != null) return { pane: x, auth: PSTEPS[x] };
     return null;
   }
@@ -2128,7 +2242,7 @@ if (top !== self) top.location = location;
       + '<div class="code-links"><button type="button" class="link chg">' + esc(T.change_email) + '</button><button type="button" class="link rs"></button></div>'
       + '</form></div>'
       + '<div class="pane tv" data-pane="me">' + profileHtml() + '</div>'
-      + ['details', 'invoices', 'invite', 'delete', 'language', 'help', 'doc', 'join', 'trips', 'trip'].map(function (p) {
+      + ['details', 'invoices', 'invite', 'delete', 'language', 'help', 'report', 'feedback', 'doc', 'join', 'trips', 'trip'].map(function (p) {
         return '<div class="pane tv" data-pane="' + p + '"></div>';
       }).join('')
       + '</div></div>'
@@ -2509,9 +2623,129 @@ if (top !== self) top.location = location;
       have.then(function (qs) {
         if (!qs.length) throw new Error('No questions');
         P.help.innerHTML = '<div class="pn-faq"></div><p class="pn-note">' + esc(T.pn_help_more).replace('{email}',
-          '<a href="mailto:support@domivan.com">support@domivan.com</a>') + '</p>';
+          '<a href="mailto:support@domivan.com">support@domivan.com</a>').replace('{report}', '<a href="#report">' + esc(T.pn_report) + '</a>')
+          .replace('{legal}', '<a href="mailto:legal@domivan.com">legal@domivan.com</a>') + '</p>';
         qs.forEach(function (q) { q.open = false; $('.pn-faq', P.help).appendChild(q); });
       }).catch(function () { P.help._lang = null; oops(P.help, help); });
+    }
+
+    // Report content (#report): the DSA notice form (Art. 16(2)), open to everyone, signed in or not.
+    // It posts to the content-report function: { where, reason, details, law, name, email, good_faith,
+    // lang }, answered by { ok: true } or a refusal { error, code, params }. A sent report shows a thank
+    // you until the visitor reports something else.
+    function reportPane() {
+      if (P.report._lang === T.lang) return;
+      P.report._lang = T.lang;
+      var field = function (k, label, max, type, ac) {
+        return '<label><small>' + esc(label) + '</small><input name="' + k + '" type="' + (type || 'text') + '" maxlength="' + max + '"'
+          + (ac ? ' autocomplete="' + ac + '"' : '') + '></label>';
+      };
+      var pick = function (v, label, on) {
+        return '<label class="consent"><input type="radio" name="reason" value="' + v + '"' + (on ? ' checked' : '') + '><span>'
+          + esc(label) + '</span></label>';
+      };
+      P.report.innerHTML = '<form class="pn-form rep" novalidate><p class="pn-note">' + esc(T.pn_rep_p) + '</p>'
+        + '<fieldset class="rep-why"><legend><small>' + esc(T.pn_rep_reason) + '</small></legend>'
+        + pick('illegal', T.pn_rep_illegal, true) + pick('terms', T.pn_rep_terms) + '</fieldset>'
+        + '<label><small>' + esc(T.pn_rep_where) + '</small><textarea name="where" rows="2" maxlength="1000" placeholder="'
+        + esc(T.pn_rep_where_ph) + '"></textarea></label>'
+        + '<label><small>' + esc(T.pn_rep_details) + '</small><textarea name="details" rows="4" maxlength="3000"></textarea></label>'
+        + '<div class="rep-law">' + field('law', T.pn_rep_law, 300) + '</div>'
+        + field('name', T.pn_rep_name, 200, 'text', 'name') + field('email', T.pn_rep_email, 254, 'email', 'email')
+        + '<label class="consent"><input type="checkbox" name="good_faith"><span>' + esc(T.pn_rep_faith) + '</span></label>'
+        + '<div class="msg" role="alert"></div><button class="btn big go" type="submit">' + esc(T.pn_rep_send) + '</button>'
+        + '<p class="pn-note">' + esc(T.pn_rep_112) + '</p></form>'
+        + '<div class="rep-done" hidden><p class="pn-note">' + esc(T.pn_rep_done) + '</p>'
+        + '<button type="button" class="btn ghost rep-again">' + esc(T.pn_rep_again) + '</button></div>';
+      var form = $('form', P.report);
+      // The law concerned is asked only for illegal content.
+      form.addEventListener('change', function () { $('.rep-law', form).hidden = form.elements.reason.value !== 'illegal'; });
+      form.addEventListener('submit', function (e) { e.preventDefault(); sendContentReport(form); });
+      $('.rep-again', P.report).addEventListener('click', function () {
+        form.reset();
+        $('.rep-law', form).hidden = false;
+        msg(form, '');
+        $('.rep-done', P.report).hidden = true;
+        form.hidden = false;
+      });
+    }
+    // The fields the function would refuse are checked here first, in the visitor's language.
+    var REP_FIELD = { report_where_missing: 'where', report_details_missing: 'details', report_good_faith_missing: 'good_faith',
+      report_email_invalid: 'email' };
+    var REP_ERR = { where: 'pn_rep_err_where', details: 'pn_rep_err_details', good_faith: 'pn_rep_err_faith', email: 'pn_rep_err_email' };
+    function sendContentReport(form) {
+      var btn = $('.go', form), v = function (k) { return form.elements[k].value.trim(); }, illegal = form.elements.reason.value !== 'terms';
+      var body = { where: v('where'), reason: illegal ? 'illegal' : 'terms', details: v('details'), law: (illegal && v('law')) || null,
+        name: v('name') || null, email: v('email') || null, good_faith: form.elements.good_faith.checked, lang: T.lang };
+      var bad = !body.where ? 'where' : !body.details ? 'details'
+        : body.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email) ? 'email' : !body.good_faith ? 'good_faith' : null;
+      if (bad) return msg(form, T[REP_ERR[bad]], bad);
+      if (btn.disabled) return;
+      msg(form, '');
+      busy(btn, true, T.pn_rep_sending);
+      callFn('content-report', body, KEY).then(function () {
+        form.hidden = true;
+        $('.rep-done', P.report).hidden = false;
+      }, function (e) {
+        var f = REP_FIELD[e.code];
+        msg(form, f ? T[REP_ERR[f]] : e.code === 'report_too_long' ? fill(T.pn_rep_err_long, { max: (e.params && e.params.max) || '' })
+          : !e.status ? T.err_network : rateLimited(e) ? T.err_rate : T.pn_rep_err, f);
+      }).then(function () { busy(btn, false); });
+    }
+
+    // Feedback (#feedback): a suggestion, a problem, praise or anything else, from anyone, signed in
+    // or not. It posts to the feedback function: { kind, message, name, email, lang }, answered by
+    // { ok: true } or a refusal { error, code, params }. A suggestion is the first choice. A thank-you
+    // shows until the visitor sends more.
+    function feedbackPane() {
+      if (P.feedback._lang === T.lang) return;
+      P.feedback._lang = T.lang;
+      var pick = function (v) {
+        return '<label class="consent"><input type="radio" name="kind" value="' + v + '"' + (v === 'suggestion' ? ' checked' : '') + '><span>'
+          + esc(T['pn_fb_' + v]) + '</span></label>';
+      };
+      P.feedback.innerHTML = '<form class="pn-form rep fb" novalidate><p class="pn-note">' + esc(T.pn_fb_p) + '</p>'
+        + '<fieldset class="rep-why"><legend><small>' + esc(T.pn_fb_kind) + '</small></legend>'
+        + ['suggestion', 'problem', 'praise', 'other'].map(pick).join('') + '</fieldset>'
+        + '<label><small>' + esc(T.pn_fb_message) + '</small><textarea name="message" rows="5" maxlength="2000" placeholder="'
+        + esc(T.pn_fb_message_ph) + '"></textarea></label>'
+        + '<label><small>' + esc(T.pn_rep_name) + '</small><input name="name" type="text" maxlength="200" autocomplete="name"></label>'
+        + '<label><small>' + esc(T.pn_fb_email) + '</small><input name="email" type="email" maxlength="254" autocomplete="email"></label>'
+        + '<div class="msg" role="alert"></div><button class="btn big go" type="submit">' + esc(T.pn_fb_send) + '</button></form>'
+        + '<div class="rep-done" hidden><p class="pn-note">' + esc(T.pn_fb_done) + '</p>'
+        + '<button type="button" class="btn ghost fb-again">' + esc(T.pn_fb_again) + '</button></div>';
+      var form = $('form', P.feedback);
+      form.addEventListener('submit', function (e) { e.preventDefault(); sendFeedback(form); });
+      $('.fb-again', P.feedback).addEventListener('click', function () {
+        form.reset();
+        msg(form, '');
+        $('.rep-done', P.feedback).hidden = true;
+        form.hidden = false;
+      });
+    }
+    // What the function would refuse is checked here first, in the visitor's language.
+    var FB_FIELD = { feedback_message_missing: 'message', feedback_email_invalid: 'email' };
+    var FB_ERR = { kind: 'pn_fb_kind', message: 'pn_fb_err_message', email: 'pn_fb_err_email' };
+    var FB_EMAIL = /^[^\s@?&=%,\/#:;<>()[\]\\"`\x7f]+@[^\s@?&=%,\/#:;<>()[\]\\"`\x7f]+\.[^\s@?&=%,\/#:;<>()[\]\\"`\x7f]+$/;
+    function sendFeedback(form) {
+      var btn = $('.go', form), v = function (k) { return form.elements[k].value.trim(); };
+      var body = { kind: form.elements.kind.value || null, message: v('message'), name: v('name') || null, email: v('email') || null,
+        lang: T.lang };
+      // A plain address only, as the function and the database take it (no ? & = % , / # : ; brackets or quotes).
+      var bad = !body.kind ? 'kind' : !body.message ? 'message'
+        : body.email && !FB_EMAIL.test(body.email) ? 'email' : null;
+      if (bad) return msg(form, T[FB_ERR[bad]], bad);
+      if (btn.disabled) return;
+      msg(form, '');
+      busy(btn, true, T.pn_rep_sending);
+      callFn('feedback', body, KEY).then(function () {
+        form.hidden = true;
+        $('.rep-done', P.feedback).hidden = false;
+      }, function (e) {
+        var f = FB_FIELD[e.code];
+        msg(form, f ? T[FB_ERR[f]] : e.code === 'feedback_too_long' ? fill(T.pn_fb_err_long, { max: (e.params && e.params.max) || '' })
+          : !e.status ? T.err_network : rateLimited(e) ? T.err_rate : T.pn_fb_err, f);
+      }).then(function () { busy(btn, false); });
     }
 
     // A legal page, or Join Transporters: its own page's content, fetched once per language.
@@ -2559,6 +2793,8 @@ if (top !== self) top.location = location;
       else if (name === 'delete') deletePane();
       else if (name === 'language') language();
       else if (name === 'help') help();
+      else if (name === 'report') reportPane();
+      else if (name === 'feedback') feedbackPane();
       else if (name === 'doc') doc(v.doc);
       else if (name === 'join') join();
       else if (name === 'trips') trips.list();
@@ -3148,10 +3384,11 @@ if (top !== self) top.location = location;
     ready.then(function (next) {
       if (seq !== navSeq) return;
       if (o.push) history.pushState({ dv: stamp(), y: 0 }, '', next.key + u.hash);
+      if (o.replace) history.replaceState(Object.assign({}, history.state, { y: 0 }), '', next.key + u.hash);
       arrive(next, o.dir, u.hash, o.y || 0);
     }).catch(function () {
       if (seq !== navSeq) return;
-      if (o.push) location.assign(href); else location.reload();
+      if (o.push) location.assign(href); else if (o.replace) location.replace(href); else location.reload();
     });
   }
 
@@ -3271,6 +3508,172 @@ if (top !== self) top.location = location;
     if (u && !samePage(u)) load(u.pathname + u.search);
   }
 
+  // ---------------------------------------------------------------- language card
+
+  // The first visit: before anything else the visitor picks a language, like the apps' first
+  // launch (src/components/language-sheet.tsx). A card in the middle of the page, under it a
+  // white veil that softens the page; the ten languages in their own words (the header's
+  // language menu: same order, flags and links), the browser's own first and highlighted, and
+  // the question in the browser's language (T.gate_q). Nothing behind it can be clicked,
+  // scrolled or reached with the keyboard, and Escape doesn't close it. The pick is kept where
+  // the apps keep theirs on the web (domivan.language, which /book reads too: one choice for the
+  // whole site), then the site goes to this page in that language, with its #panel. Later visits
+  // never ask again, and the language menu and Profile › Language keep the choice up to date.
+  // The page stays plain HTML under the card, for search engines and visitors without
+  // JavaScript. Not asked, this page's language kept: a page the apps opened (?app=1, already in
+  // the app's language), a visitor signed in (paying needs it too) or back from a Google or Apple
+  // sign-in or a payment (they have been here before), and a browser that keeps nothing (the card
+  // would come back on every page). A visitor with a choice who comes to an English page from
+  // outside the site (typed domivan.com, an unprefixed link) gets that page in their language;
+  // a /xx/ address stays as it is.
+  var LANG_KEY = 'domivan.language';
+  var LANG_CODES = ['en', 'ro', 'pl', 'bg', 'hu', 'es', 'fr', 'de', 'nl', 'pt'];
+  var LANG_PATH = new RegExp('^/(' + LANG_CODES.slice(1).join('|') + ')/');
+  var gate = null;
+  function keptLang() { var v = store.get(LANG_KEY); return LANG_CODES.indexOf(v) >= 0 ? v : null; }
+  function keepLang(code) { if (LANG_CODES.indexOf(code) >= 0) store.set(LANG_KEY, code); }
+  // Whether this browser keeps what the site stores (some private modes refuse it).
+  function storageKeeps() {
+    try {
+      localStorage.setItem('domivan-check', '1');
+      var ok = localStorage.getItem('domivan-check') === '1';
+      localStorage.removeItem('domivan-check');
+      return ok;
+    } catch (e) { return false; }
+  }
+  // A page the apps opened (openLegal, src/lib/legal-url.ts fromApp) says so with ?app=1. Read and
+  // taken off the address before the page starts, like ?r=.
+  function takeApp() {
+    if (!window.URLSearchParams) return false;
+    var q = new URLSearchParams(location.search);
+    if (!q.has('app')) return false;
+    q.delete('app');
+    var rest = q.toString();
+    history.replaceState(history.state, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
+    return true;
+  }
+  function fromSite() {
+    try { return !!d.referrer && new URL(d.referrer).origin === location.origin; } catch (e) { return false; }
+  }
+  // The first of the browser's languages (de, de-AT) the site has, or null.
+  function browserLang() {
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''];
+    for (var i = 0; i < langs.length; i++) {
+      var c = String(langs[i] || '').split(/[-_]/)[0].toLowerCase();
+      if (LANG_CODES.indexOf(c) >= 0) return c;
+    }
+    return null;
+  }
+
+  // o: { app, back (a sign-in or payment coming back), signedIn }.
+  function langGate(o) {
+    var here = root.lang, kept = keptLang(), hrefs = {};
+    var links = $$('.top .lang .menu a[hreflang]').filter(function (a) { return LANG_CODES.indexOf(a.getAttribute('hreflang')) >= 0; });
+    links.forEach(function (a) { hrefs[a.getAttribute('hreflang')] = a.href; });
+    if (kept) {
+      if (kept !== here && hrefs[kept] && !o.app && !o.back && !LANG_PATH.test(location.pathname) && !fromSite()) goLang(kept, hrefs);
+      return;
+    }
+    if (o.app || o.back || o.signedIn) { keepLang(here); return; }
+    if (links.length < 2 || !storageKeeps()) return;
+    var first = browserLang(), q = T.gate_q || {}, ask = q[first] ? first : q[here] ? here : 'en';
+    links.sort(function (a, b) { return (b.getAttribute('hreflang') === first) - (a.getAttribute('hreflang') === first); });
+
+    var el = d.createElement('div');
+    el.className = 'lgate';
+    el.innerHTML = '<div class="lgate-card" role="dialog" aria-modal="true" aria-labelledby="lgate-h">'
+      + '<span class="logo"><svg aria-hidden="true"><use href="#mark"/></svg></span>'
+      + '<h2 id="lgate-h" lang="' + esc(ask) + '">' + esc(q[ask] || '') + '</h2>'
+      + '<div class="lgate-list">' + links.map(function (a) {
+        var c = a.getAttribute('hreflang'), flag = $('.flag', a);
+        return '<button type="button" data-lang="' + esc(c) + '" lang="' + esc(c) + '"' + (c === first ? ' class="on"' : '') + '>'
+          + (flag ? flag.outerHTML : '') + '<span>' + esc($('span', a).textContent) + '</span></button>';
+      }).join('') + '</div></div>';
+
+    // Everything else on the page is out of reach while the card is up, also what opens later
+    // (the browser's Back can still change the #panel under it).
+    var shut = [];
+    var shutOut = function (x) {
+      if (x === el || x.nodeType !== 1 || x.tagName === 'SCRIPT' || x.hasAttribute('inert')) return;
+      x.setAttribute('inert', '');
+      shut.push(x);
+    };
+    $$('body > *').forEach(shutOut);
+    root.classList.add('lgated');
+    d.body.appendChild(el);
+    var watch = window.MutationObserver && new MutationObserver(function (list) {
+      list.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, shutOut); });
+      if (gate && !el.contains(d.activeElement)) $('button', el).focus({ preventScroll: true });
+    });
+    if (watch) watch.observe(d.body, { childList: true });
+    gate = { el: el, shut: shut, watch: watch };
+    var buttons = $$('button', el);
+    buttons[0].focus({ preventScroll: true });
+
+    el.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('button[data-lang]');
+      if (b) pickLang(b.getAttribute('data-lang'), hrefs);
+    });
+    // Arrows move between the languages (up and down by a row), Tab goes round inside the card.
+    el.addEventListener('keydown', function (e) {
+      var i = buttons.indexOf(d.activeElement), cols = 1;
+      if (buttons[1] && buttons[1].offsetTop === buttons[0].offsetTop) cols = 2;
+      var to = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: cols, ArrowUp: -cols }[e.key];
+      if (to && i >= 0) {
+        e.preventDefault();
+        buttons[Math.min(buttons.length - 1, Math.max(0, i + to))].focus();
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        buttons[(i + (e.shiftKey ? -1 : 1) + buttons.length) % buttons.length].focus();
+      }
+    });
+  }
+  // While the card is up: Escape does nothing (not even close a panel under it), and focus that
+  // lands outside it goes back in.
+  function gateKeys(e) {
+    if (!gate || e.key !== 'Escape') return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+  function gateFocus(e) {
+    if (gate && !gate.el.contains(e.target)) $('button', gate.el).focus({ preventScroll: true });
+  }
+
+  function pickLang(code, hrefs) {
+    if (!gate) return;
+    keepLang(code);
+    var el = gate.el;
+    if (gate.watch) gate.watch.disconnect();
+    gate.shut.forEach(function (x) { x.removeAttribute('inert'); });
+    root.classList.remove('lgated');
+    gate = null;
+    var gone = function () { if (el.parentNode) el.parentNode.removeChild(el); };
+    var a = d.activeElement;
+    if (a && el.contains(a)) a.blur(); // the page (or its panel) takes the focus next
+    el.classList.add('out');
+    if (moves() && !calm()) {
+      el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'ease-out', fill: 'forwards' }).onfinish = gone;
+      setTimeout(gone, 400); // a tab in the background runs no animations
+    } else gone();
+    if (code === root.lang || !hrefs[code]) {
+      if (loginOpen) focusCard(); else focusPage(page);
+      return;
+    }
+    goLang(code, hrefs);
+  }
+  // This page in another language, with its #panel, in place of this one (no Back to it).
+  function goLang(code, hrefs) {
+    var href = hrefs[code].split(/[?#]/)[0] + location.search + location.hash;
+    if (routing) navigate(href, { replace: true, dir: 1 });
+    else location.replace(href);
+  }
+
+  // The header's language menu and Profile › Language: the visitor's new choice, for the site and /book.
+  function langLinkClick(e) {
+    var a = e.target.closest && e.target.closest('.lang .menu a[hreflang], .pn-langs a[hreflang]');
+    if (a) keepLang(a.getAttribute('hreflang'));
+  }
+
   // ---------------------------------------------------------------- start
 
   function start() {
@@ -3283,6 +3686,7 @@ if (top !== self) top.location = location;
     oauthBack = !!cb;
     takeBooked();
     takeRef();
+    var fromApp = takeApp(), back = !!(cb || stripeBack); // for the language card (below)
     curKey = location.pathname + location.search;
     var st = history.state || {};
     hIdx = st.dv != null ? st.dv : stamp();
@@ -3300,6 +3704,11 @@ if (top !== self) top.location = location;
     if (cb) { openLogin({ replace: true, instant: true }); acct.callback(cb); }
     else if (acctHash()) openLogin({ fromUrl: true, instant: true, view: acctHash() });
     else if (st.y && !location.hash) jump(st.y);
+    // The first visit's language card, over whatever the address opened.
+    langGate({ app: fromApp, back: back, signedIn: !!getSession() });
+    window.addEventListener('keydown', gateKeys, true);
+    d.addEventListener('focusin', gateFocus);
+    d.addEventListener('click', langLinkClick, true);
 
     d.addEventListener('click', onClick);
     d.addEventListener('keydown', function (e) {
