@@ -1,0 +1,12 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["W6TTC4LBQY.eu.domivan.app"],
+        "components": [
+          { "/": "/r/*", "comment": "VIT invite links (domivan.com/r/CODE) open the DomiVan app; every other page stays in the browser." }
+        ]
+      }
+    ]
+  }
+}

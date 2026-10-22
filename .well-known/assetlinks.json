@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "eu.domivan.app",
+      "sha256_cert_fingerprints": [
+        "7E:7E:93:1D:37:AC:27:7B:0A:81:1C:0E:EB:5C:75:CB:CD:E5:DE:0F:6A:46:32:97:A6:F5:6E:3F:62:C4:42:38",
+        "20:37:6C:C0:BB:7A:CE:DB:40:8D:BD:3B:ED:43:87:B2:54:38:5B:67:32:86:A8:93:13:6B:DD:61:47:46:D8:64"
+      ]
+    }
+  }
+]

@@ -599,7 +599,7 @@ if (top !== self) top.location = location;
       + '</div><div class="book-foot"><p class="total"><span>' + esc(L.total) + '</span><b></b></p>'
       + '<button class="btn big go" type="button"></button><p class="fine"></p></div>');
     pane('pay', '<div class="book-body">'
-      + '<div class="pay-sum"><p class="ps-route"></p><b class="ps-price"></b></div>'
+      + '<div class="pay-sum"><p class="ps-route"></p><b class="ps-price"></b></div><p class="ps-off" hidden></p>'
       + '<div class="pe-box"><div class="pe"></div><span class="spin" aria-hidden="true"></span></div>'
       + '<div class="msg" role="alert"></div>'
       + '</div><div class="book-foot"><button class="btn big go" type="button"></button><p class="secure">' + IC.lock + '<span>' + esc(L.secure) + '</span></p></div>');
@@ -754,7 +754,8 @@ if (top !== self) top.location = location;
         kind: trip.kind, pickup: place(trip.from), dropoff: place(trip.to),
         pickupAt: (trip.kind === 'live' ? new Date() : trip.at).toISOString(),
         passengers: trip.pax, extraBags: trip.bags, vanClass: van, notes: notes.value.trim() || undefined,
-        payCountry: browserCountry() // which local payment methods to show
+        payCountry: browserCountry(), // which local payment methods to show
+        voucher: true // the payment step shows an invite voucher's line (create-order puts the next one on)
       };
     }
     // Creates the order (the server prices it and starts a Stripe payment for it), then slides
@@ -781,7 +782,8 @@ if (top !== self) top.location = location;
       }).then(function (r) {
         if (!r || !r.orderId || !r.clientSecret) throw new Error('No payment in the reply');
         if (signedInAs() !== payer) return false; // signed out or another account meanwhile: not theirs to pay
-        order = { id: r.orderId, secret: r.clientSecret, cents: r.fareCents || c, uid: payer };
+        // cents: the payment; off: an invite voucher's discount on the price (20261024100000_client_vouchers).
+        order = { id: r.orderId, secret: r.clientSecret, cents: r.fareCents || c, off: r.discountCents || 0, uid: payer };
         save(false);
         return loadStripe().then(function (st) { stripe = st; return true; }, function () { var e = new Error('Stripe.js'); e.stripe = true; throw e; });
       }).then(function (ok) {
@@ -829,6 +831,10 @@ if (top !== self) top.location = location;
       dropPayment();
       $('.ps-route', p).textContent = trip.from.city + ' → ' + trip.to.city;
       $('.ps-price', p).textContent = price;
+      // An invite voucher: the price and the voucher under the total to pay.
+      var off = $('.ps-off', p);
+      off.hidden = !(order.off > 0);
+      off.textContent = order.off > 0 ? L.s_price + ' ' + money(order.cents + order.off, L.lang) + ' · ' + L.s_voucher + ' −' + money(order.off, L.lang) : '';
       payBtn.textContent = fill(L.pay, { price: price });
       payBtn.disabled = true;
       msg(p, '');
@@ -963,7 +969,7 @@ if (top !== self) top.location = location;
       tripStore.set({
         t: Date.now(), lang: L.lang, kind: trip.kind, from: trip.from, to: trip.to, fromText: el.from.value, toText: el.to.value,
         when: when.value, at: trip.at ? trip.at.getTime() : null, pax: trip.pax, bags: trip.bags, van: van, notes: notes.value,
-        pay: !!pay, order: order ? { id: order.id, cents: order.cents, uid: order.uid } : null
+        pay: !!pay, order: order ? { id: order.id, cents: order.cents, off: order.off, uid: order.uid } : null
       });
     }
     function placeOk(x) { return !!x && typeof x.city === 'string' && typeof x.country === 'string' && isFinite(x.lat) && isFinite(x.lng); }
@@ -985,7 +991,7 @@ if (top !== self) top.location = location;
       prefer = s.van;
       fillPrice();
       // Only the order of the person signed in now (its payment is not kept: Pay makes it again).
-      if (s.order && s.order.uid && s.order.uid === signedInAs()) order = { id: s.order.id, cents: s.order.cents, uid: s.order.uid };
+      if (s.order && s.order.uid && s.order.uid === signedInAs()) order = { id: s.order.id, cents: s.order.cents, off: +s.order.off || 0, uid: s.order.uid };
       return true;
     }
 
@@ -1643,10 +1649,11 @@ if (top !== self) top.location = location;
 
   // my_trips() can only be filtered and sorted on columns it is asked for, so client_id and
   // bid_started_at are in here. refund_state and refunded_cents: the client's refund as the
-  // database knows it (20261021220000_app_fixes).
+  // database knows it (20261021220000_app_fixes). discount_cents: an invite voucher on it
+  // (20261024100000_client_vouchers).
   var ORDER_COLS = 'id,client_id,kind,status,van_class,pickup_address,pickup_city,pickup_country,dropoff_address,dropoff_city,dropoff_country,'
     + 'pickup_at,pickup_until,pickup_tz,passengers,extra_bags,notes,fare_cents,bid_started_at,cancel_reason,cancel_fee_cents,payout_on_hold,payout_release_at,payout_sent,'
-    + 'refund_state,refunded_cents';
+    + 'refund_state,refunded_cents,discount_cents';
   var DONE = ['completed', 'cancelled'], ASSIGNED = ['accepted', 'en_route', 'picked_up'];
   var TONE = { pending_payment: 'gray', bidding: 'amber', accepted: 'blue', en_route: 'blue', picked_up: 'blue', completed: 'green', cancelled: 'gray' };
   var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1799,7 +1806,10 @@ if (top !== self) top.location = location;
       var facts = [[L.s_pickup, pickupText(at, o.pickup_until ? new Date(o.pickup_until) : null, tripZoneOf(o), L.lang)],
         [L.f_pax, o.passengers]];
       if (o.extra_bags) facts.push([L.f_bags, o.extra_bags]);
-      facts.push([L.s_van, L['v_' + o.van_class] || o.van_class], [L.s_paid, money(o.fare_cents, L.lang)]);
+      facts.push([L.s_van, L['v_' + o.van_class] || o.van_class]);
+      // An invite voucher: the price and the voucher above what they paid.
+      if (+o.discount_cents > 0) facts.push([L.s_price, money(o.fare_cents + o.discount_cents, L.lang)], [L.s_voucher, '−' + money(o.discount_cents, L.lang)]);
+      facts.push([L.s_paid, money(o.fare_cents, L.lang)]);
       var h = '<div class="t-top">' + badges(o) + '</div>'
         + '<div class="legs">' + leg('start', o.pickup_city, o.pickup_country, o.pickup_address) + leg('ring', o.dropoff_city, o.dropoff_country, o.dropoff_address) + '</div>'
         + '<dl class="done-sum">' + facts.map(function (r) { return '<div><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('')

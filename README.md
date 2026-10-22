@@ -247,3 +247,29 @@ want to use DomiVan?". A code that is not valid shows a short note and is droppe
 Apply migration `20261018133700_vit_signup_code.sql` (after the VIT referral migrations) before
 publishing the site. Until then Join Transporters sends the application again without the code.
 Publish `404.html` with the rest of the folder.
+
+### The DomiVan app opens them (`.well-known`)
+
+On a phone with the DomiVan app (`eu.domivan.app`), `https://domivan.com/r/CODE` opens the app's
+invite page instead of this site, as `domivan://r/CODE` does: signed in, Profile › Invite code with
+the code filled in; signed out, the code waits on the phone for sign-up. Without the app (or with only
+DomiVan Driver) everything above runs as before. Only `/r/` paths open the app; every other page stays
+in the browser. The app side is in `app.config.ts` (`inviteLinks`) and `src/lib/app-links.ts`.
+
+- `.well-known/assetlinks.json` (Android App Links): the package and the SHA-256 fingerprints of its
+  two signing keys, Play App Signing (what Play installs) and the upload key (EAS builds installed by
+  hand). Play Console › the DomiVan app › Test and release › App integrity › App signing shows both.
+- `.well-known/apple-app-site-association` (iOS Universal Links): team `W6TTC4LBQY`, bundle id
+  `eu.domivan.app`, components `/r/*` only. No file extension; Pages serves it as
+  `application/octet-stream`, which Apple accepts (its docs ask only for HTTPS, no redirect).
+- `.nojekyll` keeps Pages from hiding the dot folder (`.well-known/security.txt` is served the same way).
+  Both files must be live **before** a build with them is installed: Android checks `assetlinks.json`
+  at install, and iOS asks Apple's CDN for the association file then. A phone that installed too early
+  may open the links in the browser until the app is updated or reinstalled.
+- After publishing: `https://domivan.com/.well-known/assetlinks.json` answers 200 with
+  `application/json`, Google's checker
+  `https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://domivan.com&relation=delegate_permission/common.handle_all_urls`
+  lists `eu.domivan.app`, and `https://app-site-association.cdn-apple.com/a/v1/domivan.com` shows the
+  file (Apple's CDN can take up to a day to pick up a change).
+- `scripts/app-tests/app-links.test.mjs` checks that both files, `app.config.ts` and `eas.json` name the
+  same app.
