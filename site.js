@@ -664,7 +664,7 @@ if (top !== self) top.location = location;
     var L = T, f = $('form.bk-trip', card), el = f.elements, panes = $('.panes', card), h2 = $('h2', card);
     var title0 = h2.textContent, P = { trip: f }, cur = f, step = 'trip';
     var trip = null, van = 'standard', prefer = null, order = null, dirty = false, ed = 0;
-    var stripe = null, els = null, pe = null, busy = false, paying = false, wantPay = false, afterLogin = null;
+    var stripe = null, els = null, pe = null, busy = false, paying = false, wantPay = false, afterLogin = null, forgetting = false;
     f.noValidate = true; // our own messages, in the page's language
 
     // The back arrow in the card's header row, shown after the first step.
@@ -717,9 +717,13 @@ if (top !== self) top.location = location;
 
     // ---- step 1: the trip
     // The pickup time is a reading on the pickup's clock (08:00 tomorrow to start with).
-    var when = el.when, t0 = wallOf(new Date(Date.now() + 864e5), null);
-    when.value = wallDT({ year: t0.year, month: t0.month, day: t0.day, hour: 8, minute: 0 });
-    when.min = wallDT(wallOf(new Date(), null));
+    var when = el.when;
+    function morning() {
+      var t0 = wallOf(new Date(Date.now() + 864e5), null);
+      when.value = wallDT({ year: t0.year, month: t0.month, day: t0.day, hour: 8, minute: 0 });
+      when.min = wallDT(wallOf(new Date(), null));
+    }
+    morning();
     // Under it, once the pickup is known and the visitor's clock differs then: whose clock it
     // is ("Local time in Romania (GMT+3)."), as in the app.
     var zoneNote = d.createElement('p');
@@ -994,7 +998,8 @@ if (top !== self) top.location = location;
       }, function () { msg(p, L.err_pay); }).then(function () {
         paying = false;
         busyBtn(payBtn, false);
-        if (order && order.uid !== signedInAs()) dropCheckout();
+        if (forgetting) forget();
+        else if (order && order.uid !== signedInAs()) dropCheckout();
       });
     }
     payBtn.addEventListener('click', confirmPay);
@@ -1030,6 +1035,25 @@ if (top !== self) top.location = location;
       clockNote();
       msg(f, '');
       tripStore.del();
+    }
+    // Log out: the trip typed here goes too (addresses, time, passengers, note: a shared
+    // computer), and the card starts over as the page came. A payment on its way gets Stripe's
+    // answer first (confirmPay).
+    function forget() {
+      ed++; // an address lookup still on its way is for the trip that went
+      wantPay = false;
+      afterLogin = null;
+      if (paying) { forgetting = true; return; }
+      forgetting = false;
+      dropPayment();
+      reset();
+      f.reset();
+      morning();
+      sync();
+      msg(P.price, '');
+      msg(P.pay, '');
+      if (step !== 'trip') go('trip', { history: false });
+      if (routing && history.state && history.state.bk) history.replaceState(Object.assign({}, history.state, { bk: null, bkp: null, bkr: null }), '');
     }
 
     // ---- moving between steps
@@ -1186,7 +1210,9 @@ if (top !== self) top.location = location;
       // Back to the page from the browser's cache (bfcache), e.g. Back from a bank's page.
       revive: function () {
         if (paying) { paying = false; busyBtn(payBtn, false); }
-      }
+        if (forgetting) forget(); // logged out while that payment was on its way
+      },
+      forget: forget
     };
   }
 
@@ -1236,7 +1262,11 @@ if (top !== self) top.location = location;
           return [{ k: 'phone', label: J.f_phone, type: 'tel', ac: 'tel' }, { k: 'email', label: J.f_email, type: 'email', ac: 'email' }];
         }, check: function () {
           if (digits(a.phone).length < 6 || digits(a.phone).length > 15) return { k: 'phone', e: J.err_phone };
-          if (!EMAIL_RE.test(a.email || '')) return { k: 'email', e: J.err_email };
+          // Only a plain address, as the database takes it (20261028130000_mail_addresses): none of the characters
+          // a mailto link reads as a Bcc, a body or another address, no control characters, at most 200 characters.
+          if (!EMAIL_RE.test(a.email || '') || /[\x00-\x1f\x7f-\x9f?&=%,\/#:;<>()[\]\\"`]/.test(a.email) || a.email.length > 200) {
+            return { k: 'email', e: J.err_email };
+          }
           return '';
         } },
       { id: 'confirm', q: J.q_confirm, sub: J.confirm_sub, type: 'confirm' }
@@ -1391,6 +1421,53 @@ if (top !== self) top.location = location;
       s.textContent = old.textContent;
       old.parentNode.replaceChild(s, old);
     });
+  }
+
+  // ---------------------------------------------------------------- live counters
+
+  // The home page's live counters (batch 16, migration 20261028110000_live_counts): DomiVan's
+  // transporters, how many are online and how many people are travelling right now, from
+  // read_live_counts() (three counts from one row a database job fills every minute; null while
+  // Admin › Switches › Live counters is off or the count is stale). The page stays plain HTML
+  // without them: the box is empty and hidden until an answer comes, and hides again on null or a
+  // failed try. Asked when the home page shows and once a minute while the tab is in front, like
+  // the app's New trip (src/lib/live-count-rules.ts: the same rule as liveCountsOf, change both).
+  // The words are the app's own (lc_* in APP_TEXTS, scripts/panel_strings.py).
+  var LIVE_MS = 60e3, liveTimer = 0, liveSeq = 0;
+  function isCount(v) { return typeof v === 'number' && v % 1 === 0 && v >= 0 && v < 1e7; }
+  function liveCountsOf(a) {
+    if (!a || typeof a !== 'object' || Array.isArray(a)) return null;
+    if (!isCount(a.transporters) || !isCount(a.online) || !isCount(a.travelling)) return null;
+    return { transporters: a.transporters, online: a.online, travelling: a.travelling };
+  }
+  function countText(n) {
+    try { return new Intl.NumberFormat(locale(T.lang || 'en')).format(n); } catch (e) { return String(n); }
+  }
+  function renderLive(box, n) {
+    if (!n) {
+      box.hidden = true;
+      box.textContent = '';
+      box._lc = '';
+      return;
+    }
+    var html = '<p class="lc-h"><i aria-hidden="true"></i>' + esc(T.lc_title) + '</p><dl>'
+      + [[n.transporters, T.lc_transporters], [n.online, T.lc_online], [n.travelling, T.lc_travelling]].map(function (x) {
+        return '<div><dt>' + esc(x[1]) + '</dt><dd>' + esc(countText(x[0])) + '</dd></div>';
+      }).join('') + '</dl>';
+    if (box._lc !== html) { box.innerHTML = html; box._lc = html; }
+    box.hidden = false;
+  }
+  // Asks now and again in a minute, while the page that shows has the box and the tab is in front;
+  // otherwise it stops until the next arrival or the tab's return.
+  function askLive() {
+    clearTimeout(liveTimer);
+    liveTimer = 0;
+    var box = page && $('.livecounts', page), seq = ++liveSeq;
+    if (!box || d.visibilityState === 'hidden') return;
+    api('/rest/v1/rpc/read_live_counts', {}).then(liveCountsOf, nothing).then(function (n) {
+      if (seq === liveSeq && box.isConnected) renderLive(box, n);
+    });
+    liveTimer = setTimeout(askLive, LIVE_MS);
   }
 
   // ---------------------------------------------------------------- invite links (VIT partners)
@@ -1646,6 +1723,13 @@ if (top !== self) top.location = location;
     var s = getSession();
     clearSession();
     store.del(DRAFT); // a Join form started on this computer goes with the person
+    // So does a trip typed on the booking card, on this page and on a home page kept for Back
+    // (after clearSession, whose auth() saves the trip again for whoever signs in next).
+    tripStore.del();
+    [page].concat(Object.keys(screens).map(function (k) { return screens[k].page; })).forEach(function (p) {
+      var b = p && $('.deck > .book', p);
+      if (b && b._bk) b._bk.forget();
+    });
     if (!s) return;
     var stale = s.refresh_token && (!s.expires_at || s.expires_at - Date.now() / 1000 < 60);
     (stale ? renew(s).then(function (n) { return n.access_token; }) : Promise.resolve(s.access_token))
@@ -3429,6 +3513,7 @@ if (top !== self) top.location = location;
     if (open) openLogin({ fromUrl: true, instant: true, view: open }); // Back or Forward onto an open panel, or a language picked in Profile
     else focusPage(page, from);
     announce(d.title);
+    askLive();
   }
 
   function onClick(e) {
@@ -3706,6 +3791,8 @@ if (top !== self) top.location = location;
     history.replaceState(Object.assign({}, st, { dv: hIdx }), '');
 
     initPage(page, false);
+    askLive();
+    d.addEventListener('visibilitychange', function () { if (d.visibilityState === 'visible') askLive(); });
     tabbar = d.createElement('nav');
     tabbar.className = 'tabbar';
     d.body.appendChild(tabbar);
@@ -3746,6 +3833,7 @@ if (top !== self) top.location = location;
     });
     window.addEventListener('pageshow', function (e) {
       if (!e.persisted) return;
+      askLive();
       if (acct) acct.reset();
       var bk = curBook();
       if (bk) bk.revive();
