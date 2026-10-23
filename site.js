@@ -1220,6 +1220,135 @@ if (top !== self) top.location = location;
 
   // ---------------------------------------------------------------- Join Transporters
 
+  // Phone numbers with their country code (batch 17): the country first, then the number, saved as
+  // "+40 712345678" so the other side can call it as it is. A copy of src/lib/phone.ts, from
+  // DIAL_CODES to phoneValue(); scripts/app-tests/phone.test.mjs compares the two.
+  var DIAL_CODES = [
+    { cc: 'AD', dial: '376', min: 6, max: 9 },
+    { cc: 'AL', dial: '355', min: 8, max: 9 },
+    { cc: 'AT', dial: '43', min: 7, max: 13 },
+    { cc: 'BA', dial: '387', min: 8, max: 9 },
+    { cc: 'BE', dial: '32', min: 8, max: 9 },
+    { cc: 'BG', dial: '359', min: 7, max: 9 },
+    { cc: 'CH', dial: '41', min: 9, max: 9 },
+    { cc: 'CY', dial: '357', min: 8, max: 8 },
+    { cc: 'CZ', dial: '420', min: 9, max: 9 },
+    { cc: 'DE', dial: '49', min: 6, max: 13 },
+    { cc: 'DK', dial: '45', min: 8, max: 8 },
+    { cc: 'EE', dial: '372', min: 7, max: 8 },
+    { cc: 'ES', dial: '34', min: 9, max: 9 },
+    { cc: 'FI', dial: '358', min: 6, max: 12 },
+    { cc: 'FR', dial: '33', min: 9, max: 9 },
+    { cc: 'GB', dial: '44', min: 9, max: 10 },
+    { cc: 'GI', dial: '350', min: 8, max: 8 },
+    { cc: 'GR', dial: '30', min: 10, max: 10 },
+    { cc: 'HR', dial: '385', min: 8, max: 9 },
+    { cc: 'HU', dial: '36', min: 8, max: 9, trunk: '06' },
+    { cc: 'IE', dial: '353', min: 7, max: 9 },
+    { cc: 'IS', dial: '354', min: 7, max: 9 },
+    { cc: 'IT', dial: '39', min: 6, max: 11, trunk: '' },
+    { cc: 'LI', dial: '423', min: 7, max: 9 },
+    { cc: 'LT', dial: '370', min: 8, max: 8 },
+    { cc: 'LU', dial: '352', min: 6, max: 11 },
+    { cc: 'LV', dial: '371', min: 8, max: 8 },
+    { cc: 'MC', dial: '377', min: 8, max: 9 },
+    { cc: 'MD', dial: '373', min: 8, max: 8 },
+    { cc: 'ME', dial: '382', min: 8, max: 8 },
+    { cc: 'MK', dial: '389', min: 8, max: 8 },
+    { cc: 'MT', dial: '356', min: 8, max: 8 },
+    { cc: 'NL', dial: '31', min: 9, max: 9 },
+    { cc: 'NO', dial: '47', min: 8, max: 8 },
+    { cc: 'PL', dial: '48', min: 9, max: 9 },
+    { cc: 'PT', dial: '351', min: 9, max: 9 },
+    { cc: 'RO', dial: '40', min: 9, max: 9 },
+    { cc: 'RS', dial: '381', min: 7, max: 10 },
+    { cc: 'SE', dial: '46', min: 7, max: 10 },
+    { cc: 'SI', dial: '386', min: 8, max: 8 },
+    { cc: 'SK', dial: '421', min: 9, max: 9 },
+    { cc: 'SM', dial: '378', min: 6, max: 10, trunk: '' },
+    { cc: 'TR', dial: '90', min: 10, max: 10 },
+    { cc: 'UA', dial: '380', min: 9, max: 9 },
+    { cc: 'XK', dial: '383', min: 8, max: 9 }
+  ];
+  var LANGUAGE_COUNTRY = { ro: 'RO', pl: 'PL', bg: 'BG', hu: 'HU', es: 'ES', fr: 'FR', de: 'DE', nl: 'NL', pt: 'PT' };
+  function dialCode(cc) {
+    for (var i = 0; i < DIAL_CODES.length; i++) if (DIAL_CODES[i].cc === cc) return DIAL_CODES[i];
+    return undefined;
+  }
+  function guessCountry(region, lang) { var c = dialCode(region); return c ? c.cc : LANGUAGE_COUNTRY[lang] || null; }
+  // A number that starts with its country code (+40 …, 0040 …): that country and the rest.
+  function withCode(text) {
+    var m = /^\s*(?:\+|00)\s*([\d\s().-]+)$/.exec(text), digits, i;
+    if (!m) return null;
+    digits = m[1].replace(/\D/g, '');
+    for (i = 0; i < DIAL_CODES.length; i++) {
+      if (digits.indexOf(DIAL_CODES[i].dial) === 0) return { cc: DIAL_CODES[i].cc, rest: digits.slice(DIAL_CODES[i].dial.length) };
+    }
+    return null;
+  }
+  function phoneParts(saved, guess) {
+    var coded = saved ? withCode(saved) : null;
+    return coded ? { cc: coded.cc, number: coded.rest } : { cc: guess, number: saved || '' };
+  }
+  function typedParts(parts, text) {
+    var coded = withCode(text);
+    return coded ? { cc: coded.cc, number: coded.rest } : { cc: parts.cc, number: text };
+  }
+  function nationalDigits(c, typed) {
+    var n = typed.replace(/\D/g, ''), trunk = c.trunk === undefined ? '0' : c.trunk;
+    if (n.length > c.max && n.indexOf(c.dial) === 0) n = n.slice(c.dial.length);
+    if (trunk && n.indexOf(trunk) === 0) n = n.slice(trunk.length);
+    return n;
+  }
+  function phoneValue(parts) {
+    var c = dialCode(parts.cc), n;
+    if (!c) return null;
+    n = nationalDigits(c, parts.number);
+    return n.length >= c.min && n.length <= c.max ? '+' + c.dial + ' ' + n : null;
+  }
+  // The visitor's country from the browser's languages ("ro-RO"), else from the page's language.
+  function phoneGuess(lang) {
+    var langs = navigator.languages || [navigator.language || ''], i, m;
+    for (i = 0; i < langs.length; i++) {
+      m = /-([a-z]{2})\b/i.exec(langs[i] || '');
+      if (m && dialCode(m[1].toUpperCase())) return m[1].toUpperCase();
+    }
+    return guessCountry(null, lang);
+  }
+  // The country code button and the number (the Join form, Profile › Personal details): "RO +40 ▾"
+  // with the browser's own list over it, the countries by name in the page's language.
+  function phoneNow(c) { return c ? '<b>' + c.cc + '</b> +' + c.dial : esc(T.ph_pick); }
+  function phoneHtml(id, parts, lang) {
+    var c = dialCode(parts.cc), opts = DIAL_CODES.map(function (x) { return { cc: x.cc, dial: x.dial, name: countryName(x.cc, lang) }; })
+      .sort(function (x, y) { return x.name.localeCompare(y.name, locale(lang)); });
+    return '<div class="ph"><div class="ph-code"><span class="ph-now">' + phoneNow(c) + '</span><i aria-hidden="true">▾</i>'
+      + '<select name="phone_cc" aria-label="' + esc(T.ph_code) + '"><option value=""' + (c ? '' : ' selected') + '>' + esc(T.ph_pick) + '</option>'
+      + opts.map(function (o) {
+        return '<option value="' + o.cc + '"' + (c && o.cc === c.cc ? ' selected' : '') + '>' + esc(o.name + ' +' + o.dial) + '</option>';
+      }).join('')
+      + '</select></div><input id="' + id + '" name="phone" type="tel" autocomplete="tel-national" value="' + esc(parts.number) + '"></div>';
+  }
+  function setPhone(form, parts) {
+    form.elements.phone_cc.value = dialCode(parts.cc) ? parts.cc : '';
+    form.elements.phone.value = parts.number;
+    $('.ph-now', form).innerHTML = phoneNow(dialCode(parts.cc));
+  }
+  // The two fields of a form as typed: a number typed with its code moves the code to the button.
+  function readPhone(form) {
+    var parts = typedParts({ cc: form.elements.phone_cc.value || null, number: '' }, form.elements.phone.value.trim());
+    if (parts.cc !== (form.elements.phone_cc.value || null)) setPhone(form, parts);
+    return parts;
+  }
+  // Why a typed number can't be saved yet, or '' when it can.
+  function phoneProblem(parts, lang) {
+    if (!dialCode(parts.cc)) return T.ph_first;
+    return phoneValue(parts) ? '' : fill(T.ph_invalid, { country: countryName(parts.cc, lang) });
+  }
+  d.addEventListener('change', function (e) {
+    var sel = e.target;
+    if (sel.name === 'phone_cc' && sel.parentNode.classList.contains('ph-code')) $('.ph-now', sel.parentNode).innerHTML = phoneNow(dialCode(sel.value));
+  });
+
   // One question per frame, saved to Supabase (table transporter_applications, insert only).
   function initJoin(form, D) {
     var J = D.t, FLAGS = D.flags, API = SB + '/rest/v1/transporter_applications';
@@ -1259,9 +1388,10 @@ if (top !== self) top.location = location;
       { id: 'passenger_insurance', q: J.q_insurance, type: 'one', opts: yesNo },
       { id: 'name', q: J.q_name, type: 'fields', fields: function () { return [{ k: 'full_name', label: J.f_name, ac: 'name' }]; } },
       { id: 'contact', q: J.q_contact, type: 'fields', fields: function () {
-          return [{ k: 'phone', label: J.f_phone, type: 'tel', ac: 'tel' }, { k: 'email', label: J.f_email, type: 'email', ac: 'email' }];
+          return [{ k: 'phone', label: J.f_phone, type: 'phone' }, { k: 'email', label: J.f_email, type: 'email', ac: 'email' }];
         }, check: function () {
-          if (digits(a.phone).length < 6 || digits(a.phone).length > 15) return { k: 'phone', e: J.err_phone };
+          var problem = phoneProblem({ cc: a.phone_cc || null, number: a.phone }, J.lang);
+          if (problem) return { k: 'phone', e: problem };
           // Only a plain address, as the database takes it (20261028130000_mail_addresses): none of the characters
           // a mailto link reads as a Bcc, a body or another address, no control characters, at most 200 characters.
           if (!EMAIL_RE.test(a.email || '') || /[\x00-\x1f\x7f-\x9f?&=%,\/#:;<>()[\]\\"`]/.test(a.email) || a.email.length > 200) {
@@ -1293,6 +1423,14 @@ if (top !== self) top.location = location;
         h += '<div class="opts' + (s.grid ? ' grid' : '') + '">' + s.opts.map(function (o) { return optHtml(s, o); }).join('') + '</div>';
       } else if (s.type === 'fields') {
         h += '<div class="fields">' + s.fields().map(function (f) {
+          // The code starts on the company's country (the first step); a draft from before batch 17
+          // has the number without its code.
+          if (f.type === 'phone') {
+            return '<div><label for="j-phone"><span>' + esc(f.label) + '</span></label>'
+              + phoneHtml('j-phone', a.phone_cc ? { cc: a.phone_cc, number: a.phone || '' }
+                : phoneParts(a.phone, dialCode(a.country) ? a.country : phoneGuess(J.lang)), J.lang)
+              + '<em class="err" data-for="phone"></em></div>';
+          }
           return '<label><span>' + esc(f.label) + '</span><input name="' + f.k + '" type="' + (f.type || 'text') + '"'
             + (f.ac ? ' autocomplete="' + f.ac + '"' : '') + (f.mode ? ' inputmode="' + f.mode + '"' : '')
             + ' value="' + esc(a[f.k] || '') + '">' + (f.hint ? '<small>' + esc(f.hint) + '</small>' : '') + '<em class="err" data-for="' + f.k + '"></em></label>';
@@ -1334,6 +1472,10 @@ if (top !== self) top.location = location;
         var fs = s.fields();
         for (var n = 0; n < fs.length; n++) {
           a[fs[n].k] = box.querySelector('[name="' + fs[n].k + '"]').value.trim();
+          if (fs[n].type === 'phone') {
+            var parts = readPhone(form);
+            a.phone_cc = parts.cc || ''; a.phone = parts.number;
+          }
           if (!fs[n].optional && a[fs[n].k].length < 2) return err(fs[n].k, J.err_required);
         }
         var c = s.check && s.check(); save();
@@ -1356,7 +1498,7 @@ if (top !== self) top.location = location;
         company_name: a.company_name, reg_number: a.reg_number, vat_number: a.vat_number || null,
         licence: a.licence, fleet_size: a.fleet_size, van_classes: a.van_classes, destinations: a.destinations,
         passenger_insurance: a.passenger_insurance === 'yes',
-        full_name: a.full_name, phone: a.phone, email: a.email
+        full_name: a.full_name, phone: phoneValue({ cc: a.phone_cc || null, number: a.phone }), email: a.email
       };
       ref = keptRef();
       if (ref) row.referral_code = ref.code;
@@ -2560,7 +2702,8 @@ if (top !== self) top.location = location;
         return '<label><small>' + esc(label) + '</small><input name="' + k + '" type="' + (type || 'text') + '"' + (ac ? ' autocomplete="' + ac + '"' : '')
           + (ph ? ' placeholder="' + esc(ph) + '"' : '') + (k === 'email' ? ' disabled' : '') + '></label>';
       };
-      return '<form class="pn-form" novalidate>' + f('full_name', T.pn_name, 'text', 'name') + f('phone', T.pn_phone, 'tel', 'tel')
+      return '<form class="pn-form" novalidate>' + f('full_name', T.pn_name, 'text', 'name')
+        + '<div><label for="pf-phone"><small>' + esc(T.pn_phone) + '</small></label>' + phoneHtml('pf-phone', { cc: null, number: '' }, T.lang) + '</div>'
         + f('email', T.f_email, 'email', 'email')
         + '<h3 class="pf-sec">' + esc(T.pn_bill_h) + '</h3><p class="pn-note">' + esc(T.pn_bill_p) + '</p>'
         + f('billing_name', T.pn_bill_name, 'text', 'organization') + f('billing_vat_number', T.pn_bill_vat, 'text', 'off')
@@ -2583,15 +2726,18 @@ if (top !== self) top.location = location;
       f.hidden = false;
       if (f._for === u && f._at > meAt) return;
       f._for = u; f._at = Date.now();
-      ['full_name', 'phone', 'billing_name', 'billing_vat_number', 'billing_address'].forEach(function (k) { f.elements[k].value = me[k] || ''; });
+      ['full_name', 'billing_name', 'billing_vat_number', 'billing_address'].forEach(function (k) { f.elements[k].value = me[k] || ''; });
+      setPhone(f, phoneParts(me.phone, phoneGuess(T.lang))); // a number saved without its code gets one here
       f.elements.email.value = (getSession().user || {}).email || '';
       msg(f, '');
     }
     function saveDetails(f) {
       var btn = $('.go', f), v = function (k) { return f.elements[k].value.trim().replace(/\s+/g, ' '); };
-      var row = { full_name: v('full_name'), phone: v('phone'), billing_name: v('billing_name') || null,
+      var phone = readPhone(f), typed = /\d/.test(phone.number);
+      var row = { full_name: v('full_name'), phone: typed ? phoneValue(phone) : '', billing_name: v('billing_name') || null,
         billing_vat_number: v('billing_vat_number').toUpperCase() || null, billing_address: v('billing_address') || null };
       if (row.full_name.length < 2) return msg(f, T.err_name, 'full_name');
+      if (typed && !row.phone) return msg(f, phoneProblem(phone, T.lang), 'phone');
       if (btn.disabled) return;
       var u = uid();
       msg(f, '');

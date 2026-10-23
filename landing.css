@@ -5,8 +5,11 @@
   --primary: #0064D2; --primary-dark: #00439E; --sky: #8CBDF5; --sky-text: #B4D4F8; --sky-soft: rgba(43, 139, 242, .2);
   --navy: #16203A; --navy-dark: #0A0F1E; --amber: #FFB020; --amber-text: #FFC861; --amber-soft: rgba(255, 176, 32, .16);
   --night: #050B18; --line: rgba(255, 255, 255, .12); --line-soft: rgba(255, 255, 255, .08);
-  --panel: rgba(12, 20, 40, .66); --panel-hover: rgba(18, 28, 54, .74); --field: rgba(255, 255, 255, .1);
-  --glass: rgba(12, 20, 40, .5); --blur: blur(18px) saturate(150%);
+  /* The frames over the night map are 25% less see-through than they were (Martin, 2026-10-24: easier
+     to read over the city lights): opacity = 1 - 0.75 x (1 - the old one). A light tint keeps its shade
+     on the dark map: --field is the old white .1 over a 25% navy layer, --tint the old white .08. */
+  --panel: rgba(12, 20, 40, .745); --panel-hover: rgba(18, 28, 54, .805); --field: rgba(87, 92, 106, .325);
+  --tint: rgba(75, 81, 96, .31); --glass: rgba(12, 20, 40, .625); --blur: blur(18px) saturate(150%);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -68,7 +71,7 @@ h1[tabindex="-1"]:focus, .page[tabindex="-1"]:focus { outline: none; }
 /* Hero */
 .hero { position: relative; color: #fff; padding: 72px 0 88px; }
 .hero-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; }
-.eyebrow { display: inline-block; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 226, 168, .3); color: #FFE2A8; font-weight: 700; font-size: 14px; border-radius: 999px; padding: 4px 12px; margin: 0 0 18px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.eyebrow { display: inline-block; background: var(--tint); border: 1px solid rgba(255, 226, 168, .3); color: #FFE2A8; font-weight: 700; font-size: 14px; border-radius: 999px; padding: 4px 12px; margin: 0 0 18px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035em; }
 .hero h1 { color: #fff; text-shadow: 0 2px 24px rgba(5, 11, 24, .6); }
 .lead { font-size: 19px; color: var(--muted); margin: 0 0 28px; max-width: 34em; text-wrap: pretty; } /* no word alone on a last line (build-site.py ties the last words too) */
@@ -114,7 +117,7 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .card input[aria-invalid] { border-color: #FF9B8A; }
 .book-body { padding: 20px 22px 6px; display: grid; gap: 14px; }
 /* Segmented control: a white pill slides under the chosen side. */
-.kinds { position: relative; display: grid; grid-template-columns: 1fr 1fr; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .1); border-radius: 14px; padding: 4px; }
+.kinds { position: relative; display: grid; grid-template-columns: 1fr 1fr; background: var(--tint); border: 1px solid rgba(255, 255, 255, .1); border-radius: 14px; padding: 4px; }
 .kinds::before { content: ""; position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 11px; background: rgba(255, 255, 255, .94); box-shadow: 0 2px 8px rgba(0, 0, 0, .25); transform: translateX(calc(var(--i, 0) * 100%)); transition: transform .38s cubic-bezier(.22, .8, .24, 1); }
 .book.is-live .kinds, .kinds:has(label:last-child input:checked) { --i: 1; }
 .kinds label { position: relative; z-index: 1; }
@@ -128,8 +131,8 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .road .dash { width: 0; flex: 1; min-height: 34px; border-left: 2px dotted rgba(255, 255, 255, .45); margin: 4px 0; }
 .road .ring { width: 8px; height: 8px; border-radius: 50%; border: 3px solid var(--amber); box-shadow: 0 0 10px var(--amber); }
 .addr { display: grid; gap: 10px; }
-.swap { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .2); background: rgba(255, 255, 255, .1); color: #fff; display: grid; place-items: center; cursor: pointer; margin-top: 18px; }
-.swap:hover { background: rgba(255, 255, 255, .2); }
+.swap { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .2); background: var(--field); color: #fff; display: grid; place-items: center; cursor: pointer; margin-top: 18px; }
+.swap:hover { background: rgba(134, 140, 148, .4); }
 .swap svg { width: 20px; height: 20px; }
 .live-note { display: none; margin: 0; color: #FFE2A8; background: rgba(255, 176, 32, .14); border: 1px solid rgba(255, 176, 32, .3); border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 600; }
 .book.is-live .when { display: none; }
@@ -629,7 +632,7 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 
 /* Invite from a VIT partner (site.js, domivan.com/r/CODE): under the lead on wide screens, between
    the pill and the card spot on phones. Glass like the cards, with an amber edge. */
-.invite { margin: 0 0 28px; max-width: 34em; padding: 16px 18px 18px; border-radius: 22px; color: #fff; background: rgba(12, 20, 40, .62); border: 1px solid rgba(255, 226, 168, .32); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); box-shadow: 0 30px 70px -30px rgba(0, 0, 0, .75), inset 0 1px 0 rgba(255, 255, 255, .1); color-scheme: dark; }
+.invite { margin: 0 0 28px; max-width: 34em; padding: 16px 18px 18px; border-radius: 22px; color: #fff; background: rgba(12, 20, 40, .715); border: 1px solid rgba(255, 226, 168, .32); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); box-shadow: 0 30px 70px -30px rgba(0, 0, 0, .75), inset 0 1px 0 rgba(255, 255, 255, .1); color-scheme: dark; }
 .invite.small { padding: 12px 12px 12px 14px; }
 .inv-head { display: flex; align-items: center; gap: 12px; }
 .inv-head .back-btn { margin-right: -4px; }
@@ -686,7 +689,7 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .join { min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px); padding: 48px 16px 56px; display: grid; place-items: start center; }
 .join-inner { position: relative; z-index: 1; width: 100%; max-width: 560px; text-align: center; }
 .join-time { color: var(--muted); font-size: 14px; margin: -8px 0 18px; }
-.frame { text-align: left; color: #fff; background: rgba(12, 20, 40, .55); border: 1px solid rgba(255, 255, 255, .16); border-radius: 28px; padding: 22px 24px 26px; backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); box-shadow: 0 40px 90px -30px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .12); color-scheme: dark; overflow: hidden; }
+.frame { text-align: left; color: #fff; background: rgba(12, 20, 40, .66); border: 1px solid rgba(255, 255, 255, .16); border-radius: 28px; padding: 22px 24px 26px; backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); box-shadow: 0 40px 90px -30px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .12); color-scheme: dark; overflow: hidden; }
 .progress { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .1); overflow: hidden; }
 .progress span { display: block; height: 100%; width: 0; border-radius: 3px; background: linear-gradient(90deg, var(--sky), var(--amber)); transition: width .4s ease; }
 .frame-top { display: flex; justify-content: space-between; align-items: center; min-height: 40px; margin: 6px 0 4px; }
@@ -717,6 +720,15 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .fields label span { display: block; color: var(--soft); font-size: 13px; font-weight: 700; margin-bottom: 5px; }
 .fields input { font: inherit; font-size: 17px; color: #fff; width: 100%; background: var(--field); border: 1.5px solid rgba(255, 255, 255, .14); border-radius: 14px; padding: 13px 14px; }
 .fields input:focus { outline: none; border-color: var(--sky); background: rgba(255, 255, 255, .16); }
+/* A phone number (batch 17): the country code first, "RO +40" with the browser's own list over it, then the number. */
+.ph { display: flex; gap: 8px; }
+.ph input { flex: 1; min-width: 0; }
+.ph-code { position: relative; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 12px; color: #fff; font-weight: 700; background: var(--field); border: 1.5px solid rgba(255, 255, 255, .14); border-radius: 12px; }
+.ph-code b { color: var(--soft); font-size: 12px; }
+.ph-code i { font-style: normal; color: var(--soft); font-size: 12px; }
+.ph-code select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+.ph-code:focus-within { border-color: var(--sky); background: rgba(255, 255, 255, .16); }
+.fields .ph-code { border-radius: 14px; font-size: 17px; }
 .fields small { display: block; color: var(--muted); font-size: 13px; margin-top: 5px; }
 .err { display: block; color: #FFB4A8; font-style: normal; font-size: 14px; font-weight: 600; margin-top: 6px; }
 .err:empty { display: none; }
