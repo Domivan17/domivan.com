@@ -3510,34 +3510,43 @@ if (top !== self) top.location = location;
 
   // ---------------------------------------------------------------- language card
 
-  // The first visit: before anything else the visitor picks a language, like the apps' first
-  // launch (src/components/language-sheet.tsx). A card in the middle of the page, under it a
-  // white veil that softens the page; the ten languages in their own words (the header's
-  // language menu: same order, flags and links), the browser's own first and highlighted, and
-  // the question in the browser's language (T.gate_q). Nothing behind it can be clicked,
-  // scrolled or reached with the keyboard, and Escape doesn't close it. The pick is kept where
-  // the apps keep theirs on the web (domivan.language, which /book reads too: one choice for the
-  // whole site), then the site goes to this page in that language, with its #panel. Later visits
-  // never ask again, and the language menu and Profile › Language keep the choice up to date.
-  // The page stays plain HTML under the card, for search engines and visitors without
-  // JavaScript. Not asked, this page's language kept: a page the apps opened (?app=1, already in
-  // the app's language), a visitor signed in (paying needs it too) or back from a Google or Apple
-  // sign-in or a payment (they have been here before), and a browser that keeps nothing (the card
-  // would come back on every page). A visitor with a choice who comes to an English page from
-  // outside the site (typed domivan.com, an unprefixed link) gets that page in their language;
-  // a /xx/ address stays as it is.
+  // Every visit: before anything else a visitor who is not signed in picks a language, like the
+  // apps at each start (src/components/language-sheet.tsx). A card in the middle of the page,
+  // under it a white veil that softens the page; the ten languages in their own words (the
+  // header's language menu: same order, flags and links), the kept choice first and highlighted
+  // (else the browser's own), and the question in that language (T.gate_q). Nothing behind it
+  // can be clicked, scrolled or reached with the keyboard, and Escape doesn't close it. The pick
+  // is kept where the apps keep theirs on the web (domivan.language, which /book reads too: one
+  // choice for the whole site) and marked for this visit (domivan.language-asked in
+  // sessionStorage, which /book reads too), then the site goes to this page in that language,
+  // with its #panel. A visit is a tab that came from outside the site (typed in, a link from
+  // elsewhere, an invite link); its reloads, and tabs opened from the site's own pages, are the
+  // same visit. The language menu and Profile › Language keep the choice up to date. The page
+  // stays plain HTML under the card, for search engines and visitors without JavaScript. Not
+  // asked, this page's language kept: a page the apps opened (?app=1, already in the app's
+  // language), a visitor signed in (paying needs it too) or back from a Google or Apple sign-in
+  // or a payment (they have been here before), and a browser that keeps nothing (the card would
+  // come back on every page). A visitor with a choice who isn't asked (signed in, or later in the
+  // visit) and comes to an English page from outside the site (typed domivan.com, an unprefixed
+  // link) gets that page in their language; a /xx/ address stays as it is.
   var LANG_KEY = 'domivan.language';
+  var LANG_ASKED = 'domivan.language-asked';
   var LANG_CODES = ['en', 'ro', 'pl', 'bg', 'hu', 'es', 'fr', 'de', 'nl', 'pt'];
   var LANG_PATH = new RegExp('^/(' + LANG_CODES.slice(1).join('|') + ')/');
   var gate = null;
   function keptLang() { var v = store.get(LANG_KEY); return LANG_CODES.indexOf(v) >= 0 ? v : null; }
   function keepLang(code) { if (LANG_CODES.indexOf(code) >= 0) store.set(LANG_KEY, code); }
-  // Whether this browser keeps what the site stores (some private modes refuse it).
+  function askedThisVisit() { try { return sessionStorage.getItem(LANG_ASKED) === '1'; } catch (e) { return false; } }
+  function markAsked() { try { sessionStorage.setItem(LANG_ASKED, '1'); } catch (e) {} }
+  // Whether this browser keeps what the site stores, for good and for the visit (some private
+  // modes refuse it).
   function storageKeeps() {
     try {
       localStorage.setItem('domivan-check', '1');
-      var ok = localStorage.getItem('domivan-check') === '1';
+      sessionStorage.setItem('domivan-check', '1');
+      var ok = localStorage.getItem('domivan-check') === '1' && sessionStorage.getItem('domivan-check') === '1';
       localStorage.removeItem('domivan-check');
+      sessionStorage.removeItem('domivan-check');
       return ok;
     } catch (e) { return false; }
   }
@@ -3565,18 +3574,19 @@ if (top !== self) top.location = location;
     return null;
   }
 
-  // o: { app, back (a sign-in or payment coming back), signedIn }.
+  // o: { app, back (a sign-in or payment coming back), signedIn, invite (an invite link, which
+  // comes through 404.html: a new visit, though the address it came from is the site's) }.
   function langGate(o) {
-    var here = root.lang, kept = keptLang(), hrefs = {};
+    var here = root.lang, kept = keptLang(), hrefs = {}, outside = o.invite || !fromSite();
     var links = $$('.top .lang .menu a[hreflang]').filter(function (a) { return LANG_CODES.indexOf(a.getAttribute('hreflang')) >= 0; });
     links.forEach(function (a) { hrefs[a.getAttribute('hreflang')] = a.href; });
-    if (kept) {
-      if (kept !== here && hrefs[kept] && !o.app && !o.back && !LANG_PATH.test(location.pathname) && !fromSite()) goLang(kept, hrefs);
+    if (o.app || o.back || (o.signedIn && !kept)) { if (!kept) keepLang(here); return; }
+    if (kept && (o.signedIn || askedThisVisit() || !outside)) {
+      if (kept !== here && hrefs[kept] && !LANG_PATH.test(location.pathname) && outside) goLang(kept, hrefs);
       return;
     }
-    if (o.app || o.back || o.signedIn) { keepLang(here); return; }
     if (links.length < 2 || !storageKeeps()) return;
-    var first = browserLang(), q = T.gate_q || {}, ask = q[first] ? first : q[here] ? here : 'en';
+    var first = kept || browserLang(), q = T.gate_q || {}, ask = q[first] ? first : q[here] ? here : 'en';
     links.sort(function (a, b) { return (b.getAttribute('hreflang') === first) - (a.getAttribute('hreflang') === first); });
 
     var el = d.createElement('div');
@@ -3642,6 +3652,7 @@ if (top !== self) top.location = location;
   function pickLang(code, hrefs) {
     if (!gate) return;
     keepLang(code);
+    markAsked();
     var el = gate.el;
     if (gate.watch) gate.watch.disconnect();
     gate.shut.forEach(function (x) { x.removeAttribute('inert'); });
@@ -3685,8 +3696,9 @@ if (top !== self) top.location = location;
     var cb = takeCallback();
     oauthBack = !!cb;
     takeBooked();
+    var invited = /[?&]r=/.test(location.search); // for the language card (below), before takeRef takes it off
     takeRef();
-    var fromApp = takeApp(), back = !!(cb || stripeBack); // for the language card (below)
+    var fromApp = takeApp(), back = !!(cb || stripeBack);
     curKey = location.pathname + location.search;
     var st = history.state || {};
     hIdx = st.dv != null ? st.dv : stamp();
@@ -3704,8 +3716,8 @@ if (top !== self) top.location = location;
     if (cb) { openLogin({ replace: true, instant: true }); acct.callback(cb); }
     else if (acctHash()) openLogin({ fromUrl: true, instant: true, view: acctHash() });
     else if (st.y && !location.hash) jump(st.y);
-    // The first visit's language card, over whatever the address opened.
-    langGate({ app: fromApp, back: back, signedIn: !!getSession() });
+    // The visit's language card, over whatever the address opened.
+    langGate({ app: fromApp, back: back, signedIn: !!getSession(), invite: invited });
     window.addEventListener('keydown', gateKeys, true);
     d.addEventListener('focusin', gateFocus);
     d.addEventListener('click', langLinkClick, true);
