@@ -49,6 +49,14 @@ if (top !== self) top.location = location;
   var REF = 'domivan-referral'; // a VIT invite code, same key as the apps (src/lib/referral.ts)
   // name@domain.tld, with no empty parts (no '..', no dot at either end).
   var EMAIL_RE = /^[^@\s.]+(?:\.[^@\s.]+)*@[^@\s.]+(?:\.[^@\s.]+)+$/;
+  // The longest text the database takes in each column the forms write, so nobody types past it:
+  // profiles (Personal details, 20261028120000_text_bounds) and transporter_applications (Join
+  // Transporters, 20261017050000_transporter_applications). The apps' copy is src/lib/text-limits.ts;
+  // scripts/app-tests/text-limits.test.mjs compares both with the migrations.
+  var TEXT_MAX = {
+    full_name: 120, phone: 30, billing_name: 200, billing_vat_number: 40, billing_address: 300,
+    company_name: 200, reg_number: 40, vat_number: 40, email: 200
+  };
   var EASE = 'cubic-bezier(.22, .8, .24, 1)';
   // Phones: the one-column layout (landing.css). The home page opens on Log in / Create account
   // there. The Transporters buttons go to the driver app's store page instead of /join on phones
@@ -74,6 +82,13 @@ if (top !== self) top.location = location;
     });
   }
   function fill(s, v) { return String(s || '').replace(/\{(\w+)\}/g, function (m, k) { return v[k] != null ? v[k] : m; }); }
+  // The Call link for a phone someone else typed, as the apps build it (telLink in
+  // src/lib/contact-links.ts; scripts/app-tests/contact-links.test.mjs compares them): the digits
+  // only, after a + when one comes before the first digit; '' when there is nothing to call.
+  function telHref(phone) {
+    var digits = String(phone).replace(/\D/g, '');
+    return digits ? 'tel:' + (/^\D*\+/.test(phone) ? '+' : '') + digits : '';
+  }
   var store = {
     get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
@@ -415,16 +430,32 @@ if (top !== self) top.location = location;
   // Picking one keeps that exact place on the field (input._place); typing again drops it.
   // With HERE_OK, the first row while the field has the focus is My location; what stops it
   // goes to the form as a dv-here event (its detail the text, '' to clear it).
+  // The X on the right empties the field as if the visitor had deleted it all, and the field keeps the focus.
   var sgN = 0;
+  var CLEAR_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/>'
+    + '<path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="#0A1222" stroke-width="2.2" stroke-linecap="round"/></svg>';
   function Suggest(input) {
     var label = input.closest('label'), box = d.createElement('div'), list = d.createElement('ul'), id = 'sg' + (++sgN);
     var items = [], shown = [], active = -1, timer = 0, ctl = null, seq = 0;
     // My location's row, and its answer only while nothing was typed since it was asked for.
     var here = HERE_OK ? { here: true } : null, locating = false, hereN = 0;
+    var clear = d.createElement('button');
     box.className = 'af';
     label.parentNode.insertBefore(box, label);
     box.appendChild(label);
+    box.appendChild(clear);
     box.appendChild(list);
+    clear.type = 'button';
+    clear.className = 'clr';
+    clear.setAttribute('aria-label', T.clear_addr);
+    clear.title = T.clear_addr;
+    clear.innerHTML = CLEAR_ICON;
+    clear.addEventListener('mousedown', function (e) { e.preventDefault(); }); // the field keeps the focus (and a phone its keyboard)
+    clear.addEventListener('click', function () {
+      input.value = '';
+      input.dispatchEvent(new Event('input', { bubbles: true })); // drops the picked place; the form's trip is edited
+      input.focus({ preventScroll: true });
+    });
     list.className = 'sugg';
     list.id = id;
     list.hidden = true;
@@ -632,6 +663,13 @@ if (top !== self) top.location = location;
     }
   }
 
+  // Martin's cancellation rule (2026-10-24) as the booking card states it, the same numbers as
+  // src/lib/cancel-rule.ts and cancellation_steps() in the database (migration
+  // 20261030110000_cancel_rule), which decides each cancellation; scripts/app-tests/cancel-rule.test.mjs
+  // holds the copies equal. Until 48 hours before pickup, and before a transporter accepts: all back
+  // but the cancellation charge; then 75% until the pickup time.
+  var CANCEL_RULE = { chargeCents: 359, freeHours: 48, lateRefundPct: 75 };
+
   // ---------------------------------------------------------------- booking card (home)
   //
   // Book your trip books the whole trip in place: its steps slide inside the card (trip, price,
@@ -654,8 +692,282 @@ if (top !== self) top.location = location;
     km: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c3-1 3-6 7-7s4-6 7-7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-dasharray="2.2 3"/><circle cx="5" cy="19" r="2" fill="currentColor"/><circle cx="19" cy="5" r="2" fill="currentColor"/></svg>',
     lock: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke="currentColor" stroke-width="1.9"/></svg>',
     ok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    doc: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h7.5l4.5 4.5v12.5h-12z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M14 3.5V8h4.5M9.5 12.5h5.5M9.5 16h5.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>'
+    doc: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h7.5l4.5 4.5v12.5h-12z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M14 3.5V8h4.5M9.5 12.5h5.5M9.5 16h5.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
+    call: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 3.5h2.6l1.6 4.2-2 1.4a11 11 0 0 0 6.1 6.1l1.4-2 4.2 1.6v2.6a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z" fill="currentColor"/></svg>'
   };
+  // ---------------------------------------------------------------- the pickup's date and time
+  //
+  // The booking card's own date and time picker (batch 19; Martin: the browser's one "looks really
+  // raw"). Two buttons, as in the apps (src/components/wall-picker.tsx): the date opens a month,
+  // Monday first, in the page's language; the time a grid of quarter hours, an hour a row. On a
+  // computer each opens under its button, on a phone as a sheet from the bottom. The value stays
+  // the clock reading in the form's own "when" field, hidden now (wallDT, parseDT), on the pickup's
+  // clock (opts.zone()); what can be picked starts at earliestWall(). Without JavaScript the page
+  // keeps the browser's field.
+  var QUARTER = 15;
+  // The first pickup offered: 2 hours from now (what create-order takes), on the next quarter hour
+  // of the pickup's clock (the visitor's while the pickup isn't known), as the apps' earliestPickup.
+  // In the hour the clocks go back a reading means its first time, so the first one late enough
+  // can be an hour on.
+  function earliestWall(zone, now) {
+    var step = QUARTER * 60e3, soonest = now + 2 * 3600e3;
+    for (var ms = Math.ceil(soonest / step) * step; ; ms += step) {
+      var w = wallOf(new Date(ms), zone);
+      if (wallMoment(w, zone).getTime() >= soonest) return w;
+    }
+  }
+  function dayNum(w) { return w.year * 1e4 + w.month * 100 + w.day; }
+  function wallNum(w) { return dayNum(w) * 1e4 + w.hour * 100 + w.minute; }
+  function numWall(n, hour, minute) { return { year: Math.floor(n / 1e4), month: Math.floor(n / 100) % 100, day: n % 100, hour: hour, minute: minute }; }
+  // A reading in the page's language: written as a UTC reading on UTC's clock, so it stays the reading.
+  function wallName(lang, parts, w) {
+    var t = new Date(Date.UTC(w.year, w.month - 1, w.day, w.hour || 0, w.minute || 0));
+    try { return new Intl.DateTimeFormat(locale(lang), Object.assign({ timeZone: 'UTC' }, parts)).format(t); } catch (e) { return wallDT(w).replace('T', ' '); }
+  }
+  function upFirst(s) { return s.charAt(0).toLocaleUpperCase() + s.slice(1); }
+  var WP_IC = {
+    clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    prev: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    next: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
+  };
+  var DAY_SHORT = { weekday: 'short', day: 'numeric', month: 'short' };
+  var wpN = 0;
+  var DAY_LONG = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+  function WhenPicker(input, opts) {
+    var L = T, lang = L.lang, label = input.closest('label'), phone = window.matchMedia('(max-width: 860px)');
+    // The label becomes a group: it holds two buttons now, and a label names one control only.
+    var group = d.createElement('div'), cap = $('small', label), btns = d.createElement('div');
+    group.className = label.className;
+    group.setAttribute('role', 'group');
+    cap.id = 'wp-cap' + (++wpN);
+    group.setAttribute('aria-labelledby', cap.id);
+    label.parentNode.replaceChild(group, label);
+    input.type = 'hidden';
+    btns.className = 'wp-btns';
+    btns.innerHTML = '<button type="button" class="wp-btn wp-date" aria-haspopup="dialog" aria-expanded="false">' + IC.cal + '<span></span></button>'
+      + '<button type="button" class="wp-btn wp-time" aria-haspopup="dialog" aria-expanded="false">' + WP_IC.clock + '<span></span></button>';
+    group.appendChild(cap);
+    group.appendChild(btns);
+    group.appendChild(input);
+    var dateBtn = $('.wp-date', btns), timeBtn = $('.wp-time', btns);
+    var pop = null, scrim = null, mode = null, opener = null, view = null;
+
+    function zone() { return opts.zone(); }
+    function first() { return earliestWall(zone(), Date.now()); }
+    function value() { return parseDT(input.value) || first(); }
+    // The buttons say the reading, as the apps' do: the date without its year in this year.
+    function show() {
+      var w = parseDT(input.value), dt = '', tm = '';
+      if (w) {
+        dt = wallName(lang, w.year === new Date().getFullYear() ? DAY_SHORT : Object.assign({ year: 'numeric' }, DAY_SHORT), w);
+        tm = wallName(lang, TIME, w);
+      }
+      $('span', dateBtn).textContent = dt;
+      $('span', timeBtn).textContent = tm;
+      dateBtn.setAttribute('aria-label', L.wp_date + ': ' + dt);
+      timeBtn.setAttribute('aria-label', L.wp_time + ': ' + tm);
+    }
+    function set(w) {
+      input.value = wallDT(w);
+      show();
+      input.dispatchEvent(new Event('change', { bubbles: true })); // the form's trip is edited, its clock note redone
+    }
+
+    function head(title, sub) {
+      return '<div class="wp-head"><b>' + esc(title) + '</b>' + (sub ? '<span>' + esc(sub) + '</span>' : '')
+        + '<button type="button" class="wp-x" aria-label="' + esc(L.pn_close) + '">' + WP_IC.x + '</button></div>';
+    }
+    // The month in view: a button a day; days before the first pickup are off.
+    function drawDate(focus) {
+      var y = view.year, m = view.month, lead = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7;
+      var days = new Date(Date.UTC(y, m, 0)).getUTCDate(), min = dayNum(first()), today = dayNum(wallOf(new Date(), zone()));
+      var cur = parseDT(input.value), at = cur ? dayNum(cur) : 0, i;
+      var h = head(L.wp_date) + '<div class="wp-month">'
+        + '<button type="button" class="wp-nav" data-go="-1" aria-label="' + esc(L.wp_prev) + '"' + (y * 100 + m <= Math.floor(min / 100) ? ' disabled' : '') + '>' + WP_IC.prev + '</button>'
+        + '<h3 id="wp-month" aria-live="polite">' + esc(upFirst(wallName(lang, { month: 'long', year: 'numeric' }, { year: y, month: m, day: 1 }))) + '</h3>'
+        + '<button type="button" class="wp-nav" data-go="1" aria-label="' + esc(L.wp_next) + '">' + WP_IC.next + '</button></div>'
+        + '<table class="wp-grid" role="grid" aria-labelledby="wp-month"><thead><tr>';
+      for (i = 0; i < 7; i++) { // 1 January 2024 was a Monday
+        var wd = { year: 2024, month: 1, day: 1 + i };
+        h += '<th scope="col" abbr="' + esc(wallName(lang, { weekday: 'long' }, wd)) + '">' + esc(wallName(lang, { weekday: 'short' }, wd)) + '</th>';
+      }
+      h += '</tr></thead><tbody>';
+      for (i = 0; i < Math.ceil((lead + days) / 7) * 7; i++) {
+        var dd = i - lead + 1, n = y * 1e4 + m * 100 + dd;
+        if (i % 7 === 0) h += '<tr>';
+        h += dd < 1 || dd > days ? '<td></td>' : '<td><button type="button" class="wp-day" tabindex="-1" data-n="' + n + '" aria-label="'
+          + esc(wallName(lang, DAY_LONG, numWall(n, 12, 0))) + '"' + (n === at ? ' aria-pressed="true"' : '') + (n === today ? ' aria-current="date"' : '')
+          + (n < min ? ' disabled' : '') + '>' + dd + '</button></td>';
+        if (i % 7 === 6) h += '</tr>';
+      }
+      pop.innerHTML = h + '</tbody></table>';
+      var to = $('.wp-day[data-n="' + (focus || at) + '"]:not(:disabled)', pop) || $('.wp-day:not(:disabled)', pop);
+      if (to) to.tabIndex = 0;
+      return to;
+    }
+    // The chosen day's quarter hours, an hour a row, from the first pickup on; a reading the
+    // clocks skip (the hour they go forward) is off.
+    function drawTime(focus) {
+      var w = value(), min = wallNum(first()), at = parseDT(input.value), atNum = at ? wallNum(at) : 0, z = zone();
+      var h = head(L.wp_time, upFirst(wallName(lang, DAY_SHORT, w))) + '<div class="wp-scroll"><table class="wp-grid wp-tg" role="grid" aria-label="'
+        + esc(L.wp_time) + '"><tbody>';
+      for (var hour = 0; hour < 24; hour++) {
+        if (wallNum({ year: w.year, month: w.month, day: w.day, hour: hour, minute: 59 }) < min) continue;
+        h += '<tr>';
+        for (var minute = 0; minute < 60; minute += QUARTER) {
+          var x = { year: w.year, month: w.month, day: w.day, hour: hour, minute: minute }, n = wallNum(x);
+          var real = wallNum(wallOf(wallMoment(x, z), z)) === n;
+          h += '<td><button type="button" class="wp-q" tabindex="-1" data-n="' + n + '"' + (n === atNum ? ' aria-pressed="true"' : '')
+            + (n < min || !real ? ' disabled' : '') + '>' + pad2(hour) + ':' + pad2(minute) + '</button></td>';
+        }
+        h += '</tr>';
+      }
+      pop.innerHTML = h + '</tbody></table></div>';
+      var to = $('.wp-q[data-n="' + (focus || atNum) + '"]:not(:disabled)', pop) || $('.wp-q:not(:disabled)', pop);
+      if (to) {
+        to.tabIndex = 0;
+        var box = $('.wp-scroll', pop), row = to.closest('tr');
+        box.scrollTop = Math.max(0, row.offsetTop - box.clientHeight / 2 + row.offsetHeight / 2);
+      }
+      return to;
+    }
+    function draw(focus) {
+      var to = mode === 'date' ? drawDate(focus) : drawTime(focus);
+      place();
+      return to;
+    }
+
+    // Under the buttons on a computer (above them if there is no room below); a sheet on a phone.
+    function place() {
+      if (!pop) return;
+      var sheet = phone.matches;
+      pop.classList.toggle('as-sheet', sheet);
+      if (scrim) scrim.hidden = !sheet;
+      if (sheet) { pop.style.left = pop.style.top = pop.style.width = ''; return; }
+      var r = btns.getBoundingClientRect(), w = Math.max(r.width, mode === 'date' ? 320 : 300);
+      pop.style.width = w + 'px';
+      pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+      var hgt = pop.offsetHeight, below = window.innerHeight - r.bottom - 14;
+      pop.style.top = Math.max(8, below >= hgt || below >= r.top ? r.bottom + 6 : r.top - hgt - 6) + 'px';
+    }
+    function open(which) {
+      close();
+      mode = which;
+      opener = which === 'date' ? dateBtn : timeBtn;
+      var w = value();
+      view = { year: w.year, month: w.month };
+      scrim = d.createElement('div');
+      scrim.className = 'wp-scrim';
+      pop = d.createElement('div');
+      pop.className = 'wp wp-for-' + which;
+      pop.setAttribute('role', 'dialog');
+      pop.setAttribute('aria-modal', 'true');
+      pop.setAttribute('aria-label', which === 'date' ? L.wp_date : L.wp_time);
+      pop.addEventListener('click', onClick);
+      pop.addEventListener('keydown', onKey);
+      scrim.addEventListener('click', function () { close(true); });
+      d.body.appendChild(scrim);
+      d.body.appendChild(pop);
+      opener.setAttribute('aria-expanded', 'true');
+      var to = draw();
+      if (to) to.focus({ preventScroll: true });
+      window.addEventListener('resize', place);
+      window.addEventListener('scroll', place, true);
+      window.addEventListener('popstate', away);
+      d.addEventListener('pointerdown', outside, true);
+    }
+    function close(back) {
+      if (!pop) return;
+      pop.remove();
+      scrim.remove();
+      pop = scrim = null;
+      dateBtn.setAttribute('aria-expanded', 'false');
+      timeBtn.setAttribute('aria-expanded', 'false');
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('popstate', away);
+      d.removeEventListener('pointerdown', outside, true);
+      if (back) opener.focus({ preventScroll: true });
+      mode = null;
+    }
+    function away() { close(); }
+    function outside(e) { if (pop && !pop.contains(e.target) && !btns.contains(e.target) && e.target !== scrim) close(); }
+
+    function onClick(e) {
+      var b = e.target.closest('button');
+      if (!b || b.disabled) return;
+      if (b.classList.contains('wp-x')) return close(true);
+      if (b.dataset.go) {
+        var k = view.month - 1 + +b.dataset.go;
+        view = { year: view.year + Math.floor(k / 12), month: ((k % 12) + 12) % 12 + 1 };
+        draw();
+        var again = $('[data-go="' + b.dataset.go + '"]', pop);
+        return (again && !again.disabled ? again : $('.wp-day[tabindex="0"]', pop)).focus();
+      }
+      var n = +b.dataset.n, w = value(), min = first(), next;
+      if (b.classList.contains('wp-day')) {
+        next = numWall(n, w.hour, w.minute);
+        if (wallNum(next) < wallNum(min)) next = min; // that day's time has gone by: the first one left
+      } else next = numWall(Math.floor(n / 1e4), Math.floor(n / 100) % 100, n % 100);
+      set(next);
+      close(true);
+    }
+    // Arrows move a day (a quarter hour), up and down a week (an hour); Home and End go to the row's
+    // ends; Page Up and Down a month (with Shift a year). Escape closes; Tab stays inside.
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return close(true); }
+      if (e.key === 'Tab') {
+        var all = $$('button:not(:disabled)', pop).filter(function (b) { return b.tabIndex >= 0; });
+        var i = all.indexOf(d.activeElement), j = e.shiftKey ? (i <= 0 ? all.length - 1 : i - 1) : (i + 1) % all.length;
+        e.preventDefault();
+        return all[j] && all[j].focus();
+      }
+      var b = e.target.closest('.wp-day, .wp-q');
+      if (!b) return;
+      var to = mode === 'date' ? dayKey(+b.dataset.n, e.key, e.shiftKey) : timeKey(b, e.key);
+      if (to === false) return;
+      e.preventDefault();
+      if (to) to.focus();
+    }
+    function dayKey(n, key, shift) {
+      var t = Date.UTC(Math.floor(n / 1e4), Math.floor(n / 100) % 100 - 1, n % 100), day = 864e5, wd = (new Date(t).getUTCDay() + 6) % 7;
+      var step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7, Home: -wd, End: 6 - wd }[key];
+      if (step !== undefined) t += step * day;
+      else if (key === 'PageUp' || key === 'PageDown') {
+        var x = new Date(t), k = x.getUTCMonth() + (key === 'PageUp' ? -1 : 1) * (shift ? 12 : 1);
+        var y = x.getUTCFullYear() + Math.floor(k / 12), mo = ((k % 12) + 12) % 12;
+        t = Date.UTC(y, mo, Math.min(x.getUTCDate(), new Date(Date.UTC(y, mo + 1, 0)).getUTCDate()));
+      } else return false;
+      var at = new Date(t), to = Math.max(at.getUTCFullYear() * 1e4 + (at.getUTCMonth() + 1) * 100 + at.getUTCDate(), dayNum(first()));
+      var there = $('.wp-day[data-n="' + to + '"]', pop);
+      if (!there) {
+        view = { year: Math.floor(to / 1e4), month: Math.floor(to / 100) % 100 };
+        return draw(to);
+      }
+      $$('.wp-day', pop).forEach(function (x) { x.tabIndex = -1; });
+      there.tabIndex = 0;
+      return there;
+    }
+    function timeKey(b, key) {
+      var all = $$('.wp-q', pop), i = all.indexOf(b), col = i % 4;
+      var step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -4, ArrowDown: 4, Home: -col, End: 3 - col, PageUp: -16, PageDown: 16 }[key];
+      if (step === undefined) return false;
+      var j = Math.max(0, Math.min(all.length - 1, i + step)), dir = step < 0 ? -1 : 1;
+      while (all[j] && all[j].disabled) j += dir; // past the times already gone (or skipped by the clocks)
+      if (!all[j]) return null;
+      all.forEach(function (x) { x.tabIndex = -1; });
+      all[j].tabIndex = 0;
+      return all[j];
+    }
+
+    dateBtn.addEventListener('click', function () { if (mode === 'date') close(true); else open('date'); });
+    timeBtn.addEventListener('click', function () { if (mode === 'time') close(true); else open('time'); });
+    // Live (now) has no pickup time to choose.
+    opts.form.addEventListener('change', function (e) { if (e.target.name === 'kind') close(); });
+    return { show: show, close: close };
+  }
+
   // Set by start() before the home page's card starts: back from the bank (?booked=...), or from
   // Google or Apple.
   var stripeBack = null, oauthBack = false;
@@ -697,6 +1009,7 @@ if (top !== self) top.location = location;
       + '<label class="notes"><small>' + esc(L.note_label) + '</small><input name="notes" maxlength="500" autocomplete="off" placeholder="' + esc(L.ph_note) + '"></label>'
       + '<div class="msg" role="alert"></div>'
       + '</div><div class="book-foot"><p class="total"><span>' + esc(L.total) + '</span><b></b></p>'
+      + '<label class="consent agree"><input type="checkbox" name="agree"><span>' + agreeText() + '</span></label>'
       + '<button class="btn big go" type="button"></button><p class="fine"></p></div>');
     pane('pay', '<div class="book-body">'
       + '<div class="pay-sum"><p class="ps-route"></p><b class="ps-price"></b></div><p class="ps-off" hidden></p>'
@@ -708,6 +1021,18 @@ if (top !== self) top.location = location;
       + '<dl class="done-sum"></dl>'
       + '</div><div class="book-foot"><a class="btn big" href="#trips">' + esc(L.my_trips) + '</a><button type="button" class="btn ghost another">' + esc(L.another) + '</button></div>');
     var notes = $('[name=notes]', P.price), priceBtn = $('.go', P.price), payBtn = $('.go', P.pay);
+    // "I have read the Terms ... and agree", unticked above Pay: Pay waits for it, and the tick holds
+    // only for the trip, price and person it was given for (another van, trip or account: tick
+    // again). create-order refuses a booking without it (terms: true).
+    var agree = $('[name=agree]', P.price), agreedTo = null;
+    function agreeKey() { return trip ? trip.kind + ' ' + cents() + ' ' + (signedInAs() || '') : null; }
+    function agreedNow() { return !!agreedTo && agreedTo.trip === trip && agreedTo.key === agreeKey(); }
+    agree.addEventListener('change', function () { agreedTo = agree.checked ? { trip: trip, key: agreeKey() } : null; syncPrice(); });
+    // The box's words, with the terms and the privacy policy opening on this page, in its language.
+    function agreeText() {
+      return esc(L.bk_agree).replace('{terms}', '<a href="#terms">' + esc(L.pn_terms) + '</a>')
+        .replace('{privacy}', '<a href="#privacy">' + esc(L.pn_privacy) + '</a>');
+    }
 
     function msg(p, text, input) {
       $('.msg', p).textContent = text || '';
@@ -716,12 +1041,13 @@ if (top !== self) top.location = location;
     }
 
     // ---- step 1: the trip
-    // The pickup time is a reading on the pickup's clock (08:00 tomorrow to start with).
+    // The pickup time is a reading on the pickup's clock (08:00 tomorrow to start with), picked
+    // with the card's own picker (WhenPicker).
     var when = el.when;
+    var whenPick = WhenPicker(when, { form: f, zone: function () { return placeZone(el.from._place); } });
     function morning() {
       var t0 = wallOf(new Date(Date.now() + 864e5), null);
       when.value = wallDT({ year: t0.year, month: t0.month, day: t0.day, hour: 8, minute: 0 });
-      when.min = wallDT(wallOf(new Date(), null));
     }
     morning();
     // Under it, once the pickup is known and the visitor's clock differs then: whose clock it
@@ -735,7 +1061,7 @@ if (top !== self) top.location = location;
       var gmt = at ? Z.zoneOffset(zone, at) : 0, show = !!at && el.kind.value !== 'live' && gmt !== -at.getTimezoneOffset();
       zoneNote.hidden = !show;
       zoneNote.textContent = show ? fill(L.zone_note, { country: countryName(p.country, L.lang), gmt: Z.gmtLabel(gmt) }) : '';
-      if (zone) when.min = wallDT(wallOf(new Date(), zone)); // the pickup's today
+      whenPick.show(); // the reading may have come from elsewhere (a trip kept from before)
     }
     var sync = function () { card.classList.toggle('is-live', el.kind.value === 'live'); clockNote(); };
     f.addEventListener('change', sync);
@@ -843,7 +1169,11 @@ if (top !== self) top.location = location;
       $('.total b', P.price).textContent = price;
       if (priceBtn._label != null) priceBtn._label = label; // busy: shown once it is done
       else priceBtn.textContent = label;
-      $('.fine', P.price).textContent = (trip.kind === 'live' ? L.fine_print_live : L.fine_print + ' ' + L.shared)
+      if (!agreedNow()) { agree.checked = false; agreedTo = null; }
+      if (priceBtn._label == null) priceBtn.disabled = !agree.checked; // busy: busyBtn keeps it off
+      var rule = fill(trip.kind === 'live' ? L.bk_rule_live : L.bk_rule,
+        { hours: CANCEL_RULE.freeHours, charge: money(CANCEL_RULE.chargeCents, L.lang), percent: CANCEL_RULE.lateRefundPct });
+      $('.fine', P.price).textContent = (trip.kind === 'live' ? L.fine_print_live + ' ' + rule : L.fine_print + ' ' + rule + ' ' + L.shared)
         + (van === 'luxury' ? ' ' + L.lux_note : '');
     }
     P.price.addEventListener('change', function (e) {
@@ -862,7 +1192,8 @@ if (top !== self) top.location = location;
         pickupAt: (trip.kind === 'live' ? new Date() : trip.at).toISOString(),
         passengers: trip.pax, extraBags: trip.bags, vanClass: van, notes: notes.value.trim() || undefined,
         payCountry: browserCountry(), // which local payment methods to show
-        voucher: true // the payment step shows an invite voucher's line (create-order puts the next one on)
+        voucher: true, // the payment step shows an invite voucher's line (create-order puts the next one on)
+        terms: true // the visitor ticked "I have read the Terms ... and agree" above Pay (startPay waits for it)
       };
     }
     // Creates the order (the server prices it and starts a Stripe payment for it), then slides
@@ -870,7 +1201,7 @@ if (top !== self) top.location = location;
     // form belong to the person signed in when it was made (order.uid): signing out, or another
     // account signing in, drops them (auth below), so nobody pays someone else's trip.
     function startPay() {
-      if (busy || paying || !trip) return;
+      if (busy || paying || !trip || !agree.checked) return;
       if (!getSession()) {
         wantPay = true;
         save(true);
@@ -1326,7 +1657,8 @@ if (top !== self) top.location = location;
       + opts.map(function (o) {
         return '<option value="' + o.cc + '"' + (c && o.cc === c.cc ? ' selected' : '') + '>' + esc(o.name + ' +' + o.dial) + '</option>';
       }).join('')
-      + '</select></div><input id="' + id + '" name="phone" type="tel" autocomplete="tel-national" value="' + esc(parts.number) + '"></div>';
+      + '</select></div><input id="' + id + '" name="phone" type="tel" autocomplete="tel-national" maxlength="' + TEXT_MAX.phone + '" value="'
+      + esc(parts.number) + '"></div>';
   }
   function setPhone(form, parts) {
     form.elements.phone_cc.value = dialCode(parts.cc) ? parts.cc : '';
@@ -1371,9 +1703,9 @@ if (top !== self) top.location = location;
       { id: 'business_type', q: J.q_kind, type: 'one', opts: [{ v: 'company', t: J.kind_company }, { v: 'self_employed', t: J.kind_self }] },
       { id: 'company', q: J.q_company, type: 'fields', fields: function () {
           return [
-            { k: 'company_name', label: J.f_company, ac: 'organization' },
-            { k: 'reg_number', label: J.f_reg, hint: J.reg_hint[a.country] || '', mode: 'numeric' },
-            { k: 'vat_number', label: J.f_vat, optional: true }
+            { k: 'company_name', label: J.f_company, ac: 'organization', max: TEXT_MAX.company_name },
+            { k: 'reg_number', label: J.f_reg, hint: J.reg_hint[a.country] || '', mode: 'numeric', max: TEXT_MAX.reg_number },
+            { k: 'vat_number', label: J.f_vat, optional: true, max: TEXT_MAX.vat_number }
           ];
         }, check: function () {
           if (!REG[a.country] || REG[a.country](digits(a.reg_number))) return '';
@@ -1386,9 +1718,9 @@ if (top !== self) top.location = location;
       // The countries come with the page (JOIN_DESTINATIONS in scripts/build-site.py); the database takes the same list.
       { id: 'destinations', q: J.q_routes, sub: J.pick_all, type: 'many', grid: true, opts: D.dest.map(function (c) { return { v: c, t: J.countries[c], flag: c }; }) },
       { id: 'passenger_insurance', q: J.q_insurance, type: 'one', opts: yesNo },
-      { id: 'name', q: J.q_name, type: 'fields', fields: function () { return [{ k: 'full_name', label: J.f_name, ac: 'name' }]; } },
+      { id: 'name', q: J.q_name, type: 'fields', fields: function () { return [{ k: 'full_name', label: J.f_name, ac: 'name', max: TEXT_MAX.full_name }]; } },
       { id: 'contact', q: J.q_contact, type: 'fields', fields: function () {
-          return [{ k: 'phone', label: J.f_phone, type: 'phone' }, { k: 'email', label: J.f_email, type: 'email', ac: 'email' }];
+          return [{ k: 'phone', label: J.f_phone, type: 'phone' }, { k: 'email', label: J.f_email, type: 'email', ac: 'email', max: TEXT_MAX.email }];
         }, check: function () {
           var problem = phoneProblem({ cc: a.phone_cc || null, number: a.phone }, J.lang);
           if (problem) return { k: 'phone', e: problem };
@@ -1433,7 +1765,7 @@ if (top !== self) top.location = location;
           }
           return '<label><span>' + esc(f.label) + '</span><input name="' + f.k + '" type="' + (f.type || 'text') + '"'
             + (f.ac ? ' autocomplete="' + f.ac + '"' : '') + (f.mode ? ' inputmode="' + f.mode + '"' : '')
-            + ' value="' + esc(a[f.k] || '') + '">' + (f.hint ? '<small>' + esc(f.hint) + '</small>' : '') + '<em class="err" data-for="' + f.k + '"></em></label>';
+            + (f.max ? ' maxlength="' + f.max + '"' : '') + ' value="' + esc(a[f.k] || '') + '">' + (f.hint ? '<small>' + esc(f.hint) + '</small>' : '') + '<em class="err" data-for="' + f.k + '"></em></label>';
         }).join('') + '</div>';
       } else if (s.type === 'confirm') {
         h += '<dl class="sum">' + [
@@ -1984,6 +2316,8 @@ if (top !== self) top.location = location;
     + 'pickup_at,pickup_until,pickup_tz,passengers,extra_bags,notes,fare_cents,bid_started_at,cancel_reason,cancel_fee_cents,payout_on_hold,payout_release_at,payout_sent,'
     + 'refund_state,refunded_cents,discount_cents';
   var DONE = ['completed', 'cancelled'], ASSIGNED = ['accepted', 'en_route', 'picked_up'];
+  // A client can cancel these in My trips (cancel-order); my_cancellation_terms says what comes back.
+  var CANCELLABLE = ['pending_payment', 'bidding', 'accepted', 'en_route'];
   var TONE = { pending_payment: 'gray', bidding: 'amber', accepted: 'blue', en_route: 'blue', picked_up: 'blue', completed: 'green', cancelled: 'gray' };
   var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   var justBooked = null; // the trip booked on this page (the booked step)
@@ -2015,8 +2349,10 @@ if (top !== self) top.location = location;
     var L = T, uid = null, rows = null, byId = {}, listN = 0, listAt = 0;
     // The trip shown: its id, what was loaded for it (order, transporter, pickup code, invoices, what
     // cancelling now gives back),
-    // and what the visitor has open in it (Cancel's question, the report form and its text).
-    var id = null, dt = null, tripN = 0, tripAt = 0, ask = false, rep = false, repText = '', note = null, busy = false, tick = 0;
+    // and what the visitor has open in it (Cancel's question, the report form and its text, the
+    // question before "Refund me now").
+    var id = null, dt = null, tripN = 0, tripAt = 0, ask = false, rep = false, repText = '', note = null, busy = false, tick = 0,
+      sAsk = false;
 
     function token() {
       return refresh().then(function (s) {
@@ -2084,14 +2420,14 @@ if (top !== self) top.location = location;
     // it is shown it is read again every minute (the transporter's phone appears on a clock).
     function open(tid) {
       if (tid !== id) {
-        id = tid; dt = null; ask = rep = false; repText = ''; note = null; tripAt = 0;
+        id = tid; dt = null; ask = rep = sAsk = false; repText = ''; note = null; tripAt = 0;
         tripPane.scrollTop = 0;
         if (byId[tid]) { dt = { o: byId[tid] }; drawTrip(); } else tripPane.innerHTML = spinner();
       }
       if (Date.now() - tripAt > 1000) load();
       stop();
       tick = setInterval(function () {
-        if (!busy && !ask && !rep && !d.hidden && tripPane.isConnected && !tripPane.closest('.off')) load();
+        if (!busy && !ask && !rep && !sAsk && !d.hidden && tripPane.isConnected && !tripPane.closest('.off')) load();
       }, 60000);
     }
     function stop() { clearInterval(tick); tick = 0; }
@@ -2106,9 +2442,10 @@ if (top !== self) top.location = location;
             ASSIGNED.indexOf(o.status) >= 0 ? rest('rpc/trip_contact', t, { p_order: tid }).catch(nothing) : null,
             o.status === 'accepted' || o.status === 'en_route' ? rest('order_pickup_codes?select=code&order_id=eq.' + tid, t).catch(nothing) : null,
             rest('invoices?select=id,kind,number,total_cents,file_path&order_id=eq.' + tid + '&kind=in.(trip,credit_note)&file_path=not.is.null&order=created_at.asc', t).catch(nothing),
-            o.status === 'accepted' || o.status === 'en_route' ? rest('rpc/my_cancellation_terms', t, { p_order: tid }).catch(nothing) : null
+            CANCELLABLE.indexOf(o.status) >= 0 ? rest('rpc/my_cancellation_terms', t, { p_order: tid }).catch(nothing) : null,
+            o.status === 'bidding' && o.kind === 'booking' ? rest('rpc/my_trip_search', t, { p_order: tid }).catch(nothing) : null
           ]).then(function (x) {
-            return { o: o, who: x[0] && x[0][0], code: x[1] && x[1][0] && x[1][0].code, inv: x[2] || [], cx: x[3] && x[3][0] };
+            return { o: o, who: x[0] && x[0][0], code: x[1] && x[1][0] && x[1][0].code, inv: x[2] || [], cx: x[3] && x[3][0], srch: x[4] || null };
           });
         });
       }).then(function (r) {
@@ -2156,7 +2493,7 @@ if (top !== self) top.location = location;
           + '<div class="t-person"><span class="ava" aria-hidden="true">' + esc((who.full_name || '?').charAt(0).toUpperCase()) + '</span><p><b>' + esc(who.full_name || '') + '</b>'
           + (who.company_name ? '<span>' + esc(who.company_name) + '</span>' : '') + '</p></div>'
           + (van ? '<p class="t-van">' + esc(van) + '</p>' : '')
-          + (who.phone ? '<a class="btn big" href="tel:' + esc(who.phone.replace(/[^\d+]/g, '')) + '">' + esc(fill(L.call, { phone: who.phone })) + '</a>' : '')
+          + (who.phone && telHref(who.phone) ? '<a class="btn big t-call" href="' + esc(telHref(who.phone)) + '">' + IC.call + '<span>' + esc(fill(L.call, { phone: who.phone })) + '</span></a>' : '')
           + '</section>';
       }
       // Who carries a paid trip (art. 8:1166 BW): DomiVan's company, and the transporter's once contact opens.
@@ -2167,7 +2504,7 @@ if (top !== self) top.location = location;
       if (dt.code && (o.status === 'accepted' || o.status === 'en_route')) {
         h += '<section class="t-sec"><h3>' + esc(L.pc_h) + '</h3><b class="t-digits">' + esc(dt.code) + '</b><p>' + esc(L.pc_p) + '</p></section>';
       }
-      tripPane.innerHTML = h + report(o, now) + invoices() + cancel(o);
+      tripPane.innerHTML = h + search(o) + report(o, now) + invoices() + cancel(o);
       if (rep) $('textarea', tripPane).value = repText;
     }
     // Report a problem: while on the road, and after the trip until the transporter is paid (as in the app).
@@ -2182,6 +2519,25 @@ if (top !== self) top.location = location;
           : '<button type="button" class="btn ghost t-report">' + esc(L.report) + '</button>')
         + '</section>';
     }
+    // A Book ahead trip nobody took within the hour (my_trip_search(), as the app's
+    // src/lib/trip-search.ts): keep looking until the time shown (on the pickup's clock, as in the
+    // push and the email), or the money back now. The database's clock says whether it still runs.
+    function search(o) {
+      var s = dt.srch;
+      if (o.status !== 'bidding' || !s || s.answer === 'refund' || Date.parse(s.until) <= Date.parse(s.server_now)) {
+        return note && note.where === 'srch' ? msgHtml('srch') : '';
+      }
+      if (sAsk) {
+        return '<section class="t-sec"><h3>' + esc(L.sr_refund_q) + '</h3><p>' + esc(L.sr_refund_p) + '</p>'
+          + '<div class="t-two"><button type="button" class="btn ghost t-s-no">' + esc(L.sr_keep) + '</button>'
+          + '<button type="button" class="btn danger t-s-yes">' + esc(L.sr_refund) + '</button></div>' + msgHtml('srch') + '</section>';
+      }
+      var zone = tripZoneOf(o), at = new Date(s.until);
+      var until = clockText(at, zone, DATE_TIME, L.lang) + (zone && Z ? Z.zoneNote(at, zone) : '');
+      return '<section class="t-sec"><h3>' + esc(L.sr_title) + '</h3><p>' + esc(fill(s.answer === 'keep' ? L.sr_keeping : L.sr_text, { date: until })) + '</p>'
+        + (s.answer === 'keep' ? '' : '<button type="button" class="btn big t-s-keep">' + esc(L.sr_keep) + '</button>')
+        + '<button type="button" class="btn ghost danger t-s-ask">' + esc(L.sr_refund) + '</button>' + msgHtml('srch') + '</section>';
+    }
     function invoices() {
       if (!dt.inv || !dt.inv.length) return '';
       return '<section class="t-sec"><h3>' + esc(L.invoices_h) + '</h3>' + dt.inv.map(function (v) {
@@ -2189,31 +2545,36 @@ if (top !== self) top.location = location;
           + '<span>' + esc(fill(v.kind === 'credit_note' ? L.invoice_credit : L.invoice_trip, { n: v.number })) + '</span><b>' + esc(money(v.total_cents, L.lang)) + '</b></button>';
       }).join('') + msgHtml('inv') + '</section>';
     }
-    // Cancel: free while no transporter has accepted. After that, until pickup, what comes back
-    // depends on how long before pickup: dt.cx says how much now and until when (the database
-    // decides). One question first, with the amount.
+    // Cancel: while no transporter has accepted, all back but the cancellation charge once it is
+    // paid. After that, until pickup, what comes back depends on how long before pickup: dt.cx says
+    // how much now and until when (the database decides, migration 20261030110000_cancel_rule).
+    // One question first, with the amount.
     function cancel(o) {
       var open = o.status === 'bidding' || o.status === 'pending_payment', cx = dt.cx;
       if (!open && !cx) return note && note.where === 'cancel' ? msgHtml('cancel') : '';
       if (!ask) return '<div class="t-cancel"><button type="button" class="btn ghost danger t-ask">' + esc(L.cancel) + '</button>'
         + (cx ? '<small class="t-cx">' + esc(cxNow(cx)) + '</small>' : '') + msgHtml('cancel') + '</div>';
       return '<div class="t-cancel"><p>' + esc(cx ? cxQuestion(cx) : L.cancel_q) + '</p>'
-        + (cx && cx.fee_cents ? '<small class="t-cx">' + esc(L.cx_late) + '</small>' : '')
+        + (!open && cx && cx.fee_cents ? '<small class="t-cx">' + esc(L.cx_late) + '</small>' : '')
         + '<div class="t-two"><button type="button" class="btn ghost t-keep">' + esc(L.cancel_no) + '</button>'
         + '<button type="button" class="btn danger t-yes">' + esc(L.cancel_yes) + '</button></div>' + msgHtml('cancel') + '</div>';
     }
     function pct(x) {
       try { return new Intl.NumberFormat(locale(L.lang), { style: 'percent', maximumFractionDigits: 0 }).format(+x); } catch (e) { return Math.round(x * 100) + '%'; }
     }
+    // All back but the cancellation charge: the step refunds everything, and the charge is what is kept.
+    function chargeOnly(cx) { return cx.fee_cents > 0 && +cx.refund_pct >= 1; }
     function cxNow(cx) {
       var at = cx.changes_at ? dateText(new Date(cx.changes_at), L.lang) : '';
       if (!cx.fee_cents) return at ? fill(L.cx_free, { date: at }) : L.cx_free_any;
-      var now = cx.refund_cents > 0 ? fill(L.cx_part, { pct: pct(cx.refund_pct), amount: money(cx.refund_cents, L.lang) }) : L.cx_none;
+      var now = chargeOnly(cx) ? fill(L.cx_charge, { amount: money(cx.refund_cents, L.lang), charge: money(cx.fee_cents, L.lang) })
+        : cx.refund_cents > 0 ? fill(L.cx_part, { pct: pct(cx.refund_pct), amount: money(cx.refund_cents, L.lang) }) : L.cx_none;
       if (!at || cx.next_refund_pct == null) return now;
       return now + ' ' + (+cx.next_refund_pct > 0 ? fill(L.cx_then_part, { pct: pct(cx.next_refund_pct), date: at }) : fill(L.cx_then_none, { date: at }));
     }
     function cxQuestion(cx) {
       if (!cx.fee_cents) return L.cancel_q;
+      if (chargeOnly(cx)) return fill(L.cx_q_charge, { amount: money(cx.refund_cents, L.lang), charge: money(cx.fee_cents, L.lang) });
       return cx.refund_cents > 0 ? fill(L.cx_q_part, { amount: money(cx.refund_cents, L.lang), pct: pct(cx.refund_pct) }) : L.cx_q_none;
     }
     // A cancelled trip: why, and where the refund stands as the database knows it, as in the app
@@ -2276,6 +2637,10 @@ if (top !== self) top.location = location;
       else if (c.contains('t-ask')) { ask = true; note = null; redraw('.t-keep'); }
       else if (c.contains('t-keep')) { ask = false; note = null; redraw('.t-ask'); }
       else if (c.contains('t-yes')) cancelTrip(b);
+      else if (c.contains('t-s-keep')) answerSearch(b, 'keep');
+      else if (c.contains('t-s-ask')) { sAsk = true; note = null; redraw('.t-s-no'); }
+      else if (c.contains('t-s-no')) { sAsk = false; note = null; redraw('.t-s-ask'); }
+      else if (c.contains('t-s-yes')) answerSearch(b, 'refund');
       else if (c.contains('t-report')) { rep = true; note = null; redraw('textarea'); }
       else if (c.contains('t-send')) sendReport(b);
       else if (c.contains('t-file')) openFile(b.dataset.path);
@@ -2295,6 +2660,26 @@ if (top !== self) top.location = location;
       }).then(function () { return tid === id ? load() : null; }).then(function () {
         busy = false; // the button says Cancelling… until the trip shows how it is now
         listAt = 0;   // the list reads it again too
+        if (tid === id && dt) { drawTrip(); into(note ? '.msg:not(:empty)' : '.t-note'); }
+      });
+    }
+    // The answer to the search question: 'keep', or 'refund' (cancelled as DomiVan finding nobody,
+    // so everything paid goes back). A transporter who accepted first keeps the trip.
+    function answerSearch(b, choice) {
+      var tid = id;
+      busy = true;
+      note = null;
+      busyBtn(b, true, choice === 'refund' ? L.cancelling : L.sending);
+      token().then(function (t) { return rest('rpc/answer_trip_search', t, { p_order: tid, p_answer: choice }); }).then(function (r) {
+        sAsk = false;
+        if (r === 'taken') note = { where: 'srch', text: L.sr_taken };
+      }, function (e) {
+        if (out(e)) return;
+        sAsk = false;
+        note = { where: 'srch', text: /search_closed/.test(e.message) ? L.sr_closed : errText(e) };
+      }).then(function () { return tid === id ? load() : null; }).then(function () {
+        busy = false;
+        listAt = 0; // the list reads it again too
         if (tid === id && dt) { drawTrip(); into(note ? '.msg:not(:empty)' : '.t-note'); }
       });
     }
@@ -2370,8 +2755,9 @@ if (top !== self) top.location = location;
   };
   var cards = 0;
 
-  function field(name, label, type, ac, ph) {
+  function field(name, label, type, ac, ph, max) {
     return '<label><small>' + esc(label) + '</small><input name="' + name + '" type="' + type + '" autocomplete="' + ac + '"'
+      + (max ? ' maxlength="' + max + '"' : '')
       + (type === 'email' ? ' inputmode="email" autocapitalize="off" spellcheck="false"' : ' autocapitalize="words"')
       + ' placeholder="' + esc(ph) + '"></label>';
   }
@@ -2383,7 +2769,7 @@ if (top !== self) top.location = location;
       + '</div>'
       + '<div class="or" role="separator"><span>' + esc(T.or) + '</span></div>'
       + '<form class="em" novalidate>'
-      + (tab === 'create' ? field('full_name', T.f_name, 'text', 'name', T.ph_name) : '')
+      + (tab === 'create' ? field('full_name', T.f_name, 'text', 'name', T.ph_name, TEXT_MAX.full_name) : '')
       + field('email', T.f_email, 'email', 'email', T.ph_email)
       + '<div class="msg" role="alert"></div>'
       + '<button class="btn big go" type="submit">' + esc(T.send) + '</button>'
@@ -2698,16 +3084,18 @@ if (top !== self) top.location = location;
     }
 
     function detailsHtml() {
-      var f = function (k, label, type, ac, ph) {
+      var f = function (k, label, type, ac, ph, max) {
         return '<label><small>' + esc(label) + '</small><input name="' + k + '" type="' + (type || 'text') + '"' + (ac ? ' autocomplete="' + ac + '"' : '')
+          + (max ? ' maxlength="' + max + '"' : '')
           + (ph ? ' placeholder="' + esc(ph) + '"' : '') + (k === 'email' ? ' disabled' : '') + '></label>';
       };
-      return '<form class="pn-form" novalidate>' + f('full_name', T.pn_name, 'text', 'name')
+      return '<form class="pn-form" novalidate>' + f('full_name', T.pn_name, 'text', 'name', null, TEXT_MAX.full_name)
         + '<div><label for="pf-phone"><small>' + esc(T.pn_phone) + '</small></label>' + phoneHtml('pf-phone', { cc: null, number: '' }, T.lang) + '</div>'
         + f('email', T.f_email, 'email', 'email')
         + '<h3 class="pf-sec">' + esc(T.pn_bill_h) + '</h3><p class="pn-note">' + esc(T.pn_bill_p) + '</p>'
-        + f('billing_name', T.pn_bill_name, 'text', 'organization') + f('billing_vat_number', T.pn_bill_vat, 'text', 'off')
-        + f('billing_address', T.pn_bill_addr, 'text', 'street-address', T.pn_bill_addr_ph)
+        + f('billing_name', T.pn_bill_name, 'text', 'organization', null, TEXT_MAX.billing_name)
+        + f('billing_vat_number', T.pn_bill_vat, 'text', 'off', null, TEXT_MAX.billing_vat_number)
+        + f('billing_address', T.pn_bill_addr, 'text', 'street-address', T.pn_bill_addr_ph, TEXT_MAX.billing_address)
         + '<div class="msg" role="alert"></div><button class="btn big go" type="submit">' + esc(T.pn_save) + '</button></form>';
     }
     function details() {
