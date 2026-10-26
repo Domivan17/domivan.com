@@ -193,16 +193,31 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .card .btn.big:disabled { opacity: .74; cursor: default; }
 .book-foot p { margin: 10px 0 0; color: var(--soft); font-size: 13px; line-height: 1.45; text-align: center; }
 
-/* Booking in place (site.js): the trip, the price, the payment and the confirmation are steps of
-   Book your trip that share one cell and slide sideways, like the account card's. Every step is
-   as tall as the tallest, so the card keeps its size and its big button stays where it is. */
+/* Booking in place (site.js): the trip, the van, the summary, the payment and the confirmation are
+   steps of Book your trip that share one cell and slide sideways, like the account card's. The
+   trip's three questions share one height, so Continue stays where it is while they slide; the
+   later steps each take their own, and the card eases to it (the step going out is lifted out). */
 .book .panes { grid-template-columns: minmax(0, 1fr); }
+.book.slides .panes > .pane.off { display: none; }
 .book .pane { display: flex; flex-direction: column; gap: 0; min-width: 0; }
 .book .book-foot { margin-top: auto; }
 .book h2 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .book h2:focus { outline: none; }
 .book .back-btn { overflow: hidden; transition: width .4s cubic-bezier(.22, .8, .24, 1), margin .4s cubic-bezier(.22, .8, .24, 1), opacity .25s, background .15s, color .15s; }
-.book[data-stage="trip"] .back-btn, .book[data-stage="done"] .back-btn { width: 0; margin: 0 -12px 0 0; opacity: 0; visibility: hidden; transition-property: width, margin, opacity, visibility; }
+.book[data-stage="where"] .back-btn, .book[data-stage="done"] .back-btn { width: 0; margin: 0 -12px 0 0; opacity: 0; visibility: hidden; transition-property: width, margin, opacity, visibility; }
+/* The slides (batch 20), like Join Transporters: the progress line under the header, then on each
+   step "Step n of 6" and its question. The trip form's three questions share one cell and slide
+   like the steps; without JavaScript (no .slides) they stand one under the other. */
+.book .bk-bar { margin: 14px 22px 0; }
+.bk-qs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.book.slides .bk-q { grid-area: 1 / 1; }
+.bk-q { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.bk-n { margin: 0 0 -8px; text-align: right; color: var(--muted); font-size: 13px; font-weight: 700; }
+.bk-ask { margin: 0; font-size: 23px; line-height: 1.25; letter-spacing: -0.02em; text-wrap: balance; }
+.bk-ask:focus { outline: none; }
+.counts .count { margin-left: 0; color: inherit; font-size: inherit; font-weight: inherit; } /* not the Join form's step counter */
+.bk-sum .wide { display: grid; gap: 2px; }
+.bk-sum .wide dd { text-align: left; font-weight: 600; white-space: pre-line; }
 /* Address suggestions under the From and To fields. */
 .af { position: relative; }
 /* The X that empties the field (site.js Suggest), over the field's right end while it holds text. */
@@ -279,11 +294,11 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .book[data-stage="done"] .tick { animation: pop .45s cubic-bezier(.3, 1.6, .5, 1) .2s both; }
 .done-top h3 { margin: 0; font-size: 24px; }
 .done-p { margin: 0; color: var(--soft); font-size: 15px; line-height: 1.5; text-wrap: pretty; }
-.done-sum { margin: 0; border-radius: 14px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .1); }
-.done-sum div { display: flex; justify-content: space-between; gap: 14px; padding: 9px 14px; }
-.done-sum div + div { border-top: 1px solid rgba(255, 255, 255, .08); }
-.done-sum dt { color: var(--muted); font-size: 14px; }
-.done-sum dd { margin: 0; font-weight: 700; font-size: 15px; color: #fff; text-align: right; overflow-wrap: anywhere; }
+.done-sum, .bk-sum { margin: 0; border-radius: 14px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .1); }
+.done-sum div, .bk-sum div { display: flex; justify-content: space-between; gap: 14px; padding: 9px 14px; }
+.done-sum div + div, .bk-sum div + div { border-top: 1px solid rgba(255, 255, 255, .08); }
+.done-sum dt, .bk-sum dt { color: var(--muted); font-size: 14px; }
+.done-sum dd, .bk-sum dd { margin: 0; font-weight: 700; font-size: 15px; color: #fff; text-align: right; overflow-wrap: anywhere; }
 .bk-done .book-foot .btn { width: 100%; text-align: center; }
 
 /* Your account: Log in on the left, Create account on the right, then Google and Apple,
@@ -841,6 +856,8 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
   .card-head { padding: 16px 18px; }
   .book-body, .acct-body { padding-left: 18px; padding-right: 18px; }
   .book-foot { padding: 14px 18px 18px; }
+  .book .bk-bar { margin: 12px 18px 0; }
+  .bk-ask { font-size: 21px; }
   .acct-legal { padding: 12px 20px 18px; }
   .acct .pane.tv { left: -18px; right: -18px; padding-left: 18px; padding-right: 18px; }
   .sso-btn { font-size: 16px; padding: 0 46px; }

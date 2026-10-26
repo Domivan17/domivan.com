@@ -672,11 +672,15 @@ if (top !== self) top.location = location;
 
   // ---------------------------------------------------------------- booking card (home)
   //
-  // Book your trip books the whole trip in place: its steps slide inside the card (trip, price,
-  // payment, booked) and the page never changes. Paying needs an account: signed out, "Log in to
-  // pay" slides the account card over it, and the payment step is ready behind it by the time it
-  // slides back. Each step is a history entry, so Back goes one step back. While the visitor is
-  // away at Google, Apple or their bank, the trip waits in sessionStorage (TRIP).
+  // Book your trip books the whole trip in place, one or two questions at a time like the Join
+  // Transporters form (batch 20; Martin: "question question slide question question slide"): its
+  // steps slide inside the card under a progress line, and the page never changes. Where (from,
+  // to), When (Book ahead or Live, the date and time) and Who (passengers, bags) are the trip
+  // form's own slides; then the van and a note, the summary with the agree box and Pay, the
+  // payment and the booked trip. Paying needs an account: signed out, "Log in to pay" slides the
+  // account card over it, and the payment step is ready behind it by the time it slides back.
+  // Each step is a history entry, so Back goes one step back. While the visitor is away at
+  // Google, Apple or their bank, the trip waits in sessionStorage (TRIP).
 
   var TRIP = 'domivan-trip';
   var tripStore = {
@@ -684,7 +688,11 @@ if (top !== self) top.location = location;
     set: function (v) { try { sessionStorage.setItem(TRIP, JSON.stringify(v)); } catch (e) {} },
     del: function () { try { sessionStorage.removeItem(TRIP); } catch (e) {} }
   };
-  var STEPS = { trip: 0, price: 1, pay: 2, done: 3 };
+  // The steps in order; the first three (BK_QS) are the questions of the trip form. Every step but
+  // done counts in "Step n of 6".
+  var BK_ORDER = ['where', 'when', 'who', 'van', 'price', 'pay', 'done'], BK_QS = ['where', 'when', 'who'];
+  var STEPS = {};
+  BK_ORDER.forEach(function (n, i) { STEPS[n] = i; });
   var IC = {
     cal: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M3.5 10h17M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
     pax: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M5 20c.8-3.6 3.6-5.6 7-5.6s6.2 2 7 5.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
@@ -974,9 +982,12 @@ if (top !== self) top.location = location;
 
   function Book(card, main) {
     var L = T, f = $('form.bk-trip', card), el = f.elements, panes = $('.panes', card), h2 = $('h2', card);
-    var title0 = h2.textContent, P = { trip: f }, cur = f, step = 'trip';
-    var trip = null, van = 'standard', prefer = null, order = null, dirty = false, ed = 0;
+    var title0 = h2.textContent, P = { trip: f }, cur = f, step = 'where';
+    var trip = null, van = 'standard', prefer = null, order = null, ed = 0;
     var stripe = null, els = null, pe = null, busy = false, paying = false, wantPay = false, afterLogin = null, forgetting = false;
+    // reach: the last step the answers on the card have reached; changing an answer takes it back
+    // to that question (browser Forward goes no further than reach).
+    var reach = 0;
     f.noValidate = true; // our own messages, in the page's language
 
     // The back arrow in the card's header row, shown after the first step.
@@ -988,6 +999,29 @@ if (top !== self) top.location = location;
     back.innerHTML = CHEV;
     h2.parentNode.insertBefore(back, h2.parentNode.firstChild);
     h2.setAttribute('tabindex', '-1');
+    // The progress line under the header, as in the Join form (the same .progress).
+    var bar = d.createElement('div');
+    bar.className = 'progress bk-bar';
+    bar.setAttribute('aria-hidden', 'true');
+    bar.innerHTML = '<span></span>';
+    h2.parentNode.parentNode.insertBefore(bar, h2.parentNode.nextSibling);
+    function progress(name) { $('span', bar).style.width = Math.round((STEPS[name] + 1) / BK_ORDER.length * 100) + '%'; }
+    progress('where');
+
+    // Each step's "Step n of 6" and its question, which takes the focus when the step comes in.
+    function stepNo(name) { return '<p class="bk-n">' + esc(fill(L.bk_step, { n: STEPS[name] + 1, total: BK_ORDER.length - 1 })) + '</p>'; }
+    function ask(name, text) { return stepNo(name) + '<h3 class="bk-ask" tabindex="-1">' + esc(text) + '</h3>'; }
+    // The trip form's questions are its slides (Q); the form's button is Continue on each, See price on the last.
+    var qs = $('.bk-qs', f), Q = {}, tripBtn = $('.go', f), seePrice = tripBtn.textContent;
+    $$('.bk-q', f).forEach(function (q) {
+      var name = q.dataset.q;
+      Q[name] = q;
+      q.insertAdjacentHTML('afterbegin', ask(name, L['bk_q_' + name]));
+      setOn(q, name === 'where');
+    });
+    qs._front = Q.where;
+    tripBtn.textContent = L.bk_next;
+    card.classList.add('slides'); // without JavaScript the questions stand one under the other
 
     function pane(name, html) {
       var p = d.createElement('div');
@@ -1001,17 +1035,23 @@ if (top !== self) top.location = location;
     function leg(k, cls) {
       return '<div class="leg"><span class="' + cls + '" aria-hidden="true"></span><p><b class="' + k + '-city"></b><span class="' + k + '-addr"></span></p></div>';
     }
-    pane('price', '<div class="book-body">'
-      + '<div class="trip-sum"><div class="legs">' + leg('a', 'start') + leg('b', 'ring') + '</div><p class="facts"></p></div>'
-      + '<fieldset class="vpick"><legend><small>' + esc(L.van_h) + '</small></legend><div class="vopts">' + VANS.map(function (v) {
+    // The van, with each one's price for this trip, and a note: two questions.
+    pane('van', '<div class="book-body">' + ask('van', L.van_h)
+      + '<fieldset class="vpick"><legend class="sr-only">' + esc(L.van_h) + '</legend><div class="vopts">' + VANS.map(function (v) {
         return '<label class="vopt ' + v + '"><input type="radio" name="van" value="' + v + '"><b>' + esc(L['v_' + v]) + '</b><span class="vprice"></span></label>';
       }).join('') + '</div><p class="vcap"></p></fieldset>'
       + '<label class="notes"><small>' + esc(L.note_label) + '</small><input name="notes" maxlength="500" autocomplete="off" placeholder="' + esc(L.ph_note) + '"></label>'
       + '<div class="msg" role="alert"></div>'
+      + '</div><div class="book-foot"><button class="btn big go" type="button">' + esc(L.bk_next) + '</button></div>');
+    // The summary before Pay: the trip, the van and the note, the total, the agree box.
+    pane('price', '<div class="book-body">' + ask('price', L.bk_q_price)
+      + '<div class="trip-sum"><div class="legs">' + leg('a', 'start') + leg('b', 'ring') + '</div><p class="facts"></p></div>'
+      + '<dl class="bk-sum"></dl>'
+      + '<div class="msg" role="alert"></div>'
       + '</div><div class="book-foot"><p class="total"><span>' + esc(L.total) + '</span><b></b></p>'
       + '<label class="consent agree"><input type="checkbox" name="agree"><span>' + agreeText() + '</span></label>'
       + '<button class="btn big go" type="button"></button><p class="fine"></p></div>');
-    pane('pay', '<div class="book-body">'
+    pane('pay', '<div class="book-body">' + stepNo('pay')
       + '<div class="pay-sum"><p class="ps-route"></p><b class="ps-price"></b></div><p class="ps-off" hidden></p>'
       + '<div class="pe-box"><div class="pe"></div><span class="spin" aria-hidden="true"></span></div>'
       + '<div class="msg" role="alert"></div>'
@@ -1020,7 +1060,7 @@ if (top !== self) top.location = location;
       + '<div class="done-top"><span class="tick" aria-hidden="true">' + IC.ok + '</span><h3>' + esc(L.done_h) + '</h3><p class="done-p"></p></div>'
       + '<dl class="done-sum"></dl>'
       + '</div><div class="book-foot"><a class="btn big" href="#trips">' + esc(L.my_trips) + '</a><button type="button" class="btn ghost another">' + esc(L.another) + '</button></div>');
-    var notes = $('[name=notes]', P.price), priceBtn = $('.go', P.price), payBtn = $('.go', P.pay);
+    var notes = $('[name=notes]', P.van), vanBtn = $('.go', P.van), priceBtn = $('.go', P.price), payBtn = $('.go', P.pay);
     // "I have read the Terms ... and agree", unticked above Pay: Pay waits for it, and the tick holds
     // only for the trip, price and person it was given for (another van, trip or account: tick
     // again). create-order refuses a booking without it (terms: true).
@@ -1068,15 +1108,17 @@ if (top !== self) top.location = location;
     f.addEventListener('input', clockNote);
     f.addEventListener('dv-pick', clockNote);
     sync();
-    // Every change to the trip: the price shown is no longer for this form.
-    function edited() { dirty = true; ed++; }
-    f.addEventListener('input', edited);
-    f.addEventListener('change', edited);
+    // Every change to an answer: the price shown is no longer for this form, and the steps after
+    // that question wait for its Continue again.
+    function edited(q) { ed++; reach = Math.min(reach, STEPS[q] || 0); }
+    function qOf(e) { var q = e.target.closest && e.target.closest('.bk-q'); return q ? q.dataset.q : 'where'; }
+    f.addEventListener('input', function (e) { edited(qOf(e)); });
+    f.addEventListener('change', function (e) { edited(qOf(e)); });
     $('.swap', f).addEventListener('click', function () {
       var a = el.from, b = el.to, v = a.value, p = a._place;
       a.value = b.value; b.value = v;
       a._place = b._place; b._place = p;
-      edited();
+      edited('where');
       clockNote();
       msg(f, '');
     });
@@ -1084,7 +1126,7 @@ if (top !== self) top.location = location;
       b.addEventListener('click', function () {
         var i = b.parentNode.querySelector('input');
         i.value = Math.min(+i.max, Math.max(+i.min, (+i.value || 0) + +b.dataset.step));
-        edited();
+        edited('who');
       });
     });
     Suggest(el.from);
@@ -1093,46 +1135,69 @@ if (top !== self) top.location = location;
     f.addEventListener('dv-here', function (e) { msg(f, e.detail); });
     // Picked the pickup: on to the destination if it is still empty.
     f.addEventListener('dv-pick', function (e) { if (e.target === el.from && !el.to.value.trim()) el.to.focus({ preventScroll: true }); });
-    f.addEventListener('submit', function (e) { e.preventDefault(); getPrice(); });
+    f.addEventListener('submit', function (e) { e.preventDefault(); next(); });
 
-    function getPrice() {
-      if (busy || paying) return;
-      var a = el.from.value.trim(), b = el.to.value.trim(), kind = el.kind.value === 'live' ? 'live' : 'booking', wall = null;
-      if (!a) return msg(f, L.err_from, el.from);
-      if (!b) return msg(f, L.err_to, el.to);
-      if (kind === 'booking') {
+    // Continue on a question: its answers and those before it are checked as create-order will
+    // check them, and a problem shows on the question it is about. The addresses are looked up
+    // once (Back and Continue again don't ask again). See price, the last one, makes the trip.
+    function next() {
+      if (busy || paying || BK_QS.indexOf(step) < 0) return;
+      var at = step, upTo = STEPS[at], a = el.from.value.trim(), b = el.to.value.trim(), live = el.kind.value === 'live', wall = null;
+      if (!a) return problem('where', L.err_from, el.from);
+      if (!b) return problem('where', L.err_to, el.to);
+      if (upTo >= STEPS.when && !live) {
         wall = parseDT(when.value);
-        if (!wall) return msg(f, L.err_when, when);
+        if (!wall) return problem('when', L.err_when, when);
       }
       var pax = +el.pax.value, bags = +(el.bags.value || 0);
-      if (!(pax >= 1 && pax <= 20 && pax % 1 === 0)) return msg(f, L.err_pax, el.pax);
-      if (!(bags >= 0 && bags <= 40 && bags % 1 === 0)) return msg(f, L.err_bags, el.bags);
-      var btn = $('.go', f), e0 = ed;
+      if (upTo >= STEPS.who) {
+        if (!(pax >= 1 && pax <= 20 && pax % 1 === 0)) return problem('who', L.err_pax, el.pax);
+        if (!(bags >= 0 && bags <= 40 && bags % 1 === 0)) return problem('who', L.err_bags, el.bags);
+      }
+      var e0 = ed, look = !el.from._place || !el.to._place;
       // Edited, or gone, while the addresses were looked up: that answer is for an older trip.
-      var stale = function () { return ed !== e0 || step !== 'trip' || !card.isConnected; };
+      var stale = function () { return ed !== e0 || step !== at || !card.isConnected; };
       msg(f, '');
       busy = true;
-      busyBtn(btn, true, L.checking);
+      if (look) busyBtn(tripBtn, true, L.checking);
       Promise.all([el.from._place || findPlace(a), el.to._place || findPlace(b)]).then(function (r) {
         if (stale()) return;
-        if (!r[0]) return msg(f, fill(L.err_not_found, { q: a }), el.from);
-        if (!r[1]) return msg(f, fill(L.err_not_found, { q: b }), el.to);
-        if (!routeOk(r[0], r[1])) return msg(f, L.err_route);
-        if (domesticClosed(r[0], r[1])) return msg(f, L.err_domestic);
-        if (roadKm(r[0], r[1]) < MIN_KM) return msg(f, fill(L.err_short, { n: MIN_KM }));
+        if (!r[0]) return problem('where', fill(L.err_not_found, { q: a }), el.from);
+        if (!r[1]) return problem('where', fill(L.err_not_found, { q: b }), el.to);
+        if (!routeOk(r[0], r[1])) return problem('where', L.err_route);
+        if (domesticClosed(r[0], r[1])) return problem('where', L.err_domestic);
+        if (roadKm(r[0], r[1]) < MIN_KM) return problem('where', fill(L.err_short, { n: MIN_KM }));
+        el.from._place = r[0];
+        el.to._place = r[1];
+        clockNote(); // the pickup's clock is known now
         // The time is on the pickup's clock: at least 2 hours from now there, as create-order checks.
-        var at = wall ? wallMoment(wall, placeZone(r[0])) : null;
-        if (at && at.getTime() < Date.now() + 2 * 3600e3) return msg(f, L.err_when, when);
-        trip = { kind: kind, from: r[0], to: r[1], at: at, pax: pax, bags: bags };
+        var t = wall ? wallMoment(wall, placeZone(r[0])) : null;
+        if (t && t.getTime() < Date.now() + 2 * 3600e3) return problem('when', L.err_when, when);
+        if (at !== 'who') return forward(BK_QS[upTo + 1]);
+        trip = { kind: live ? 'live' : 'booking', from: r[0], to: r[1], at: t, pax: pax, bags: bags };
         order = null;
         fillPrice();
-        go('price');
-        dirty = false; // after go: a field that loses focus there can still send its change
+        forward('van');
         loadStripe().catch(noop); // ready for the payment step
-      }, function () { if (!stale()) msg(f, L.err_search); }).then(function () { busy = false; busyBtn(btn, false); });
+      }, function () { if (!stale()) msg(f, L.err_search); }).then(function () { busy = false; busyBtn(tripBtn, false); });
+    }
+    // On to the next step: the answers so far reach it (after go: a field that loses the focus
+    // there still sends its change).
+    function forward(name) {
+      go(name);
+      reach = Math.max(reach, STEPS[name]);
+    }
+    // A check failed: back to the question it is about (if it isn't the one shown), with why.
+    function problem(q, text, input) {
+      reach = Math.min(reach, STEPS[q]);
+      if (step !== q) {
+        go(q, { history: false });
+        if (routing) history.replaceState(Object.assign({}, history.state, { bk: q === 'where' ? null : q, bkp: null }), '');
+      }
+      msg(f, text, input);
     }
 
-    // ---- step 2: the price, with a choice of van
+    // ---- the van and the summary: each van's price for this trip, then the trip in short and Pay
     function fits(v) { return trip.pax <= VAN[v].max; }
     function cents() { return quote(trip.from, trip.to, trip.pax, trip.bags, van).cents; }
     function fillPrice() {
@@ -1150,7 +1215,7 @@ if (top !== self) top.location = location;
         + fact(IC.pax, trip.pax, L.f_pax) + (trip.bags ? fact(IC.bag, trip.bags, L.f_bags) : '')
         + fact(IC.km, fill(L.km, { n: quote(A, B, 1, 0, 'standard').km }));
       VANS.forEach(function (v) {
-        var ok = fits(v), o = $('.vopt.' + v, p);
+        var ok = fits(v), o = $('.vopt.' + v, P.van);
         o.classList.toggle('no', !ok);
         $('input', o).disabled = !ok;
         $('.vprice', o).textContent = ok ? money(quote(A, B, trip.pax, trip.bags, v).cents, L.lang) : fill(L.too_many, { n: VAN[v].max });
@@ -1159,10 +1224,19 @@ if (top !== self) top.location = location;
     }
     function setVan(v) {
       van = v;
-      $$('[name=van]', P.price).forEach(function (r) { r.checked = r.value === v; r.parentNode.classList.toggle('on', r.checked); });
-      $('.vcap', P.price).textContent = L['c_' + v];
+      $$('[name=van]', P.van).forEach(function (r) { r.checked = r.value === v; r.parentNode.classList.toggle('on', r.checked); });
+      $('.vcap', P.van).textContent = L['c_' + v];
       syncPrice();
     }
+    // The summary's van and note, as chosen on the step before.
+    function fillSum() {
+      var n = notes.value.trim(), rows = [[L.s_van, L['v_' + van], '']];
+      if (n) rows.push([L.s_note, n, ' class="wide"']);
+      $('.bk-sum', P.price).innerHTML = rows.map(function (r) { return '<div' + r[2] + '><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('');
+    }
+    notes.addEventListener('input', fillSum);
+    notes.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); vanBtn.click(); } });
+    vanBtn.addEventListener('click', function () { if (trip && step === 'van') forward('price'); });
     function syncPrice() {
       if (!trip) return;
       var price = money(cents(), L.lang), label = fill(getSession() ? L.pay : L.login_pay, { price: price });
@@ -1175,8 +1249,9 @@ if (top !== self) top.location = location;
         { hours: CANCEL_RULE.freeHours, charge: money(CANCEL_RULE.chargeCents, L.lang), percent: CANCEL_RULE.lateRefundPct });
       $('.fine', P.price).textContent = (trip.kind === 'live' ? L.fine_print_live + ' ' + rule : L.fine_print + ' ' + rule + ' ' + L.shared)
         + (van === 'luxury' ? ' ' + L.lux_note : '');
+      fillSum();
     }
-    P.price.addEventListener('change', function (e) {
+    P.van.addEventListener('change', function (e) {
       if (e.target.name !== 'van') return;
       prefer = e.target.value;
       setVan(prefer);
@@ -1184,7 +1259,7 @@ if (top !== self) top.location = location;
     });
     priceBtn.addEventListener('click', startPay);
 
-    // ---- step 3: payment
+    // ---- the payment
     function orderBody() {
       var place = function (x) { return { address: x.address, city: x.city, country: x.country, lat: x.lat, lng: x.lng }; };
       return {
@@ -1242,7 +1317,7 @@ if (top !== self) top.location = location;
     }
     // The order is made for the van and the note shown, so they stay put until it is.
     function lock(on) {
-      $('.vpick', P.price).disabled = on;
+      $('.vpick', P.van).disabled = on;
       notes.readOnly = on;
     }
     function signedInAs() { var s = getSession(); return s ? uidOf(s) : null; }
@@ -1256,12 +1331,12 @@ if (top !== self) top.location = location;
     // payment and Stripe's form go, and the card goes back to the price (the trip stays, typed on
     // this page). A booked trip's summary goes too.
     function dropCheckout() {
-      if (step === 'done') { reset(); go('trip', { history: false }); }
+      if (step === 'done') { reset(); go('where', { history: false }); }
       order = null;
       wantPay = false;
       dropPayment();
       if (step === 'pay') go('price', { history: false });
-      if (routing && step !== 'trip') history.replaceState(Object.assign({}, history.state, { bk: step, bkp: null, bkr: null }), '');
+      if (routing && step !== 'where') history.replaceState(Object.assign({}, history.state, { bk: step, bkp: null, bkr: null }), '');
       save(false);
     }
     function mountPayment() {
@@ -1354,13 +1429,13 @@ if (top !== self) top.location = location;
     }
     $('.another', P.done).addEventListener('click', function () {
       reset();
-      go('trip', { history: false });
+      go('where', { history: false });
       history.replaceState(Object.assign({}, history.state, { bk: null, bkp: null, bkr: null }), '');
       setTimeout(function () { el.from.focus({ preventScroll: true }); }, 480);
     });
     function reset() {
       trip = order = prefer = null;
-      dirty = false;
+      reach = 0;
       el.from.value = el.to.value = notes.value = '';
       el.from._place = el.to._place = null;
       clockNote();
@@ -1383,7 +1458,7 @@ if (top !== self) top.location = location;
       sync();
       msg(P.price, '');
       msg(P.pay, '');
-      if (step !== 'trip') go('trip', { history: false });
+      if (step !== 'where') go('where', { history: false });
       if (routing && history.state && history.state.bk) history.replaceState(Object.assign({}, history.state, { bk: null, bkp: null, bkr: null }), '');
     }
 
@@ -1393,16 +1468,29 @@ if (top !== self) top.location = location;
       history.replaceState(Object.assign({}, history.state, { y: window.scrollY }), '');
       history.pushState({ dv: stamp(), y: window.scrollY, bk: name, bkp: 1 }, ''); // bkp: the entry before is the step before
     }
+    // A step slides in: the trip form's questions slide inside it (and when the form itself comes
+    // back, it shows that question at once), the other steps are panes of the card.
     function go(name, o) {
       o = o || {};
-      var to = P[name];
-      if (to === cur) return;
-      var fwd = STEPS[name] > STEPS[step], was = step, hidden = !card.isConnected || card.classList.contains('off');
+      if (name === step) return;
+      var q = BK_QS.indexOf(name) >= 0, to = q ? f : P[name], fwd = STEPS[name] > STEPS[step], was = step;
+      var hidden = !card.isConnected || card.classList.contains('off'), instant = o.instant || hidden;
       step = name;
       card.dataset.stage = name;
-      h2.textContent = name === 'trip' ? title0 : L['h_' + name];
-      swap(panes, cur, to, fwd ? 1 : -1, o.instant || hidden, function () { if (was === 'pay' && step !== 'pay') dropPayment(); });
-      cur = to;
+      h2.textContent = name === 'pay' || name === 'done' ? L['h_' + name] : title0;
+      progress(name);
+      if (q) {
+        swap(qs, qs._front, Q[name], fwd ? 1 : -1, instant || to !== cur);
+        var label = name === 'who' ? seePrice : L.bk_next;
+        if (tripBtn._label != null) tripBtn._label = label; // busy: shown once it is done
+        else tripBtn.textContent = label;
+        msg(f, '');
+      }
+      if (to !== cur) {
+        // Each step is as tall as it needs (the trip's three questions share one height): the card eases to it.
+        swap(panes, cur, to, fwd ? 1 : -1, instant, function () { if (was === 'pay' && step !== 'pay') dropPayment(); }, panes.offsetHeight);
+        cur = to;
+      }
       if (o.history !== false) {
         if (name === 'done') history.replaceState(Object.assign({}, history.state, { bk: 'done', bkr: null }), '');
         else if (fwd && loginOpen) afterLogin = name; // pushed once the account card has gone (loginClosed)
@@ -1410,15 +1498,16 @@ if (top !== self) top.location = location;
       }
       if (!hidden && !o.instant) {
         if (fwd) reveal(card);
-        h2.focus({ preventScroll: true });
+        ($('.bk-ask', q ? Q[name] : to) || h2).focus({ preventScroll: true });
       }
     }
     back.addEventListener('click', function () {
-      if (paying) return; // the payment's answer shows on this step
-      var prev = step === 'pay' ? 'price' : 'trip', st = history.state || {};
+      if (paying || step === 'done') return; // the payment's answer shows on this step
+      var prev = BK_ORDER[STEPS[step] - 1], st = history.state || {};
+      if (!prev) return;
       if (routing && st.bk === step && st.bkp && !st.bkr) return history.back(); // popstate takes it back a step
       go(prev, { history: false });
-      if (routing) history.replaceState(Object.assign({}, st, { bk: prev === 'trip' ? null : prev, bkp: null }), '');
+      if (routing) history.replaceState(Object.assign({}, st, { bk: prev === 'where' ? null : prev, bkp: null }), '');
     });
 
     // Keeps the trip while the visitor is away at Google, Apple or their bank.
@@ -1448,6 +1537,7 @@ if (top !== self) top.location = location;
       if (trip.kind === 'booking' && !trip.at) { trip = null; return false; }
       prefer = s.van;
       fillPrice();
+      reach = STEPS.price; // every question answered: the card opens on the summary
       // Only the order of the person signed in now (its payment is not kept: Pay makes it again).
       if (s.order && s.order.uid && s.order.uid === signedInAs()) order = { id: s.order.id, cents: s.order.cents, off: +s.order.off || 0, uid: s.order.uid };
       return true;
@@ -1505,7 +1595,7 @@ if (top !== self) top.location = location;
       var a = e.target.closest && e.target.closest('[data-van]');
       if (!a || !VAN[a.dataset.van]) return;
       prefer = a.dataset.van;
-      if (trip && step === 'price' && !busy && fits(prefer)) setVan(prefer);
+      if (trip && (step === 'van' || step === 'price') && !busy && fits(prefer)) setVan(prefer);
     });
 
     return {
@@ -1526,16 +1616,17 @@ if (top !== self) top.location = location;
       },
       // Back or Forward between this page's entries: true when the card took it.
       pop: function (target) {
-        if (!P[target] || target === step) return false;
+        if (STEPS[target] == null || target === step) return false;
         if (paying) { // Back while the payment is on its way: the card stays on it
           history.replaceState(Object.assign({}, history.state, { bk: step, bkp: null, bkr: null }), '');
           return true;
         }
         if (STEPS[target] < STEPS[step] && step !== 'done') { go(target, { history: false }); return true; }
-        if (step === 'done') { reset(); go('trip', { history: false }); }
-        else if (target === 'price' && trip && !dirty) { go('price', { history: false }); return true; } // Forward again, nothing changed
+        if (step === 'done') { reset(); go('where', { history: false }); }
+        // Forward again to a step these answers have reached (never into the payment: Pay makes it).
+        else if (STEPS[target] <= reach && STEPS[target] < STEPS.pay) { go(target, { history: false }); return true; }
         // The card stays (or starts over): this entry now says so, so its back arrow goes the right way.
-        history.replaceState(Object.assign({}, history.state, { bk: step === 'trip' ? null : step, bkp: null, bkr: null }), '');
+        history.replaceState(Object.assign({}, history.state, { bk: step === 'where' ? null : step, bkp: null, bkr: null }), '');
         return true;
       },
       // Back to the page from the browser's cache (bfcache), e.g. Back from a bank's page.
@@ -4100,7 +4191,7 @@ if (top !== self) top.location = location;
       var was = loginOpen, bk = curBook();
       if (to != null) hIdx = to;
       syncLogin();
-      if (bk && bk.pop((history.state || {}).bk || 'trip')) return;
+      if (bk && bk.pop((history.state || {}).bk || 'where')) return;
       if (!was && !loginOpen && st.y != null) window.scrollTo({ top: st.y, behavior: calm() ? 'auto' : 'smooth' });
       return;
     }
