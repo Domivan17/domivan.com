@@ -1788,15 +1788,28 @@ if (top !== self) top.location = location;
       LT: function (n) { return n.length === 9; },                   // įmonės kodas
       LV: function (n) { return n.length === 11; }                   // reģistrācijas numurs
     };
+    // What each country's papers call the company number, with an example of it
+    // and of the VAT number: the apps' COMPANY_NUMBERS (supabase/functions/_shared/pricing.ts),
+    // the same words in every language (scripts/app-tests/country-lock.test.mjs keeps them equal).
+    var COMPANY_NUMBERS = {
+      PL: { name: 'NIP', example: '1234567890', vatExample: 'PL1234567890' },
+      RO: { name: 'CUI', example: '12345678', vatExample: 'RO12345678' },
+      BG: { name: 'ЕИК', example: '123456789', vatExample: 'BG123456789' },
+      HU: { name: 'Adószám', example: '12345678-2-41', vatExample: 'HU12345678' },
+      LT: { name: 'Įmonės kodas', example: '123456789', vatExample: 'LT123456789' },
+      LV: { name: 'Reģistrācijas numurs', example: '40001234567', vatExample: 'LV40001234567' }
+    };
     var yesNo = [{ v: 'yes', t: J.yes }, { v: 'no', t: J.no }];
     var STEPS = [
       { id: 'country', q: J.q_country, type: 'one', opts: ['PL', 'RO', 'BG', 'HU', 'LT', 'LV'].map(function (c) { return { v: c, t: J.countries[c], flag: c }; }) },
       { id: 'business_type', q: J.q_kind, type: 'one', opts: [{ v: 'company', t: J.kind_company }, { v: 'self_employed', t: J.kind_self }] },
       { id: 'company', q: J.q_company, type: 'fields', fields: function () {
+          var no = COMPANY_NUMBERS[a.country];
           return [
             { k: 'company_name', label: J.f_company, ac: 'organization', max: TEXT_MAX.company_name },
-            { k: 'reg_number', label: J.f_reg, hint: J.reg_hint[a.country] || '', mode: 'numeric', max: TEXT_MAX.reg_number },
-            { k: 'vat_number', label: J.f_vat, optional: true, max: TEXT_MAX.vat_number }
+            { k: 'reg_number', label: J.f_reg + (no ? ' (' + no.name + ')' : ''), hint: J.reg_hint[a.country] || '', ph: no && no.example,
+              mode: 'numeric', max: TEXT_MAX.reg_number },
+            { k: 'vat_number', label: J.f_vat, optional: true, ph: no && no.vatExample, max: TEXT_MAX.vat_number }
           ];
         }, check: function () {
           if (!REG[a.country] || REG[a.country](digits(a.reg_number))) return '';
@@ -1856,7 +1869,7 @@ if (top !== self) top.location = location;
           }
           return '<label><span>' + esc(f.label) + '</span><input name="' + f.k + '" type="' + (f.type || 'text') + '"'
             + (f.ac ? ' autocomplete="' + f.ac + '"' : '') + (f.mode ? ' inputmode="' + f.mode + '"' : '')
-            + (f.max ? ' maxlength="' + f.max + '"' : '') + ' value="' + esc(a[f.k] || '') + '">' + (f.hint ? '<small>' + esc(f.hint) + '</small>' : '') + '<em class="err" data-for="' + f.k + '"></em></label>';
+            + (f.max ? ' maxlength="' + f.max + '"' : '') + (f.ph ? ' placeholder="' + esc(f.ph) + '"' : '') + ' value="' + esc(a[f.k] || '') + '">' + (f.hint ? '<small>' + esc(f.hint) + '</small>' : '') + '<em class="err" data-for="' + f.k + '"></em></label>';
         }).join('') + '</div>';
       } else if (s.type === 'confirm') {
         h += '<dl class="sum">' + [
@@ -2443,7 +2456,7 @@ if (top !== self) top.location = location;
     // and what the visitor has open in it (Cancel's question, the report form and its text, the
     // question before "Refund me now").
     var id = null, dt = null, tripN = 0, tripAt = 0, ask = false, rep = false, repText = '', note = null, busy = false, tick = 0,
-      sAsk = false;
+      sAsk = false, came = false, ncAsk = false;
 
     function token() {
       return refresh().then(function (s) {
@@ -2511,14 +2524,14 @@ if (top !== self) top.location = location;
     // it is shown it is read again every minute (the transporter's phone appears on a clock).
     function open(tid) {
       if (tid !== id) {
-        id = tid; dt = null; ask = rep = sAsk = false; repText = ''; note = null; tripAt = 0;
+        id = tid; dt = null; ask = rep = sAsk = came = ncAsk = false; repText = ''; note = null; tripAt = 0;
         tripPane.scrollTop = 0;
         if (byId[tid]) { dt = { o: byId[tid] }; drawTrip(); } else tripPane.innerHTML = spinner();
       }
       if (Date.now() - tripAt > 1000) load();
       stop();
       tick = setInterval(function () {
-        if (!busy && !ask && !rep && !sAsk && !d.hidden && tripPane.isConnected && !tripPane.closest('.off')) load();
+        if (!busy && !ask && !rep && !sAsk && !came && !ncAsk && !d.hidden && tripPane.isConnected && !tripPane.closest('.off')) load();
       }, 60000);
     }
     function stop() { clearInterval(tick); tick = 0; }
@@ -2534,9 +2547,11 @@ if (top !== self) top.location = location;
             o.status === 'accepted' || o.status === 'en_route' ? rest('order_pickup_codes?select=code&order_id=eq.' + tid, t).catch(nothing) : null,
             rest('invoices?select=id,kind,number,total_cents,file_path&order_id=eq.' + tid + '&kind=in.(trip,credit_note)&file_path=not.is.null&order=created_at.asc', t).catch(nothing),
             CANCELLABLE.indexOf(o.status) >= 0 ? rest('rpc/my_cancellation_terms', t, { p_order: tid }).catch(nothing) : null,
-            o.status === 'bidding' && o.kind === 'booking' ? rest('rpc/my_trip_search', t, { p_order: tid }).catch(nothing) : null
+            o.status === 'bidding' && o.kind === 'booking' ? rest('rpc/my_trip_search', t, { p_order: tid }).catch(nothing) : null,
+            (o.status === 'accepted' || o.status === 'en_route') && o.kind === 'booking' ? rest('rpc/my_no_pickup', t, { p_order: tid }).catch(nothing) : null
           ]).then(function (x) {
-            return { o: o, who: x[0] && x[0][0], code: x[1] && x[1][0] && x[1][0].code, inv: x[2] || [], cx: x[3] && x[3][0], srch: x[4] || null };
+            return { o: o, who: x[0] && x[0][0], code: x[1] && x[1][0] && x[1][0].code, inv: x[2] || [], cx: x[3] && x[3][0], srch: x[4] || null,
+              np: x[5] && x[5][0] };
           });
         });
       }).then(function (r) {
@@ -2599,8 +2614,9 @@ if (top !== self) top.location = location;
       if (rep) $('textarea', tripPane).value = repText;
     }
     // Report a problem: while on the road, and after the trip until the transporter is paid (as in the app).
+    // A trip held before pickup (nobody came, 20261101120000_no_pickup) says so under Cancel instead.
     function report(o, now) {
-      if (o.payout_on_hold) return '<p class="t-note t-done">' + esc(L.report_done) + '</p>';
+      if (o.payout_on_hold && (o.status === 'picked_up' || o.status === 'completed')) return '<p class="t-note t-done">' + esc(L.report_done) + '</p>';
       var until = o.payout_release_at ? new Date(o.payout_release_at) : null;
       if (!(o.status === 'picked_up' || (o.status === 'completed' && !o.payout_sent && until && until > now))) return note && note.where === 'rep' ? msgHtml('rep') : '';
       return '<section class="t-sec">'
@@ -2640,13 +2656,23 @@ if (top !== self) top.location = location;
     // paid. After that, until pickup, what comes back depends on how long before pickup: dt.cx says
     // how much now and until when (the database decides, migration 20261030110000_cancel_rule).
     // One question first, with the amount.
+    // From the agreed pickup time on, a Book ahead trip nobody picked up (dt.np: my_no_pickup(), migration
+    // 20261101120000_no_pickup) also has "My transporter didn't come", and Cancel first asks whether the
+    // transporter came, as in the app (src/components/trip-cancel.tsx). Once told, DomiVan's staff decide.
     function cancel(o) {
-      var open = o.status === 'bidding' || o.status === 'pending_payment', cx = dt.cx;
+      var open = o.status === 'bidding' || o.status === 'pending_payment', cx = dt.cx, np = dt.np;
+      if (np && np.reported_at) return '<p class="t-note t-done">' + esc(L.nc_sent) + '</p>' + msgHtml('cancel');
       if (!open && !cx) return note && note.where === 'cancel' ? msgHtml('cancel') : '';
-      if (!ask) return '<div class="t-cancel"><button type="button" class="btn ghost danger t-ask">' + esc(L.cancel) + '</button>'
+      if (ncAsk || came) {
+        return '<div class="t-cancel"><p>' + esc(came ? L.came_q : L.nc_q) + '</p><small class="t-cx">' + esc(came ? L.came_p : L.nc_p) + '</small>'
+          + '<div class="t-two"><button type="button" class="btn ghost ' + (came ? 't-came">' + esc(L.came_yes) : 't-nc-back">' + esc(L.back)) + '</button>'
+          + '<button type="button" class="btn danger t-nc-send">' + esc(came ? L.came_no : L.nc_send) + '</button></div>' + msgHtml('cancel') + '</div>';
+      }
+      if (!ask) return '<div class="t-cancel">' + (np && np.can_report ? '<button type="button" class="btn ghost t-nc">' + esc(L.nc_btn) + '</button>' : '')
+        + '<button type="button" class="btn ghost danger t-ask">' + esc(L.cancel) + '</button>'
         + (cx ? '<small class="t-cx">' + esc(cxNow(cx)) + '</small>' : '') + msgHtml('cancel') + '</div>';
       return '<div class="t-cancel"><p>' + esc(cx ? cxQuestion(cx) : L.cancel_q) + '</p>'
-        + (!open && cx && cx.fee_cents ? '<small class="t-cx">' + esc(L.cx_late) + '</small>' : '')
+        + (!open && cx && cx.fee_cents && !(np && np.can_report) ? '<small class="t-cx">' + esc(L.cx_late) + '</small>' : '')
         + '<div class="t-two"><button type="button" class="btn ghost t-keep">' + esc(L.cancel_no) + '</button>'
         + '<button type="button" class="btn danger t-yes">' + esc(L.cancel_yes) + '</button></div>' + msgHtml('cancel') + '</div>';
     }
@@ -2725,7 +2751,11 @@ if (top !== self) top.location = location;
       if (!b || busy || !dt && !b.classList.contains('t-retry')) return;
       var c = b.classList;
       if (c.contains('t-retry')) load();
-      else if (c.contains('t-ask')) { ask = true; note = null; redraw('.t-keep'); }
+      else if (c.contains('t-ask')) { note = null; if (dt.np && dt.np.can_report) { came = true; redraw('.t-came'); } else { ask = true; redraw('.t-keep'); } }
+      else if (c.contains('t-came')) { came = false; ask = true; note = null; redraw('.t-keep'); }
+      else if (c.contains('t-nc')) { ncAsk = true; note = null; redraw('.t-nc-back'); }
+      else if (c.contains('t-nc-back')) { ncAsk = false; note = null; redraw('.t-nc'); }
+      else if (c.contains('t-nc-send')) reportNoPickup(b);
       else if (c.contains('t-keep')) { ask = false; note = null; redraw('.t-ask'); }
       else if (c.contains('t-yes')) cancelTrip(b);
       else if (c.contains('t-s-keep')) answerSearch(b, 'keep');
@@ -2752,6 +2782,24 @@ if (top !== self) top.location = location;
         busy = false; // the button says Cancelling… until the trip shows how it is now
         listAt = 0;   // the list reads it again too
         if (tid === id && dt) { drawTrip(); into(note ? '.msg:not(:empty)' : '.t-note'); }
+      });
+    }
+    // "My transporter didn't come" (report_carrier_missing): the payout is held and DomiVan's staff check it.
+    function reportNoPickup(b) {
+      var tid = id;
+      busy = true;
+      note = null;
+      busyBtn(b, true, L.sending);
+      token().then(function (t) { return rest('rpc/report_carrier_missing', t, { p_order: tid }); }).then(function () {
+        came = ncAsk = false;
+      }, function (e) {
+        if (out(e)) return;
+        came = ncAsk = false;
+        note = { where: 'cancel', text: /not_reportable/.test(e.message) ? L.err_nc : errText(e) };
+      }).then(function () { return tid === id ? load() : null; }).then(function () {
+        busy = false;
+        listAt = 0; // the list reads it again too
+        if (tid === id && dt) { drawTrip(); into(note ? '.msg:not(:empty)' : '.t-done'); }
       });
     }
     // The answer to the search question: 'keep', or 'refund' (cancelled as DomiVan finding nobody,
