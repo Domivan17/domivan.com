@@ -5,7 +5,8 @@
  * the left and the new one in from the right (the other way on Back). The header and the
  * night map behind everything (.backdrop) are never redrawn, so the map keeps moving. Any
  * problem falls back to a normal page load. Links to /join and the legal pages open them as
- * panels instead (below); opened directly, they are pages as before.
+ * panels instead (below); opened directly, they are pages as before. /get (the DomiVan Driver
+ * app's page, which the Join Transporters QR codes open) always loads as a page of its own.
  *
  * Panels, like the client app: the app's menu (New trip, My trips, Profile) floats at the
  * bottom, and My trips, Profile, Join Transporters, the legal pages and Help slide in as a
@@ -24,12 +25,13 @@
  * and confirms it inside the card; each step slides in and the page never changes. The account
  * card slides over it when a signed-out visitor goes to pay.
  *
- * Page modules: the booking card (home) and the Join Transporters form, started once for
- * each page as it is shown.
+ * Page modules: the booking card (home), started once for each page as it is shown. Join
+ * Transporters has no form since batch 23 (F10): two QR codes to /get, where transporters get
+ * the DomiVan Driver app and register in it.
  *
  * Invite links: a VIT partner's QR code (domivan.com/r/CODE, sent home as ?r=CODE by 404.html)
- * shows an invite panel on the home page and keeps the code until the visitor signs in, applies
- * to drive or downloads the DomiVan Driver app (see "invite links" below).
+ * shows an invite panel on the home page and keeps the code until the visitor signs in or
+ * downloads the DomiVan Driver app (see "invite links" below).
  *
  * Background: hero-net.js draws the live network over the night map and keeps its lights off
  * the copy and the cards. It is told (dvNet.relayout) whenever a page or card slides in or out.
@@ -45,29 +47,24 @@ if (top !== self) top.location = location;
   var SB = 'https://htegjzxfspdaclcvfjfl.supabase.co';
   var KEY = 'sb_publishable_2spxK11Ldq3pj2EjJeoPbw_TVsZuKnL'; // public key, same as the apps
   var STORE = 'sb-htegjzxfspdaclcvfjfl-auth-token';             // where supabase-js v2 keeps the session
-  var PKCE = 'domivan-pkce', NAME = 'domivan-name', DRAFT = 'domivan-join-draft';
+  var PKCE = 'domivan-pkce', NAME = 'domivan-name';
+  // Where the Join Transporters form kept a half-filled application (name, phone, email) before
+  // batch 23: removed from this browser at every visit, and again on Log out and Delete account.
+  var DRAFT = 'domivan-join-draft';
   var REF = 'domivan-referral'; // a VIT invite code, same key as the apps (src/lib/referral.ts)
   // name@domain.tld, with no empty parts (no '..', no dot at either end).
   var EMAIL_RE = /^[^@\s.]+(?:\.[^@\s.]+)*@[^@\s.]+(?:\.[^@\s.]+)+$/;
   // The longest text the database takes in each column the forms write, so nobody types past it:
-  // profiles (Personal details, 20261028120000_text_bounds) and transporter_applications (Join
-  // Transporters, 20261017050000_transporter_applications). The apps' copy is src/lib/text-limits.ts;
+  // profiles (Personal details, 20261028120000_text_bounds). The apps' copy is src/lib/text-limits.ts;
   // scripts/app-tests/text-limits.test.mjs compares both with the migrations.
-  var TEXT_MAX = {
-    full_name: 120, phone: 30, billing_name: 200, billing_vat_number: 40, billing_address: 300,
-    company_name: 200, reg_number: 40, vat_number: 40, email: 200
-  };
+  var TEXT_MAX = { full_name: 120, phone: 30, billing_name: 200, billing_vat_number: 40, billing_address: 300 };
   var EASE = 'cubic-bezier(.22, .8, .24, 1)';
   // Phones: the one-column layout (landing.css). The home page opens on Log in / Create account
-  // there. The Transporters buttons go to the driver app's store page instead of /join on phones
-  // and on touch screens too short for the one-column layout (a big phone turned sideways).
+  // there. Once the DomiVan Driver app is in the stores (DRIVER_APP), the Transporters buttons go
+  // to its store page instead of /join on phones and on touch screens too short for the one-column
+  // layout (a big phone turned sideways).
   var PHONE = window.matchMedia('(max-width: 860px)');
   var HANDHELD = window.matchMedia('(max-width: 860px), (pointer: coarse) and (max-height: 500px)');
-  var DRIVER_APP = {
-    live: false,  // false: every button keeps /join (Join Transporters). True once both store pages are public (404 on 2026-10-21)
-    ios: 'https://apps.apple.com/app/id6823771794',                        // iPhone and iPad
-    android: 'https://play.google.com/store/apps/details?id=eu.domivan.driver'
-  };
   var d = document, root = d.documentElement;
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -110,6 +107,15 @@ if (top !== self) top.location = location;
   function headerH() { var h = $('.top'); return h ? h.offsetHeight : 64; }
   function readT(doc) { try { return JSON.parse(doc.getElementById('dv-t').textContent); } catch (e) { return {}; } }
   var T = readT(d);
+  // The DomiVan Driver app's store pages, from the page (DRIVER_STORES in scripts/build-site.py): both
+  // empty until they are public, and until then every Transporters button keeps /join.
+  var DRIVER_APP = { ios: T.drv_ios || '', android: T.drv_android || '' };
+  DRIVER_APP.live = !!(DRIVER_APP.ios && DRIVER_APP.android);
+  // /get, what the Join Transporters QR codes open: once the app is in both stores an iPhone or iPad
+  // goes on to the App Store and an Android phone or tablet to Google Play, before anything else
+  // (the language card included). Other devices, and every device until then, see the page.
+  var TO_STORE = /^\/(?:(?:ro|pl|bg|hu|es|fr|de|nl|pt)\/)?get(?:\.html)?$/.test(location.pathname) && DRIVER_APP.live && storeFor();
+  if (TO_STORE) { location.replace(TO_STORE); return; }
 
   // ---------------------------------------------------------------- slides
 
@@ -210,13 +216,24 @@ if (top !== self) top.location = location;
     'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'GB', 'CH'];
   // No trip may start and end inside these (NO_DOMESTIC_TRIPS): the Netherlands needs a taxi licence for it.
   var NO_DOMESTIC_CC = ['NL'];
+  // CVR_COUNTRIES: a trip across a border that starts or ends in one of them is subject to the CVR (Geneva, 1973),
+  // and the done screen and the trip page say so (L.t_cvr).
+  var CVR_CC = ['HR', 'CZ', 'LV', 'SK'];
   var MIN_KM = 100;
   var RATES = { road: 1.28, surcharge: { GB: 30, CH: 10 }, bag: 10, round: 5, fee: 359 };
   var VANS = ['standard', 'large', 'luxury'];
-  var VAN = { standard: { max: 8, km: 0.08 }, large: { max: 20, km: 0.11 }, luxury: { max: 16, km: 0.17 } };
+  var VAN = { standard: { km: 0.11 }, large: { km: 0.12 }, luxury: { km: 0.17 } };
+  // PEOPLE_CAPS: at most 7 in a booking, 6 on a trip over 1,000 km (two drivers); create-order
+  // goes by bundle_settings' numbers, whose defaults these are.
+  var PEOPLE = { max: 7, maxLong: 6, longKm: 1000 };
+  function maxPax(km) { return km > PEOPLE.longKm ? PEOPLE.maxLong : PEOPLE.max; }
 
   function inList(list, c) { return list.indexOf(String(c).toUpperCase()) >= 0; }
   function routeOk(a, b) { return inList(SERVED_CC, a.country) && inList(SERVED_CC, b.country); }
+  function cvrApplies(a, b) {
+    var x = String(a).toUpperCase(), y = String(b).toUpperCase();
+    return x !== y && (inList(CVR_CC, x) || inList(CVR_CC, y));
+  }
   function domesticClosed(a, b) {
     var x = String(a.country).toUpperCase();
     return x === String(b.country).toUpperCase() && inList(NO_DOMESTIC_CC, x);
@@ -686,7 +703,7 @@ if (top !== self) top.location = location;
   var CANCEL_RULE = { chargeCents: 359, freeHours: 48, midHours: 24, midRefundPct: 75, lateRefundPct: 50 };
   // The terms this page's checkout shows (supabase/functions/_shared/terms.ts TERMS_VERSION, held equal by
   // scripts/app-tests/cancel-rule.test.mjs): create-order keeps the trip on that version's cancellation steps.
-  var TERMS_VERSION = '2026-10-28';
+  var TERMS_VERSION = '2026-10-30';
 
   // ---------------------------------------------------------------- booking card (home)
   //
@@ -711,6 +728,8 @@ if (top !== self) top.location = location;
   var BK_ORDER = ['where', 'when', 'who', 'van', 'price', 'pay', 'done'], BK_QS = ['where', 'when', 'who'];
   var STEPS = {};
   BK_ORDER.forEach(function (n, i) { STEPS[n] = i; });
+  // The steps the website statistics count (countStep), once per visit each.
+  var BK_STATS = { when: 'booking_started', price: 'price_shown', pay: 'pay_opened' };
   var IC = {
     cal: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M3.5 10h17M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
     pax: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M5 20c.8-3.6 3.6-5.6 7-5.6s6.2 2 7 5.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
@@ -731,12 +750,12 @@ if (top !== self) top.location = location;
   // clock (opts.zone()); what can be picked runs from earliestWall() to latestWall(). Without JavaScript the page
   // keeps the browser's field.
   var QUARTER = 15;
-  // The first pickup offered: 2 hours from now (what create-order takes), on the next quarter hour
+  // The first pickup offered: 3 hours from now (what create-order takes), on the next quarter hour
   // of the pickup's clock (the visitor's while the pickup isn't known), as the apps' earliestPickup.
   // In the hour the clocks go back a reading means its first time, so the first one late enough
   // can be an hour on.
   function earliestWall(zone, now) {
-    var step = QUARTER * 60e3, soonest = now + 2 * 3600e3;
+    var step = QUARTER * 60e3, soonest = now + 3 * 3600e3;
     for (var ms = Math.ceil(soonest / step) * step; ; ms += step) {
       var w = wallOf(new Date(ms), zone);
       if (wallMoment(w, zone).getTime() >= soonest) return w;
@@ -1199,7 +1218,7 @@ if (top !== self) top.location = location;
       if (upTo >= STEPS.when && today && pickedWindow() === null) return problem('when', L.today_pick, $('.today-wins input', f));
       var pax = +el.pax.value, bags = +(el.bags.value || 0);
       if (upTo >= STEPS.who) {
-        if (!(pax >= 1 && pax <= 20 && pax % 1 === 0)) return problem('who', L.err_pax, el.pax);
+        if (!(pax >= 1 && pax <= PEOPLE.max && pax % 1 === 0)) return problem('who', L.err_pax, el.pax);
         if (!(bags >= 0 && bags <= 40 && bags % 1 === 0)) return problem('who', L.err_bags, el.bags);
       }
       var e0 = ed, look = !el.from._place || !el.to._place;
@@ -1218,14 +1237,22 @@ if (top !== self) top.location = location;
         el.from._place = r[0];
         el.to._place = r[1];
         clockNote(); // the pickup's clock is known now
-        // The time is on the pickup's clock: at least 2 hours from now there, as create-order checks;
+        // The counter stops at this trip's number; more is refused with why.
+        el.pax.max = maxPax(roadKm(r[0], r[1]));
+        if (upTo >= STEPS.who && pax > +el.pax.max) {
+          return problem('who', refusalText({ code: 'too_many_passengers', params: { max: PEOPLE.max, maxLong: PEOPLE.maxLong, longKm: PEOPLE.longKm } }) || L.err_pax, el.pax);
+        }
+        // The time is on the pickup's clock: at least 3 hours from now there, as create-order checks;
         // a Today window only while it is still offered.
         var t = wall ? wallMoment(wall, placeZone(r[0])) : null, win = null;
-        if (t && t.getTime() < Date.now() + 2 * 3600e3) return problem('when', L.err_when, when);
+        if (t && t.getTime() < Date.now() + 3 * 3600e3) return problem('when', L.err_when, when);
         if (upTo >= STEPS.when && today) {
+          // The pick first: the list drawn again below no longer holds a window gone since, so the
+          // words say that window has gone rather than ask for one.
+          var picked = pickedWindow();
           fillToday();
-          win = todayWindows(placeZone(r[0]), new Date()).filter(function (w) { return w.minutes === pickedWindow(); })[0];
-          if (!win) return problem('when', pickedWindow() === null ? L.today_pick : L.today_gone, $('.today-wins input', f));
+          win = todayWindows(placeZone(r[0]), new Date()).filter(function (w) { return w.minutes === picked; })[0];
+          if (!win) return problem('when', picked === null ? L.today_pick : L.today_gone, $('.today-wins input', f));
         }
         if (at !== 'who') return forward(BK_QS[upTo + 1]);
         trip = today ? { kind: 'today', from: r[0], to: r[1], at: win.start, until: win.until, minutes: win.minutes, pax: pax, bags: bags }
@@ -1253,7 +1280,6 @@ if (top !== self) top.location = location;
     }
 
     // ---- the van and the summary: each van's price for this trip, then the trip in short and Pay
-    function fits(v) { return trip.pax <= VAN[v].max; }
     function cents() { return quote(trip.from, trip.to, trip.pax, trip.bags, van).cents; }
     function fillPrice() {
       var p = P.price, A = trip.from, B = trip.to;
@@ -1268,13 +1294,11 @@ if (top !== self) top.location = location;
       $('.facts', p).innerHTML = fact(IC.cal, pickupText(trip.at, trip.until, placeZone(trip.from), L.lang))
         + fact(IC.pax, trip.pax, L.f_pax) + (trip.bags ? fact(IC.bag, trip.bags, L.f_bags) : '')
         + fact(IC.km, fill(L.km, { n: quote(A, B, 1, 0, 'standard').km }));
+      // Every class takes a booking's people (at most 7): a van with room for them gets it.
       VANS.forEach(function (v) {
-        var ok = fits(v), o = $('.vopt.' + v, P.van);
-        o.classList.toggle('no', !ok);
-        $('input', o).disabled = !ok;
-        $('.vprice', o).textContent = ok ? money(quote(A, B, trip.pax, trip.bags, v).cents, L.lang) : fill(L.too_many, { n: VAN[v].max });
+        $('.vprice', $('.vopt.' + v, P.van)).textContent = money(quote(A, B, trip.pax, trip.bags, v).cents, L.lang);
       });
-      setVan(prefer && fits(prefer) ? prefer : fits(van) ? van : trip.pax <= VAN.standard.max ? 'standard' : 'large');
+      setVan(prefer || van);
     }
     function setVan(v) {
       van = v;
@@ -1482,7 +1506,8 @@ if (top !== self) top.location = location;
     function booked(how, o, paid) {
       if (paid) { trip = paid.trip; van = paid.van; order = paid.order; }
       var p = P.done, t = trip, rows = [];
-      $('.done-p', p).textContent = how === 'wait' ? L.done_wait : t && t.kind === 'today' ? L.done_p_today : L.done_p;
+      $('.done-p', p).textContent = how === 'wait' ? L.done_wait : (t && t.kind === 'today' ? L.done_p_today : L.done_p)
+        + (t && cvrApplies(t.from.country, t.to.country) ? ' ' + L.t_cvr : '');
       if (t) {
         rows.push([L.s_route, t.from.city + ' → ' + t.to.city],
           [L.s_pickup, pickupText(t.at, t.until, placeZone(t.from), L.lang)],
@@ -1493,6 +1518,7 @@ if (top !== self) top.location = location;
       if (order) justBooked = order.id; // My trips lists it even before the payment is confirmed
       tripStore.del();
       wantPay = false;
+      if (how !== 'wait') countStep('paid'); // the website statistics' paid trips (a bank still confirming: not yet)
       go('done', o);
     }
     $('.another', P.done).addEventListener('click', function () {
@@ -1544,6 +1570,7 @@ if (top !== self) top.location = location;
       var q = BK_QS.indexOf(name) >= 0, to = q ? f : P[name], fwd = STEPS[name] > STEPS[step], was = step;
       var hidden = !card.isConnected || card.classList.contains('off'), instant = o.instant || hidden;
       step = name;
+      if (fwd) countStep(BK_STATS[name]);
       card.dataset.stage = name;
       h2.textContent = name === 'pay' || name === 'done' ? L['h_' + name] : title0;
       progress(name);
@@ -1672,7 +1699,7 @@ if (top !== self) top.location = location;
       var a = e.target.closest && e.target.closest('[data-van]');
       if (!a || !VAN[a.dataset.van]) return;
       prefer = a.dataset.van;
-      if (trip && (step === 'van' || step === 'price') && !busy && fits(prefer)) setVan(prefer);
+      if (trip && (step === 'van' || step === 'price') && !busy) setVan(prefer);
     });
 
     return {
@@ -1717,7 +1744,7 @@ if (top !== self) top.location = location;
 
   function curBook() { var b = page && $('.deck > .book', page); return b && b._bk; }
 
-  // ---------------------------------------------------------------- Join Transporters
+  // ---------------------------------------------------------------- phone numbers
 
   // Phone numbers with their country code (batch 17): the country first, then the number, saved as
   // "+40 712345678" so the other side can call it as it is. A copy of src/lib/phone.ts, from
@@ -1814,7 +1841,7 @@ if (top !== self) top.location = location;
     }
     return guessCountry(null, lang);
   }
-  // The country code button and the number (the Join form, Profile › Personal details): "RO +40 ▾"
+  // The country code button and the number (Profile › Personal details, the phone code): "RO +40 ▾"
   // with the browser's own list over it, the countries by name in the page's language.
   function phoneNow(c) { return c ? '<b>' + c.cc + '</b> +' + c.dial : esc(T.ph_pick); }
   function phoneHtml(id, parts, lang) {
@@ -1849,216 +1876,6 @@ if (top !== self) top.location = location;
     if (sel.name === 'phone_cc' && sel.parentNode.classList.contains('ph-code')) $('.ph-now', sel.parentNode).innerHTML = phoneNow(dialCode(sel.value));
   });
 
-  // One question per frame, saved to Supabase (table transporter_applications, insert only).
-  function initJoin(form, D) {
-    var J = D.t, FLAGS = D.flags, API = SB + '/rest/v1/transporter_applications';
-    var box = $('.q', form), bar = $('.progress span', form), count = $('.count', form), back = $('.back', form);
-    var a = store.json(DRAFT) || {};
-    var save = function () { store.set(DRAFT, JSON.stringify(a)); };
-    var digits = function (v) { return String(v || '').replace(/\D/g, ''); };
-    // Light format checks for each country's company number; staff verify the real thing.
-    var REG = {
-      PL: function (n) { return n.length === 10; },                  // NIP or KRS
-      RO: function (n) { return n.length >= 2 && n.length <= 10; },  // CUI
-      BG: function (n) { return n.length === 9 || n.length === 13; }, // EIK / UIC
-      HU: function (n) { return n.length === 8 || n.length === 10 || n.length === 11; }, // adószám or cégjegyzékszám
-      LT: function (n) { return n.length === 9; },                   // įmonės kodas
-      LV: function (n) { return n.length === 11; }                   // reģistrācijas numurs
-    };
-    // What each country's papers call the company number, with an example of it
-    // and of the VAT number: the apps' COMPANY_NUMBERS (supabase/functions/_shared/pricing.ts),
-    // the same words in every language (scripts/app-tests/country-lock.test.mjs keeps them equal).
-    var COMPANY_NUMBERS = {
-      PL: { name: 'NIP', example: '1234567890', vatExample: 'PL1234567890' },
-      RO: { name: 'CUI', example: '12345678', vatExample: 'RO12345678' },
-      BG: { name: 'ЕИК', example: '123456789', vatExample: 'BG123456789' },
-      HU: { name: 'Adószám', example: '12345678-2-41', vatExample: 'HU12345678' },
-      LT: { name: 'Įmonės kodas', example: '123456789', vatExample: 'LT123456789' },
-      LV: { name: 'Reģistrācijas numurs', example: '40001234567', vatExample: 'LV40001234567' }
-    };
-    var yesNo = [{ v: 'yes', t: J.yes }, { v: 'no', t: J.no }];
-    var STEPS = [
-      { id: 'country', q: J.q_country, type: 'one', opts: ['PL', 'RO', 'BG', 'HU', 'LT', 'LV'].map(function (c) { return { v: c, t: J.countries[c], flag: c }; }) },
-      { id: 'business_type', q: J.q_kind, type: 'one', opts: [{ v: 'company', t: J.kind_company }, { v: 'self_employed', t: J.kind_self }] },
-      { id: 'company', q: J.q_company, type: 'fields', fields: function () {
-          var no = COMPANY_NUMBERS[a.country];
-          return [
-            { k: 'company_name', label: J.f_company, ac: 'organization', max: TEXT_MAX.company_name },
-            { k: 'reg_number', label: J.f_reg + (no ? ' (' + no.name + ')' : ''), hint: J.reg_hint[a.country] || '', ph: no && no.example,
-              mode: 'numeric', max: TEXT_MAX.reg_number },
-            { k: 'vat_number', label: J.f_vat, optional: true, ph: no && no.vatExample, max: TEXT_MAX.vat_number }
-          ];
-        }, check: function () {
-          if (!REG[a.country] || REG[a.country](digits(a.reg_number))) return '';
-          return { k: 'reg_number', e: J.err_reg.replace('{country}', J.countries[a.country]) };
-        } },
-      { id: 'licence', q: J.q_licence, sub: J.licence_sub, type: 'one', opts: [{ v: 'yes', t: J.yes }, { v: 'applying', t: J.licence_applying }, { v: 'no', t: J.no }] },
-      { id: 'fleet_size', q: J.q_fleet, type: 'one', grid: true, opts: ['1', '2-5', '6-10', '11+'].map(function (v) { return { v: v, t: v.replace('-', '–') }; }) },
-      { id: 'van_classes', q: J.q_vans, sub: J.pick_all, type: 'many', opts: [
-          { v: 'standard', t: J.van_std, s: J.van_std_cap }, { v: 'large', t: J.van_lg, s: J.van_lg_cap }, { v: 'luxury', t: J.van_lux, s: J.van_lux_cap }] },
-      // The countries come with the page (JOIN_DESTINATIONS in scripts/build-site.py); the database takes the same list.
-      { id: 'destinations', q: J.q_routes, sub: J.pick_all, type: 'many', grid: true, opts: D.dest.map(function (c) { return { v: c, t: J.countries[c], flag: c }; }) },
-      { id: 'passenger_insurance', q: J.q_insurance, type: 'one', opts: yesNo },
-      { id: 'name', q: J.q_name, type: 'fields', fields: function () { return [{ k: 'full_name', label: J.f_name, ac: 'name', max: TEXT_MAX.full_name }]; } },
-      { id: 'contact', q: J.q_contact, type: 'fields', fields: function () {
-          return [{ k: 'phone', label: J.f_phone, type: 'phone' }, { k: 'email', label: J.f_email, type: 'email', ac: 'email', max: TEXT_MAX.email }];
-        }, check: function () {
-          var problem = phoneProblem({ cc: a.phone_cc || null, number: a.phone }, J.lang);
-          if (problem) return { k: 'phone', e: problem };
-          // Only a plain address, as the database takes it (20261028130000_mail_addresses): none of the characters
-          // a mailto link reads as a Bcc, a body or another address, no control characters, at most 200 characters.
-          if (!EMAIL_RE.test(a.email || '') || /[\x00-\x1f\x7f-\x9f?&=%,\/#:;<>()[\]\\"`]/.test(a.email) || a.email.length > 200) {
-            return { k: 'email', e: J.err_email };
-          }
-          return '';
-        } },
-      { id: 'confirm', q: J.q_confirm, sub: J.confirm_sub, type: 'confirm' }
-    ];
-    var i = 0, busy = false, ref = keptRef();
-    // Came through a VIT partner's invite link: the code goes with the application.
-    if (ref) {
-      var chip = d.createElement('p');
-      chip.className = 'inv-chip';
-      chip.innerHTML = GIFT + '<span>' + esc(ref.by ? fill(T.inv_saved, { name: ref.by }) : fill(T.inv_code, { code: ref.code })) + '</span>';
-      form.parentNode.insertBefore(chip, form);
-    }
-
-    function optHtml(s, o) {
-      var on = s.type === 'many' ? (a[s.id] || []).indexOf(o.v) >= 0 : a[s.id] === o.v;
-      return '<button type="button" class="opt' + (on ? ' on' : '') + '" data-v="' + esc(o.v) + '" aria-pressed="' + on + '">'
-        + (o.flag ? FLAGS[o.flag] : '') + '<span><b>' + esc(o.t) + '</b>' + (o.s ? '<small>' + esc(o.s) + '</small>' : '') + '</span>'
-        + (s.type === 'many' ? '<i class="tick" aria-hidden="true"></i>' : '') + '</button>';
-    }
-
-    function render(dir) {
-      var s = STEPS[i], h = '<h1>' + esc(s.q) + '</h1>' + (s.sub ? '<p class="qsub">' + esc(s.sub) + '</p>' : '');
-      if (s.type === 'one' || s.type === 'many') {
-        h += '<div class="opts' + (s.grid ? ' grid' : '') + '">' + s.opts.map(function (o) { return optHtml(s, o); }).join('') + '</div>';
-      } else if (s.type === 'fields') {
-        h += '<div class="fields">' + s.fields().map(function (f) {
-          // The code starts on the company's country (the first step); a draft from before batch 17
-          // has the number without its code.
-          if (f.type === 'phone') {
-            return '<div><label for="j-phone"><span>' + esc(f.label) + '</span></label>'
-              + phoneHtml('j-phone', a.phone_cc ? { cc: a.phone_cc, number: a.phone || '' }
-                : phoneParts(a.phone, dialCode(a.country) ? a.country : phoneGuess(J.lang)), J.lang)
-              + '<em class="err" data-for="phone"></em></div>';
-          }
-          return '<label><span>' + esc(f.label) + '</span><input name="' + f.k + '" type="' + (f.type || 'text') + '"'
-            + (f.ac ? ' autocomplete="' + f.ac + '"' : '') + (f.mode ? ' inputmode="' + f.mode + '"' : '')
-            + (f.max ? ' maxlength="' + f.max + '"' : '') + (f.ph ? ' placeholder="' + esc(f.ph) + '"' : '') + ' value="' + esc(a[f.k] || '') + '">' + (f.hint ? '<small>' + esc(f.hint) + '</small>' : '') + '<em class="err" data-for="' + f.k + '"></em></label>';
-        }).join('') + '</div>';
-      } else if (s.type === 'confirm') {
-        h += '<dl class="sum">' + [
-          [J.f_company, a.company_name], [J.f_reg, a.reg_number + ' · ' + (J.countries[a.country] || '')],
-          [J.f_name, a.full_name], [J.f_email, a.email]
-        ].map(function (r) { return '<div><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1] || '') + '</dd></div>'; }).join('') + '</dl>'
-          + '<label class="consent"><input type="checkbox" name="consent"' + (a.consent ? ' checked' : '') + '><span>' + J.consent + '</span></label>';
-      }
-      if (s.type !== 'one') h += '<em class="err" data-for="_"></em><button type="submit" class="btn big next">' + esc(s.type === 'confirm' ? J.submit : J.next) + '</button>';
-      else h += '<em class="err" data-for="_"></em>';
-      var show = function () {
-        box.innerHTML = h;
-        box.className = 'q from-' + (dir < 0 ? 'left' : 'right');
-        void box.offsetWidth; box.className = 'q';
-        bar.style.width = Math.round((i + 1) / (STEPS.length + 1) * 100) + '%';
-        count.textContent = J.step.replace('{n}', i + 1).replace('{total}', STEPS.length);
-        back.hidden = i === 0;
-        var first = box.querySelector('input:not([type=checkbox])');
-        if (first && window.matchMedia('(min-width: 700px)').matches) first.focus({ preventScroll: true });
-      };
-      if (dir === 0) return show();
-      box.className = 'q to-' + (dir < 0 ? 'right' : 'left');
-      setTimeout(show, 180);
-    }
-
-    function err(k, msg) {
-      box.querySelectorAll('.err').forEach(function (e) { e.textContent = ''; });
-      var e = box.querySelector('.err[data-for="' + k + '"]') || box.querySelector('.err[data-for="_"]');
-      e.textContent = msg;
-      var input = box.querySelector('[name="' + k + '"]'); if (input) input.focus();
-    }
-
-    function next() {
-      var s = STEPS[i];
-      if (s.type === 'fields') {
-        var fs = s.fields();
-        for (var n = 0; n < fs.length; n++) {
-          a[fs[n].k] = box.querySelector('[name="' + fs[n].k + '"]').value.trim();
-          if (fs[n].type === 'phone') {
-            var parts = readPhone(form);
-            a.phone_cc = parts.cc || ''; a.phone = parts.number;
-          }
-          if (!fs[n].optional && a[fs[n].k].length < 2) return err(fs[n].k, J.err_required);
-        }
-        var c = s.check && s.check(); save();
-        if (c) return err(c.k, c.e);
-      } else if (s.type === 'many' && !(a[s.id] || []).length) return err('_', J.err_pick);
-      else if (s.type === 'one' && !a[s.id]) return;
-      else if (s.type === 'confirm') return submit();
-      save(); i++; render(1);
-    }
-
-    function submit() {
-      a.consent = box.querySelector('[name=consent]').checked;
-      if (!a.consent) return err('_', J.err_consent);
-      if (busy) return;
-      if (form.elements.website.value) return done(); // bots fill the hidden field
-      busy = true;
-      var btn = box.querySelector('.next'); btn.disabled = true; btn.textContent = J.sending;
-      var row = {
-        lang: J.lang, country: a.country, business_type: a.business_type,
-        company_name: a.company_name, reg_number: a.reg_number, vat_number: a.vat_number || null,
-        licence: a.licence, fleet_size: a.fleet_size, van_classes: a.van_classes, destinations: a.destinations,
-        passenger_insurance: a.passenger_insurance === 'yes',
-        full_name: a.full_name, phone: phoneValue({ cc: a.phone_cc || null, number: a.phone }), email: a.email
-      };
-      ref = keptRef();
-      if (ref) row.referral_code = ref.code;
-      var post = function () {
-        return fetch(API, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(row) })
-          .then(function (r) { return r.ok ? 0 : r.status; });
-      };
-      post().then(function (status) {
-        if (status !== 400 || !row.referral_code) return status;
-        delete row.referral_code; // an invite code the database refuses never costs the application itself
-        return post();
-      }).then(function (status) { if (status) throw new Error(status); done(); })
-        .catch(function () { busy = false; btn.disabled = false; btn.textContent = J.submit; err('_', J.err_send); });
-    }
-
-    function done() {
-      store.del(DRAFT);
-      bar.style.width = '100%'; back.hidden = true; count.textContent = '';
-      box.className = 'q to-left';
-      setTimeout(function () {
-        box.innerHTML = '<div class="done-mark" aria-hidden="true">✓</div><h1>' + esc(J.done_h.replace('{name}', (a.full_name || '').split(' ')[0])) + '</h1>'
-          + '<p class="qsub">' + esc(J.done_p) + '</p>'
-          + (ref ? '<p class="qsub inv-done">' + GIFT + esc(fill(T.inv_join_done, { email: a.email })) + '</p>' : '')
-          + driverBadges(J.ios_small, J.play_small)
-          + '<a class="btn big next" href="' + esc(J.home) + '">' + esc(J.done_cta) + '</a>';
-        box.className = 'q';
-      }, 180);
-    }
-
-    box.addEventListener('click', function (e) {
-      var b = e.target.closest('.opt'); if (!b) return;
-      var s = STEPS[i];
-      if (s.type === 'many') {
-        var list = a[s.id] || [], at = list.indexOf(b.dataset.v);
-        if (at >= 0) list.splice(at, 1); else list.push(b.dataset.v);
-        a[s.id] = list; b.classList.toggle('on'); b.setAttribute('aria-pressed', at < 0); save();
-      } else {
-        a[s.id] = b.dataset.v; save();
-        box.querySelectorAll('.opt').forEach(function (o) { o.classList.toggle('on', o === b); });
-        setTimeout(next, 220);
-      }
-    });
-    form.addEventListener('submit', function (e) { e.preventDefault(); next(); });
-    back.addEventListener('click', function () { if (i > 0) { i--; render(-1); } });
-    render(0);
-  }
-
   // Starts a page's module once, the first time it is shown. Scripts inside pages that
   // arrive through the router are run once too (pages here keep theirs in this file).
   function initPage(main, arrived) {
@@ -2067,7 +1884,6 @@ if (top !== self) top.location = location;
     try {
       var kind = main.getAttribute('data-page');
       if (kind === 'home' && $('#book', main)) $('#book', main)._bk = Book($('#book', main), main);
-      if (kind === 'join' && $('#join', main) && $('#join-data', main)) initJoin($('#join', main), JSON.parse($('#join-data', main).textContent));
     } catch (err) { setTimeout(function () { throw err; }); }
     if (arrived) $$('script', main).forEach(function (old) {
       if (old.type && !/javascript|module/i.test(old.type)) return;
@@ -2125,6 +1941,102 @@ if (top !== self) top.location = location;
     liveTimer = setTimeout(askLive, LIVE_MS);
   }
 
+  // ---------------------------------------------------------------- website statistics
+
+  // DomiVan's own website statistics (batch 23, migration 20261105100000_site_stats; the privacy
+  // page's "Website statistics"): each page or panel shown and each booking or Join step sends one
+  // small beacon to the Edge Function site-beacon, which adds it to the day's totals. No cookie and
+  // no visitor ID: the browser tab's sessionStorage marks that its visit was counted (its first page
+  // also says where the visit came from, the kind of device and the language), and a step counts
+  // once per visit (a payment each time). Nothing is sent from a page the apps opened (?app=1), for
+  // a sign-in or payment coming back (the same visit), or once the visitor chose "do not count my
+  // visits" on the privacy page (#no-stats, kept in this browser). text/plain, so the browser sends
+  // it without asking first; keepalive, so it still goes as the page closes. /book sends its own
+  // (src/lib/site-beacon.ts: the same rules, change both; scripts/app-tests/site-stats.test.mjs).
+  var STATS_OFF = 'domivan-no-stats', STATS_VISIT = 'domivan-visit', STATS_STEPS = 'domivan-visit-steps';
+  var statsApp = false, tabMem = {};
+  var STATS_ONCE = { booking_started: 1, price_shown: 1, pay_opened: 1, join_opened: 1, get_opened: 1 };
+  var SOURCES = [['google', /(^|\.)google(\.com?)?\.[a-z]{2,3}$|^com\.google\.android\./], ['facebook', /(^|\.)(facebook\.com|fb\.com|fb\.me)$/],
+    ['instagram', /(^|\.)instagram\.com$/], ['tiktok', /(^|\.)tiktok\.com$/], ['youtube', /(^|\.)(youtube\.com|youtu\.be)$/],
+    ['chatgpt', /(^|\.)(chatgpt\.com|openai\.com)$/]];
+  // The tab's own marks (sessionStorage; in memory where the browser keeps none).
+  function tabMark(k, v) {
+    try {
+      if (v === undefined) return sessionStorage.getItem(k) || tabMem[k] || null;
+      sessionStorage.setItem(k, v);
+    } catch (e) {
+      if (v === undefined) return tabMem[k] || null;
+    }
+    tabMem[k] = v;
+  }
+  function statsOn() { return !statsApp && store.get(STATS_OFF) !== '1' && !!window.fetch; }
+  function beacon(b) {
+    try {
+      fetch(SB + '/functions/v1/site-beacon', {
+        method: 'POST', body: JSON.stringify(b), keepalive: true, credentials: 'omit', headers: { 'Content-Type': 'text/plain' }
+      }).catch(noop);
+    } catch (e) {}
+  }
+  // Where the visit came from: an invite link, a search engine or social site by the address it
+  // came from (no tags in links), else direct (none, or this site) or other.
+  function sourceOf(invited) {
+    if (invited) return 'invite';
+    var host = '';
+    try { host = d.referrer ? new URL(d.referrer).hostname.toLowerCase() : ''; } catch (e) {}
+    if (!host || host === location.hostname) return 'direct';
+    for (var i = 0; i < SOURCES.length; i++) if (SOURCES[i][1].test(host)) return SOURCES[i][0];
+    return 'other';
+  }
+  // A touch screen by its shorter side, else by the window's width.
+  function deviceOf() {
+    var short = Math.min(screen.width || window.innerWidth, screen.height || window.innerHeight);
+    if (window.matchMedia('(pointer: coarse)').matches) return short < 600 ? 'phone' : 'tablet';
+    return window.innerWidth < 600 ? 'phone' : 'computer';
+  }
+  // Which page a <main> is: home (invite when an invite link opened it), join, get, or the legal page its address names.
+  function pageName(main, path, invited) {
+    var kind = main && main.getAttribute('data-page');
+    if (kind === 'home') return invited ? 'invite' : 'home';
+    if (kind === 'join' || kind === 'get') return kind;
+    var name = String(path || '').split('?')[0].replace(/\.html$/, '').split('/').pop();
+    return kind === 'legal' && DOCS.indexOf(name) >= 0 ? name : null;
+  }
+  // A page or panel shown; the visit's first carries the visit. o: { invited, back }.
+  function countPage(name, o) {
+    o = o || {};
+    if (!name || o.back || !statsOn()) return;
+    var b = { p: name };
+    if (tabMark(STATS_VISIT) !== '1') {
+      tabMark(STATS_VISIT, '1');
+      b.v = true;
+      b.s = sourceOf(o.invited);
+      b.d = deviceOf();
+      b.l = T.lang || root.lang || 'en';
+    }
+    beacon(b);
+    if (name === 'join' || name === 'get') countStep(name + '_opened');
+  }
+  function countStep(e) {
+    if (!e || !statsOn()) return;
+    if (STATS_ONCE[e]) {
+      var sent = (tabMark(STATS_STEPS) || '').split(',').filter(Boolean);
+      if (sent.indexOf(e) >= 0) return;
+      tabMark(STATS_STEPS, sent.concat(e).join(','));
+    }
+    beacon({ e: e });
+  }
+  // The privacy page's "do not count my visits": kept in this browser, and a line under it says so.
+  function statsStop(a) {
+    store.set(STATS_OFF, '1');
+    var p = a.closest('p') || a, note = p.nextElementSibling;
+    if (note && note.classList.contains('stats-off')) return;
+    note = d.createElement('p');
+    note.className = 'stats-off';
+    note.setAttribute('role', 'status');
+    note.textContent = T.pn_stats_off;
+    p.parentNode.insertBefore(note, p.nextSibling);
+  }
+
   // ---------------------------------------------------------------- invite links (VIT partners)
 
   // A VIT partner's QR code opens domivan.com/r/CODE. Pages has no such page, so 404.html sends
@@ -2134,7 +2046,7 @@ if (top !== self) top.location = location;
   // (apply_referral_code checks every rule: new accounts only, in their first 7 days, before the
   // first booking, not their own code). Transporters get the DomiVan Driver app with the code
   // (Google Play hands it to the app; on iPhone it is copied, and the app's sign-up page has
-  // Apple's Paste button) or the Join Transporters form, which sends it with the application.
+  // Apple's Paste button). Until then Join Transporters shows the app's QR codes.
   var REF_DAYS = 30, REF_CODE = /^[A-Z0-9]{4,12}$/;
   var GIFT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 11.5h15V19a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 19v-7.5ZM3.5 7.5h17v4h-17zM12 7.5v13M12 7.5c-1-2.6-2.3-4-3.8-4-1.3 0-2 .8-2 1.8 0 1.4 1.8 2.2 5.8 2.2Zm0 0c1-2.6 2.3-4 3.8-4 1.3 0 2 .8 2 1.8 0 1.4-1.8 2.2-5.8 2.2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var VAN_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.4 16.5H3.2a.7.7 0 0 1-.7-.7V7.5A1.5 1.5 0 0 1 4 6h10.6c.5 0 .9.2 1.2.6l3.9 4.9c.2.3.3.6.3.9v3.4a.7.7 0 0 1-.7.7h-.4M8.6 16.5h6.3M14.5 6.5v5h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
@@ -2246,8 +2158,7 @@ if (top !== self) top.location = location;
     var app = v.step === 'driver' && driverStore();
     if (app) {
       return head(VAN_ICON, T.inv_drv_h, fill(/apple\.com/.test(app) ? T.inv_drv_ios : T.inv_drv_android, { code: r.code }), false, true)
-        + '<a class="btn big inv-store" href="' + esc(toStore(app)) + '" data-inv="store">' + esc(T.inv_drv_btn) + '</a>'
-        + '<a class="link inv-web" href="' + esc(T.home + 'join') + '">' + esc(T.inv_drv_web) + '</a>';
+        + '<a class="btn big inv-store" href="' + esc(toStore(app)) + '" data-inv="store">' + esc(T.inv_drv_btn) + '</a>';
     }
     if (v.step === 'choose') {
       return head(GIFT, fill(T.inv_by, { name: refBy(r) }), T.inv_choose)
@@ -2256,7 +2167,7 @@ if (top !== self) top.location = location;
         + '<a class="inv-opt" href="' + esc(T.home + 'join') + '" data-inv="driver">' + VAN_ICON + '<span><b>' + esc(T.inv_driver) + '</b><small>' + esc(T.inv_driver_s) + '</small></span></a>'
         + '</div>';
     }
-    return head(GIFT, fill(T.inv_saved, { name: refBy(r) }), T.inv_saved_p, true);
+    return head(GIFT, fill(T.inv_saved, { name: refBy(r) }), v.driver ? fill(T.inv_saved_drv_p, { code: r.code }) : T.inv_saved_p, true);
   }
   function onInvite(e) {
     var b = e.target.closest && e.target.closest('[data-inv]');
@@ -2267,7 +2178,9 @@ if (top !== self) top.location = location;
     if (what === 'store') { if (/apple\.com/.test(b.href)) copyRef(); return; } // on to the store
     if (what === 'driver') {
       if (driverStore()) { e.preventDefault(); inv = { step: 'driver' }; renderInvite(); }
-      else inv = { step: 'saved' }; // on to Join Transporters (the link); the panel waits here
+      // On to Join Transporters (the link; its QR codes lead to the app since batch 23); the panel waits
+      // here and says the code goes in the app.
+      else inv = { step: 'saved', driver: true };
       return;
     }
     // A traveller: Book your trip is right here. On phones the card is Log in / Create account
@@ -2373,7 +2286,7 @@ if (top !== self) top.location = location;
     });
   }
   // What the person typed on this computer goes with them (a shared computer), on Log out and
-  // Delete account alike: a Join form started here, and a trip typed on the booking card, on this
+  // Delete account alike: an old Join form draft (DRAFT), and a trip typed on the booking card, on this
   // page and on a home page kept for Back. Run after clearSession, whose auth() saves the trip
   // again for whoever signs in next.
   function forgetHere() {
@@ -2500,7 +2413,7 @@ if (top !== self) top.location = location;
   // (20261024100000_client_vouchers).
   var ORDER_COLS = 'id,client_id,kind,status,van_class,pickup_address,pickup_city,pickup_country,dropoff_address,dropoff_city,dropoff_country,'
     + 'pickup_at,pickup_until,pickup_tz,passengers,extra_bags,notes,fare_cents,bid_started_at,cancel_reason,cancel_fee_cents,payout_on_hold,payout_release_at,payout_sent,'
-    + 'refund_state,refunded_cents,discount_cents';
+    + 'refund_state,refunded_cents,discount_cents,planning,planned_pickup_at,planned_dropoff_at,dropoff_tz';
   var DONE = ['completed', 'cancelled'], ASSIGNED = ['accepted', 'en_route', 'picked_up'];
   // A client can cancel these in My trips (cancel-order); my_cancellation_terms says what comes back.
   var CANCELLABLE = ['pending_payment', 'bidding', 'accepted', 'en_route'];
@@ -2657,8 +2570,13 @@ if (top !== self) top.location = location;
     function msgHtml(where) { return '<div class="msg" role="alert">' + (note && note.where === where ? esc(note.text) : '') + '</div>'; }
     function drawTrip() {
       var o = dt.o, who = dt.who, at = new Date(o.pickup_at), opens = new Date(at.getTime() - 864e5), now = Date.now(), say = '', tone = '';
-      var facts = [[L.s_pickup, pickupText(at, o.pickup_until ? new Date(o.pickup_until) : null, tripZoneOf(o), L.lang)],
-        [L.f_pax, o.passengers]];
+      var facts = [[L.s_pickup, pickupText(at, o.pickup_until ? new Date(o.pickup_until) : null, tripZoneOf(o), L.lang)]];
+      // A taken run's planned times (20261105150000_bundles_v2), the arrival on the drop-off's clock.
+      if (o.planned_pickup_at) facts.push([L.s_planned_pickup, pickupText(new Date(o.planned_pickup_at), null, tripZoneOf(o), L.lang)]);
+      if (o.planned_dropoff_at) {
+        facts.push([L.s_planned_arrival, pickupText(new Date(o.planned_dropoff_at), null, Z ? o.dropoff_tz || null : null, L.lang)]);
+      }
+      facts.push([L.f_pax, o.passengers]);
       if (o.extra_bags) facts.push([L.f_bags, o.extra_bags]);
       facts.push([L.s_van, L['v_' + o.van_class] || o.van_class]);
       // An invite voucher: the price and the voucher above what they paid.
@@ -2669,7 +2587,7 @@ if (top !== self) top.location = location;
         + '<dl class="done-sum">' + facts.map(function (r) { return '<div><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('')
         + (o.notes ? '<div class="wide"><dt>' + esc(L.t_note) + '</dt><dd>' + esc(o.notes) + '</dd></div>' : '') + '</dl>';
       // What happens next.
-      if (o.status === 'bidding') { say = L.n_bidding; tone = ' amber'; }
+      if (o.status === 'bidding') { say = o.planning ? L.n_planning : L.n_bidding; tone = ' amber'; }
       else if (o.status === 'pending_payment') say = L.done_wait;
       else if (o.status === 'cancelled') say = cancelled(o);
       else if (ASSIGNED.indexOf(o.status) >= 0 && !who && o.kind !== 'live' && opens > now) say = fill(L.n_locked, { date: dateText(opens, L.lang) });
@@ -2686,8 +2604,8 @@ if (top !== self) top.location = location;
       }
       // Who carries a paid trip (art. 8:1166 BW): DomiVan's company, and the transporter's once contact opens.
       if (o.bid_started_at) {
-        h += '<p class="t-note t-carrier">' + esc(L.t_carrier + (who && who.company_name ? ' ' + fill(L.t_carried_by, { company: who.company_name }) : ''))
-          + '</p>';
+        h += '<p class="t-note t-carrier">' + esc(L.t_carrier + (who && who.company_name ? ' ' + fill(L.t_carried_by, { company: who.company_name }) : '')
+          + (cvrApplies(o.pickup_country, o.dropoff_country) ? ' ' + L.t_cvr : '')) + '</p>';
       }
       if (dt.code && (o.status === 'accepted' || o.status === 'en_route')) {
         h += '<section class="t-sec"><h3>' + esc(L.pc_h) + '</h3><b class="t-digits">' + esc(dt.code) + '</b><p>' + esc(L.pc_p) + '</p></section>';
@@ -3039,7 +2957,9 @@ if (top !== self) top.location = location;
     code_wrong: 'pv_e_wrong', code_expired: 'pv_e_expired', phone_unconfirmed: 'pv_need'
   };
   function phoneErr(e) {
-    var k = e && PV_ERR[e.code], text = k && T[k] ? fill(T[k], e.params || {}) : null;
+    var ph = phoneHere();
+    // Phone numbers off: Later is offered, and the words for codes that cannot be sent say the number can wait.
+    var k = e && (e.code === 'sms_unavailable' || e.code === 'sms_busy') && ph && !ph.required ? 'pv_e_down_later' : e && PV_ERR[e.code], text = k && T[k] ? fill(T[k], e.params || {}) : null;
     return text && !/\{\w+\}/.test(text) ? text : refusalText(e) || errText(e);
   }
 
@@ -3961,18 +3881,17 @@ if (top !== self) top.location = location;
       var h = $('article.legal h1', P.doc), v = viewOf(view);
       if (h && v && v.pane === 'doc') h2.textContent = h.textContent;
     }
+    // Join Transporters: the QR codes and store buttons of its own page, fetched once per language.
     function join() {
       var key = T.home + 'join';
       if (P.join._key === key) return;
       P.join._key = key;
       P.join.innerHTML = spinner();
       sitePart('join').then(function (pg) {
-        var box = $('.join-inner', pg), data = $('#join-data', pg), form = box && $('form.frame', box);
-        if (!form || !data || P.join._key !== key) throw new Error('Not the Join page');
-        form.removeAttribute('id'); // the page /join has its own
+        var box = $('.join-inner', pg);
+        if (!box || !$('.join-get', box) || P.join._key !== key) throw new Error('Not the Join page');
         P.join.innerHTML = '';
         P.join.appendChild(box);
-        initJoin(form, JSON.parse(data.textContent));
       }).catch(function () { P.join._key = null; oops(P.join, join); });
     }
 
@@ -3998,6 +3917,7 @@ if (top !== self) top.location = location;
         : name === 'doc' ? T[DOC_T[v.doc]] : T['pn_' + name];
       if (name === 'doc') docTitle();
       var dir = !was ? 1 : depth(view) !== depth(was) ? (depth(view) > depth(was) ? 1 : -1) : TAB_ORDER(view) < TAB_ORDER(was) ? -1 : 1;
+      if (view !== was) countPage(name === 'doc' ? v.doc : name === 'join' ? 'join' : null);
       shown = view;
       show(name, dir, instant);
     }
@@ -4096,17 +4016,6 @@ if (top !== self) top.location = location;
       if (w) w.close();
       failed();
     });
-  }
-
-  // The DomiVan Driver app's store buttons (Join Transporters once sent; the home page's own are in
-  // scripts/site-template.html): "coming soon" until both store pages are public (DRIVER_APP.live).
-  function driverBadges(ios, play) {
-    var mark = '<span class="dmark" aria-hidden="true"><svg><use href="#mark"/></svg></span>';
-    var one = function (small, store, url) {
-      var inner = mark + '<span><small>' + esc(small) + '</small>' + store + '</span>';
-      return DRIVER_APP.live ? '<a class="dstore" href="' + esc(url) + '" rel="noopener">' + inner + '</a>' : '<span class="dstore">' + inner + '</span>';
-    };
-    return '<div class="dstores">' + one(ios, 'App Store', DRIVER_APP.ios) + one(play, 'Google Play', DRIVER_APP.android) + '</div>';
   }
 
   // ---------------------------------------------------------------- the panel
@@ -4640,6 +4549,7 @@ if (top !== self) top.location = location;
     syncDeck(true);
     slideScreen(from, page, dir, y, function () { if (prev !== page) resetDeck(prev); });
     initPage(page, true);
+    countPage(pageName(page, next.key));
     renderInvite();
     if (open) openLogin({ fromUrl: true, instant: true, view: open }); // Back or Forward onto an open panel, or a language picked in Profile
     else focusPage(page, from);
@@ -4652,6 +4562,7 @@ if (top !== self) top.location = location;
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     var a = e.target.closest && e.target.closest('a');
     if (!a) return;
+    if (a.getAttribute('href') === '#no-stats') { e.preventDefault(); statsStop(a); return; }
     var app = a.hasAttribute('data-driver-app') && driverStore();
     if (app) { // phones: the browser follows the link to the store (and it is /join again right after)
       cancelAutoClose();
@@ -4708,10 +4619,11 @@ if (top !== self) top.location = location;
   }
 
   // The DomiVan Driver app's page in the store this phone uses, or '' (computers, tablets in the
-  // two-column layout and other phones keep the Join Transporters form). iPads asking for the
-  // desktop site say Macintosh, but have a touch screen.
-  function driverStore() {
-    if (!DRIVER_APP.live || !HANDHELD.matches) return '';
+  // two-column layout and other phones keep Join Transporters).
+  function driverStore() { return DRIVER_APP.live && HANDHELD.matches ? storeFor() : ''; }
+  // The store of this device: iPhones and iPads (an iPad asking for the desktop site says Macintosh,
+  // but has a touch screen), Android phones and tablets; '' for anything else.
+  function storeFor() {
     var ua = navigator.userAgent || '';
     if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return DRIVER_APP.ios;
     if (/Android/.test(ua)) return DRIVER_APP.android;
@@ -4909,12 +4821,14 @@ if (top !== self) top.location = location;
     screen = page;
     if (!stage || !page) return;
     meta = metaOf(d);
+    store.del(DRAFT); // an old Join form draft: personal details nobody will send any more
     var cb = takeCallback();
     oauthBack = !!cb;
     takeBooked();
     var invited = /[?&]r=/.test(location.search); // for the language card (below), before takeRef takes it off
     takeRef();
     var fromApp = takeApp(), back = !!(cb || stripeBack);
+    statsApp = fromApp;
     curKey = location.pathname + location.search;
     var st = history.state || {};
     hIdx = st.dv != null ? st.dv : stamp();
@@ -4922,6 +4836,7 @@ if (top !== self) top.location = location;
     history.replaceState(Object.assign({}, st, { dv: hIdx }), '');
 
     initPage(page, false);
+    countPage(pageName(page, location.pathname, invited), { invited: invited, back: back });
     askLive();
     d.addEventListener('visibilitychange', function () { if (d.visibilityState === 'visible') askLive(); });
     tabbar = d.createElement('nav');

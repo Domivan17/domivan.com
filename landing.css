@@ -278,10 +278,7 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .vopt.on b { color: #fff; }
 .vopt.luxury.on { border-color: var(--amber); background: rgba(255, 176, 32, .16); box-shadow: inset 0 0 0 1px var(--amber); }
 .vopt:has(input:focus-visible) { outline: 2px solid var(--sky); outline-offset: 2px; }
-.vopt.no { opacity: .625; cursor: default; }
-.vopt.no:hover { background: var(--field); }
 .vpick:disabled .vopt { cursor: default; } /* while the order is made */
-.vopt.no .vprice { font-size: 11.5px; font-weight: 600; color: var(--soft); line-height: 1.3; }
 .vcap { margin: 7px 0 0; color: var(--muted); font-size: 13px; text-align: center; }
 .notes { display: block; }
 .book-foot .total { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 14px; }
@@ -776,6 +773,21 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .join { min-height: calc(100vh - 64px); min-height: calc(100dvh - 64px); padding: 48px 16px 56px; display: grid; place-items: start center; }
 .join-inner { position: relative; z-index: 1; width: 100%; max-width: 560px; text-align: center; }
 .join-time { color: var(--muted); font-size: 14px; margin: -8px 0 18px; }
+/* Join Transporters (batch 23 F10): the DomiVan Driver app's two QR codes and its store buttons, all to
+   /get; /get itself, "coming soon" with greyed buttons until the app is in the stores. */
+.join-get { text-align: center; }
+.join-get h1 { font-size: clamp(26px, 5vw, 32px); margin: 4px 0 8px; letter-spacing: -0.025em; }
+.get-codes { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; margin: 22px 0 4px; }
+.get-code { margin: 0; display: grid; justify-items: center; gap: 10px; }
+.get-code img { display: block; width: 148px; height: 148px; padding: 6px; background: #fff; border-radius: 18px; box-shadow: 0 12px 30px -14px rgba(0, 0, 0, .7); }
+.get-code figcaption { display: inline-flex; align-items: center; gap: 6px; color: #fff; font-size: 15px; font-weight: 700; }
+.get-code figcaption svg { width: 18px; height: 18px; }
+.get-scan { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+.join-get .dstores { justify-content: center; }
+.get-mark { width: 64px; height: 64px; border-radius: 18px; margin: 6px auto 14px; }
+.get-page .dstore.soon { opacity: .55; filter: grayscale(1); cursor: default; }
+.get-home { margin: 22px 0 0; }
+@media (max-width: 400px) { .get-codes { gap: 12px; } .get-code img { width: 124px; height: 124px; } }
 .frame { text-align: left; color: #fff; background: rgba(12, 20, 40, .66); border: 1px solid rgba(255, 255, 255, .16); border-radius: 28px; padding: 22px 24px 26px; backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); box-shadow: 0 40px 90px -30px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .12); color-scheme: dark; overflow: hidden; }
 .progress { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .1); overflow: hidden; }
 .progress span { display: block; height: 100%; width: 0; border-radius: 3px; background: linear-gradient(90deg, var(--sky), var(--amber)); transition: width .4s ease; }
@@ -855,6 +867,13 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .legal nav.links a { color: var(--soft); text-decoration: none; font-size: 14.5px; font-weight: 600; padding: 7px 13px; border-radius: 999px; background: var(--tint-low); border: 1px solid var(--line-soft); transition: background .15s, color .15s; }
 .legal nav.links a:hover { background: rgba(255, 255, 255, .1); color: #fff; }
 .legal nav.links a[aria-current] { background: var(--sky-soft); border-color: rgba(140, 189, 245, .3); color: var(--sky-text); }
+/* The company details at the end of each legal page, above the links: small and muted, so the address
+   is not the first thing a reader sees (Martin, 2026-10-30). Also in the panel (.pane[data-pane="doc"]). */
+.legal .company { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line-soft); font-size: 14px; line-height: 1.55; }
+.legal .company h2, .acct .pane[data-pane="doc"] .legal .company h2 { font-size: 14px; letter-spacing: 0; margin: 0 0 6px; color: var(--soft); }
+.legal .company p { margin: 0 0 6px; color: var(--muted); }
+.legal .company strong { color: var(--soft); }
+.legal .company + nav.links { margin-top: 26px; }
 @media (max-width: 700px) {
   .legal-wrap { padding: 20px 16px 48px; }
   .legal { padding: 26px 20px 22px; border-radius: 22px; font-size: 16px; background: rgba(9, 15, 30, .925); backdrop-filter: none; -webkit-backdrop-filter: none; }
