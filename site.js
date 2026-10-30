@@ -272,8 +272,8 @@ if (top !== self) top.location = location;
   function placeZone(p) { return Z && p ? Z.tripZone(p.country, p.lat, p.lng) : null; }
   function tripZoneOf(o) { return Z ? o.pickup_tz || Z.tripZone(o.pickup_country) : null; }
   // A pickup on its own clock, "Mon 2 Nov, 07:30", and a Book-ahead pickup's 2-hour window from
-  // the time chosen (as in the apps: PICKUP_WINDOW_HOURS in src/lib/format.ts),
-  // "Mon 2 Nov, 07:30–09:30"; " (GMT+3)" after it when the visitor's clock differs.
+  // the time chosen (as in the apps: PICKUP_WINDOW_HOURS in src/lib/format.ts), or a Today trip's
+  // 3-hour one (TODAY), "Mon 2 Nov, 07:30–09:30"; " (GMT+3)" after it when the visitor's clock differs.
   var WINDOW_MS = 2 * 3600e3;
   function pickupText(from, until, zone, lang) {
     return clockText(from, zone, DATE_TIME, lang) + (until ? '–' + clockText(until, zone, TIME, lang) : '')
@@ -301,6 +301,21 @@ if (top !== self) top.location = location;
   function wallOf(t, zone) {
     return zone && Z ? Z.wallAt(zone, t)
       : { year: t.getFullYear(), month: t.getMonth() + 1, day: t.getDate(), hour: t.getHours(), minute: t.getMinutes() };
+  }
+  // Today (batch 22, in place of Live; Martin 2026-10-28): a 3-hour pickup window later today on
+  // the pickup's clock, booked as a Book ahead trip. The same numbers and windows as the apps
+  // (supabase/functions/_shared/today.ts, which create-order checks); scripts/app-tests/today.test.mjs
+  // holds the copies equal. A window: its start in minutes after midnight, its start and end.
+  var TODAY = { windowHours: 3, minAheadHours: 3, stepMinutes: 30, lastStartHour: 21 };
+  function todayWindows(zone, now) {
+    var day = wallOf(now, zone), soonest = now.getTime() + TODAY.minAheadHours * 3600e3, out = [];
+    for (var m = 0; m <= TODAY.lastStartHour * 60; m += TODAY.stepMinutes) {
+      var x = { year: day.year, month: day.month, day: day.day, hour: Math.floor(m / 60), minute: m % 60 };
+      var start = wallMoment(x, zone), back = wallOf(start, zone);
+      if (back.hour !== x.hour || back.minute !== x.minute) continue; // a reading the spring change skips
+      if (start.getTime() >= soonest) out.push({ minutes: m, start: start, until: new Date(start.getTime() + TODAY.windowHours * 3600e3) });
+    }
+    return out;
   }
 
   // ---------------------------------------------------------------- address search
@@ -663,19 +678,22 @@ if (top !== self) top.location = location;
     }
   }
 
-  // Martin's cancellation rule (2026-10-24) as the booking card states it, the same numbers as
-  // src/lib/cancel-rule.ts and cancellation_steps() in the database (migration
-  // 20261030110000_cancel_rule), which decides each cancellation; scripts/app-tests/cancel-rule.test.mjs
-  // holds the copies equal. Until 48 hours before pickup, and before a transporter accepts: all back
-  // but the cancellation charge; then 75% until the pickup time.
-  var CANCEL_RULE = { chargeCents: 359, freeHours: 48, lateRefundPct: 75 };
+  // Martin's cancellation rule (2026-10-28) as the booking card and the trip page state it, the
+  // same numbers as src/lib/cancel-rule.ts and cancellation_steps() in the database (migration
+  // 20261103110000_today_refunds), which decides each cancellation; scripts/app-tests/cancel-rule.test.mjs
+  // holds the copies equal. Before a transporter accepts, and until 48 hours before pickup: all back
+  // but the cancellation charge; then 75% back until 24 hours before, and 50% until the pickup time.
+  var CANCEL_RULE = { chargeCents: 359, freeHours: 48, midHours: 24, midRefundPct: 75, lateRefundPct: 50 };
+  // The terms this page's checkout shows (supabase/functions/_shared/terms.ts TERMS_VERSION, held equal by
+  // scripts/app-tests/cancel-rule.test.mjs): create-order keeps the trip on that version's cancellation steps.
+  var TERMS_VERSION = '2026-10-28';
 
   // ---------------------------------------------------------------- booking card (home)
   //
   // Book your trip books the whole trip in place, one or two questions at a time like the Join
   // Transporters form (batch 20; Martin: "question question slide question question slide"): its
   // steps slide inside the card under a progress line, and the page never changes. Where (from,
-  // to), When (Book ahead or Live, the date and time) and Who (passengers, bags) are the trip
+  // to), When (Book ahead with the date and time, or Today with a window) and Who (passengers, bags) are the trip
   // form's own slides; then the van and a note, the summary with the agree box and Pay, the
   // payment and the booked trip. Paying needs an account: signed out, "Log in to pay" slides the
   // account card over it, and the payment step is ready behind it by the time it slides back.
@@ -710,7 +728,7 @@ if (top !== self) top.location = location;
   // Monday first, in the page's language; the time a grid of quarter hours, an hour a row. On a
   // computer each opens under its button, on a phone as a sheet from the bottom. The value stays
   // the clock reading in the form's own "when" field, hidden now (wallDT, parseDT), on the pickup's
-  // clock (opts.zone()); what can be picked starts at earliestWall(). Without JavaScript the page
+  // clock (opts.zone()); what can be picked runs from earliestWall() to latestWall(). Without JavaScript the page
   // keeps the browser's field.
   var QUARTER = 15;
   // The first pickup offered: 2 hours from now (what create-order takes), on the next quarter hour
@@ -722,6 +740,16 @@ if (top !== self) top.location = location;
     for (var ms = Math.ceil(soonest / step) * step; ; ms += step) {
       var w = wallOf(new Date(ms), zone);
       if (wallMoment(w, zone).getTime() >= soonest) return w;
+    }
+  }
+  // The last pickup offered: 365 days from now (create-order's PICKUP_MAX_DAYS), on the last quarter
+  // hour before it, as the apps' latestPickup.
+  var MAX_AHEAD_DAYS = 365;
+  function latestWall(zone, now) {
+    var step = QUARTER * 60e3, latest = now + MAX_AHEAD_DAYS * 864e5;
+    for (var ms = Math.floor(latest / step) * step; ; ms -= step) {
+      var w = wallOf(new Date(ms), zone);
+      if (wallMoment(w, zone).getTime() <= latest) return w;
     }
   }
   function dayNum(w) { return w.year * 1e4 + w.month * 100 + w.day; }
@@ -763,6 +791,7 @@ if (top !== self) top.location = location;
 
     function zone() { return opts.zone(); }
     function first() { return earliestWall(zone(), Date.now()); }
+    function last() { return latestWall(zone(), Date.now()); }
     function value() { return parseDT(input.value) || first(); }
     // The buttons say the reading, as the apps' do: the date without its year in this year.
     function show() {
@@ -786,15 +815,15 @@ if (top !== self) top.location = location;
       return '<div class="wp-head"><b>' + esc(title) + '</b>' + (sub ? '<span>' + esc(sub) + '</span>' : '')
         + '<button type="button" class="wp-x" aria-label="' + esc(L.pn_close) + '">' + WP_IC.x + '</button></div>';
     }
-    // The month in view: a button a day; days before the first pickup are off.
+    // The month in view: a button a day; days before the first pickup and after the last are off.
     function drawDate(focus) {
       var y = view.year, m = view.month, lead = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7;
-      var days = new Date(Date.UTC(y, m, 0)).getUTCDate(), min = dayNum(first()), today = dayNum(wallOf(new Date(), zone()));
+      var days = new Date(Date.UTC(y, m, 0)).getUTCDate(), min = dayNum(first()), max = dayNum(last()), today = dayNum(wallOf(new Date(), zone()));
       var cur = parseDT(input.value), at = cur ? dayNum(cur) : 0, i;
       var h = head(L.wp_date) + '<div class="wp-month">'
         + '<button type="button" class="wp-nav" data-go="-1" aria-label="' + esc(L.wp_prev) + '"' + (y * 100 + m <= Math.floor(min / 100) ? ' disabled' : '') + '>' + WP_IC.prev + '</button>'
         + '<h3 id="wp-month" aria-live="polite">' + esc(upFirst(wallName(lang, { month: 'long', year: 'numeric' }, { year: y, month: m, day: 1 }))) + '</h3>'
-        + '<button type="button" class="wp-nav" data-go="1" aria-label="' + esc(L.wp_next) + '">' + WP_IC.next + '</button></div>'
+        + '<button type="button" class="wp-nav" data-go="1" aria-label="' + esc(L.wp_next) + '"' + (y * 100 + m >= Math.floor(max / 100) ? ' disabled' : '') + '>' + WP_IC.next + '</button></div>'
         + '<table class="wp-grid" role="grid" aria-labelledby="wp-month"><thead><tr>';
       for (i = 0; i < 7; i++) { // 1 January 2024 was a Monday
         var wd = { year: 2024, month: 1, day: 1 + i };
@@ -806,7 +835,7 @@ if (top !== self) top.location = location;
         if (i % 7 === 0) h += '<tr>';
         h += dd < 1 || dd > days ? '<td></td>' : '<td><button type="button" class="wp-day" tabindex="-1" data-n="' + n + '" aria-label="'
           + esc(wallName(lang, DAY_LONG, numWall(n, 12, 0))) + '"' + (n === at ? ' aria-pressed="true"' : '') + (n === today ? ' aria-current="date"' : '')
-          + (n < min ? ' disabled' : '') + '>' + dd + '</button></td>';
+          + (n < min || n > max ? ' disabled' : '') + '>' + dd + '</button></td>';
         if (i % 7 === 6) h += '</tr>';
       }
       pop.innerHTML = h + '</tbody></table>';
@@ -814,20 +843,21 @@ if (top !== self) top.location = location;
       if (to) to.tabIndex = 0;
       return to;
     }
-    // The chosen day's quarter hours, an hour a row, from the first pickup on; a reading the
+    // The chosen day's quarter hours, an hour a row, from the first pickup to the last; a reading the
     // clocks skip (the hour they go forward) is off.
     function drawTime(focus) {
-      var w = value(), min = wallNum(first()), at = parseDT(input.value), atNum = at ? wallNum(at) : 0, z = zone();
+      var w = value(), min = wallNum(first()), max = wallNum(last()), at = parseDT(input.value), atNum = at ? wallNum(at) : 0, z = zone();
       var h = head(L.wp_time, upFirst(wallName(lang, DAY_SHORT, w))) + '<div class="wp-scroll"><table class="wp-grid wp-tg" role="grid" aria-label="'
         + esc(L.wp_time) + '"><tbody>';
       for (var hour = 0; hour < 24; hour++) {
         if (wallNum({ year: w.year, month: w.month, day: w.day, hour: hour, minute: 59 }) < min) continue;
+        if (wallNum({ year: w.year, month: w.month, day: w.day, hour: hour, minute: 0 }) > max) break;
         h += '<tr>';
         for (var minute = 0; minute < 60; minute += QUARTER) {
           var x = { year: w.year, month: w.month, day: w.day, hour: hour, minute: minute }, n = wallNum(x);
           var real = wallNum(wallOf(wallMoment(x, z), z)) === n;
           h += '<td><button type="button" class="wp-q" tabindex="-1" data-n="' + n + '"' + (n === atNum ? ' aria-pressed="true"' : '')
-            + (n < min || !real ? ' disabled' : '') + '>' + pad2(hour) + ':' + pad2(minute) + '</button></td>';
+            + (n < min || n > max || !real ? ' disabled' : '') + '>' + pad2(hour) + ':' + pad2(minute) + '</button></td>';
         }
         h += '</tr>';
       }
@@ -913,10 +943,11 @@ if (top !== self) top.location = location;
         var again = $('[data-go="' + b.dataset.go + '"]', pop);
         return (again && !again.disabled ? again : $('.wp-day[tabindex="0"]', pop)).focus();
       }
-      var n = +b.dataset.n, w = value(), min = first(), next;
+      var n = +b.dataset.n, w = value(), min = first(), max = last(), next;
       if (b.classList.contains('wp-day')) {
         next = numWall(n, w.hour, w.minute);
         if (wallNum(next) < wallNum(min)) next = min; // that day's time has gone by: the first one left
+        if (wallNum(next) > wallNum(max)) next = max; // the last day, after its last time: the last one
       } else next = numWall(Math.floor(n / 1e4), Math.floor(n / 100) % 100, n % 100);
       set(next);
       close(true);
@@ -947,7 +978,7 @@ if (top !== self) top.location = location;
         var y = x.getUTCFullYear() + Math.floor(k / 12), mo = ((k % 12) + 12) % 12;
         t = Date.UTC(y, mo, Math.min(x.getUTCDate(), new Date(Date.UTC(y, mo + 1, 0)).getUTCDate()));
       } else return false;
-      var at = new Date(t), to = Math.max(at.getUTCFullYear() * 1e4 + (at.getUTCMonth() + 1) * 100 + at.getUTCDate(), dayNum(first()));
+      var at = new Date(t), to = Math.min(Math.max(at.getUTCFullYear() * 1e4 + (at.getUTCMonth() + 1) * 100 + at.getUTCDate(), dayNum(first())), dayNum(last()));
       var there = $('.wp-day[data-n="' + to + '"]', pop);
       if (!there) {
         view = { year: Math.floor(to / 1e4), month: Math.floor(to / 100) % 100 };
@@ -971,7 +1002,7 @@ if (top !== self) top.location = location;
 
     dateBtn.addEventListener('click', function () { if (mode === 'date') close(true); else open('date'); });
     timeBtn.addEventListener('click', function () { if (mode === 'time') close(true); else open('time'); });
-    // Live (now) has no pickup time to choose.
+    // Today picks a window from its own list.
     opts.form.addEventListener('change', function (e) { if (e.target.name === 'kind') close(); });
     return { show: show, close: close };
   }
@@ -1097,13 +1128,29 @@ if (top !== self) top.location = location;
     zoneNote.hidden = true;
     when.parentNode.parentNode.insertBefore(zoneNote, when.parentNode.nextSibling);
     function clockNote() {
-      var p = el.from._place, zone = placeZone(p), x = parseDT(when.value), at = zone && x ? wallMoment(x, zone) : null;
-      var gmt = at ? Z.zoneOffset(zone, at) : 0, show = !!at && el.kind.value !== 'live' && gmt !== -at.getTimezoneOffset();
+      var p = el.from._place, zone = placeZone(p), x = parseDT(when.value), today = el.kind.value === 'today';
+      var at = zone && (today || x) ? (today ? new Date() : wallMoment(x, zone)) : null;
+      var gmt = at ? Z.zoneOffset(zone, at) : 0, show = !!at && gmt !== -at.getTimezoneOffset();
       zoneNote.hidden = !show;
       zoneNote.textContent = show ? fill(L.zone_note, { country: countryName(p.country, L.lang), gmt: Z.gmtLabel(gmt) }) : '';
       whenPick.show(); // the reading may have come from elsewhere (a trip kept from before)
     }
-    var sync = function () { card.classList.toggle('is-live', el.kind.value === 'live'); clockNote(); };
+    // Today: the windows still open today on the pickup's clock, as in the apps. The list is drawn
+    // again only when it changes, so a pick and its focus stay; Continue checks the pick again.
+    var wins = $('.today-wins', f), winsKey = '';
+    $('.today-note', f).textContent = L.today_note;
+    function pickedWindow() { var r = $('[name=today_at]:checked', f); return r ? +r.value : null; }
+    function fillToday() {
+      var zone = placeZone(el.from._place), list = todayWindows(zone, new Date()), was = pickedWindow();
+      var key = zone + ' ' + list.map(function (w) { return w.minutes; }).join(',');
+      if (key === winsKey) return;
+      winsKey = key;
+      wins.innerHTML = list.length ? list.map(function (w) {
+        return '<label class="twin"><input type="radio" name="today_at" value="' + w.minutes + '"' + (w.minutes === was ? ' checked' : '') + '><span>'
+          + esc(clockText(w.start, zone, TIME, L.lang) + '–' + clockText(w.until, zone, TIME, L.lang)) + '</span></label>';
+      }).join('') : '<p class="today-none">' + esc(L.today_none) + '</p>';
+    }
+    var sync = function () { card.classList.toggle('is-today', el.kind.value === 'today'); fillToday(); clockNote(); };
     f.addEventListener('change', sync);
     f.addEventListener('input', clockNote);
     f.addEventListener('dv-pick', clockNote);
@@ -1142,13 +1189,14 @@ if (top !== self) top.location = location;
     // once (Back and Continue again don't ask again). See price, the last one, makes the trip.
     function next() {
       if (busy || paying || BK_QS.indexOf(step) < 0) return;
-      var at = step, upTo = STEPS[at], a = el.from.value.trim(), b = el.to.value.trim(), live = el.kind.value === 'live', wall = null;
+      var at = step, upTo = STEPS[at], a = el.from.value.trim(), b = el.to.value.trim(), today = el.kind.value === 'today', wall = null;
       if (!a) return problem('where', L.err_from, el.from);
       if (!b) return problem('where', L.err_to, el.to);
-      if (upTo >= STEPS.when && !live) {
+      if (upTo >= STEPS.when && !today) {
         wall = parseDT(when.value);
         if (!wall) return problem('when', L.err_when, when);
       }
+      if (upTo >= STEPS.when && today && pickedWindow() === null) return problem('when', L.today_pick, $('.today-wins input', f));
       var pax = +el.pax.value, bags = +(el.bags.value || 0);
       if (upTo >= STEPS.who) {
         if (!(pax >= 1 && pax <= 20 && pax % 1 === 0)) return problem('who', L.err_pax, el.pax);
@@ -1170,11 +1218,18 @@ if (top !== self) top.location = location;
         el.from._place = r[0];
         el.to._place = r[1];
         clockNote(); // the pickup's clock is known now
-        // The time is on the pickup's clock: at least 2 hours from now there, as create-order checks.
-        var t = wall ? wallMoment(wall, placeZone(r[0])) : null;
+        // The time is on the pickup's clock: at least 2 hours from now there, as create-order checks;
+        // a Today window only while it is still offered.
+        var t = wall ? wallMoment(wall, placeZone(r[0])) : null, win = null;
         if (t && t.getTime() < Date.now() + 2 * 3600e3) return problem('when', L.err_when, when);
+        if (upTo >= STEPS.when && today) {
+          fillToday();
+          win = todayWindows(placeZone(r[0]), new Date()).filter(function (w) { return w.minutes === pickedWindow(); })[0];
+          if (!win) return problem('when', pickedWindow() === null ? L.today_pick : L.today_gone, $('.today-wins input', f));
+        }
         if (at !== 'who') return forward(BK_QS[upTo + 1]);
-        trip = { kind: live ? 'live' : 'booking', from: r[0], to: r[1], at: t, pax: pax, bags: bags };
+        trip = today ? { kind: 'today', from: r[0], to: r[1], at: win.start, until: win.until, minutes: win.minutes, pax: pax, bags: bags }
+          : { kind: 'booking', from: r[0], to: r[1], at: t, until: new Date(t.getTime() + WINDOW_MS), pax: pax, bags: bags };
         order = null;
         fillPrice();
         forward('van');
@@ -1210,8 +1265,7 @@ if (top !== self) top.location = location;
         return '<span class="fact"' + (label ? ' title="' + esc(label) + '"' : '') + '>' + icon
           + (label ? '<span class="sr-only">' + esc(label) + ': </span>' : '') + esc(text) + '</span>';
       };
-      $('.facts', p).innerHTML = fact(IC.cal, trip.kind === 'live' ? L.asap
-        : pickupText(trip.at, new Date(trip.at.getTime() + WINDOW_MS), placeZone(trip.from), L.lang))
+      $('.facts', p).innerHTML = fact(IC.cal, pickupText(trip.at, trip.until, placeZone(trip.from), L.lang))
         + fact(IC.pax, trip.pax, L.f_pax) + (trip.bags ? fact(IC.bag, trip.bags, L.f_bags) : '')
         + fact(IC.km, fill(L.km, { n: quote(A, B, 1, 0, 'standard').km }));
       VANS.forEach(function (v) {
@@ -1245,10 +1299,10 @@ if (top !== self) top.location = location;
       else priceBtn.textContent = label;
       if (!agreedNow()) { agree.checked = false; agreedTo = null; }
       if (priceBtn._label == null) priceBtn.disabled = !agree.checked; // busy: busyBtn keeps it off
-      var rule = fill(trip.kind === 'live' ? L.bk_rule_live : L.bk_rule,
-        { hours: CANCEL_RULE.freeHours, charge: money(CANCEL_RULE.chargeCents, L.lang), percent: CANCEL_RULE.lateRefundPct });
-      $('.fine', P.price).textContent = (trip.kind === 'live' ? L.fine_print_live + ' ' + rule : L.fine_print + ' ' + rule + ' ' + L.shared)
-        + (van === 'luxury' ? ' ' + L.lux_note : '');
+      // One short cancellation line with a link to the rules (Martin 2026-10-28: not too much text).
+      $('.fine', P.price).innerHTML = esc(L.bk_rule).replace('{charge}', esc(money(CANCEL_RULE.chargeCents, L.lang)))
+        .replace('{rules}', '<a href="#terms">' + esc(L.bk_rules) + '</a>')
+        + (van === 'luxury' ? ' ' + esc(L.lux_note) : '') + ' ' + esc(L.shared);
       fillSum();
     }
     P.van.addEventListener('change', function (e) {
@@ -1264,11 +1318,12 @@ if (top !== self) top.location = location;
       var place = function (x) { return { address: x.address, city: x.city, country: x.country, lat: x.lat, lng: x.lng }; };
       return {
         kind: trip.kind, pickup: place(trip.from), dropoff: place(trip.to),
-        pickupAt: (trip.kind === 'live' ? new Date() : trip.at).toISOString(),
+        pickupAt: trip.at.toISOString(),
         passengers: trip.pax, extraBags: trip.bags, vanClass: van, notes: notes.value.trim() || undefined,
         payCountry: browserCountry(), // which local payment methods to show
         voucher: true, // the payment step shows an invite voucher's line (create-order puts the next one on)
-        terms: true // the visitor ticked "I have read the Terms ... and agree" above Pay (startPay waits for it)
+        terms: true, // the visitor ticked "I have read the Terms ... and agree" above Pay (startPay waits for it)
+        termsVersion: TERMS_VERSION // the terms this checkout shows: the trip keeps their cancellation steps
       };
     }
     // Creates the order (the server prices it and starts a Stripe payment for it), then slides
@@ -1291,7 +1346,11 @@ if (top !== self) top.location = location;
       refresh().then(function (s) {
         if (!s) { var e = new Error('Signed out'); e.status = 401; throw e; }
         payer = uidOf(s);
-        return callFn('create-order', orderBody(), s.access_token);
+        // While the switch is on, a number not confirmed yet comes first (batch 22): the phone step.
+        return phoneStatus().catch(nothing).then(function (ph) {
+          if (ph && ph.required && !ph.ok) { var e2 = new Error('Phone not confirmed'); e2.code = 'phone_unconfirmed'; throw e2; }
+          return callFn('create-order', orderBody(), s.access_token);
+        });
       }).then(function (r) {
         if (!r || !r.orderId || !r.clientSecret) throw new Error('No payment in the reply');
         if (signedInAs() !== payer) return false; // signed out or another account meanwhile: not theirs to pay
@@ -1305,6 +1364,7 @@ if (top !== self) top.location = location;
         go('pay');
       }).catch(function (e) {
         if (e.status === 401) { msg(P.price, L.err_login_again); clearSession(); }
+        else if (e.code === 'phone_unconfirmed' && payer) askPayPhone(payer); // create-order refuses it too (403)
         else if (e.code === 'booking_exists' && UUID.test(e.orderId || '')) { msg(P.price, L.err_paid); openBooked(e.orderId); }
         else if (e.status === 409) msg(P.price, L.err_paid);
         else msg(P.price, e.stripe ? L.err_pay_load : refusalText(e) || errText(e));
@@ -1321,6 +1381,14 @@ if (top !== self) top.location = location;
       notes.readOnly = on;
     }
     function signedInAs() { var s = getSession(); return s ? uidOf(s) : null; }
+    // The account's number isn't confirmed and the switch is on: the phone step, then on to Pay.
+    function askPayPhone(payer) {
+      phoneRefused(payer);
+      msg(P.price, L.pv_need);
+      askPhone({ from: 'pay', then: function () {
+        if (step === 'price' && card.isConnected && signedInAs() === payer && !busy) { msg(P.price, ''); startPay(); }
+      } });
+    }
     // This trip is booked already (create-order's booking_exists: its payment went through or is
     // still being confirmed): that trip opens in My trips instead of a second payment.
     function openBooked(id) {
@@ -1414,10 +1482,10 @@ if (top !== self) top.location = location;
     function booked(how, o, paid) {
       if (paid) { trip = paid.trip; van = paid.van; order = paid.order; }
       var p = P.done, t = trip, rows = [];
-      $('.done-p', p).textContent = how === 'wait' ? L.done_wait : t && t.kind === 'live' ? L.done_p_live : L.done_p;
+      $('.done-p', p).textContent = how === 'wait' ? L.done_wait : t && t.kind === 'today' ? L.done_p_today : L.done_p;
       if (t) {
         rows.push([L.s_route, t.from.city + ' → ' + t.to.city],
-          [L.s_pickup, t.kind === 'live' ? L.asap : pickupText(t.at, new Date(t.at.getTime() + WINDOW_MS), placeZone(t.from), L.lang)],
+          [L.s_pickup, pickupText(t.at, t.until, placeZone(t.from), L.lang)],
           [L.s_van, L['v_' + van]]);
       }
       if (order && order.cents) rows.push([L.s_paid, money(order.cents, L.lang)]);
@@ -1479,6 +1547,7 @@ if (top !== self) top.location = location;
       card.dataset.stage = name;
       h2.textContent = name === 'pay' || name === 'done' ? L['h_' + name] : title0;
       progress(name);
+      if (name === 'when') fillToday(); // the windows still open now
       if (q) {
         swap(qs, qs._front, Q[name], fwd ? 1 : -1, instant || to !== cur);
         var label = name === 'who' ? seePrice : L.bk_next;
@@ -1515,7 +1584,7 @@ if (top !== self) top.location = location;
       if (!trip) return;
       tripStore.set({
         t: Date.now(), lang: L.lang, kind: trip.kind, from: trip.from, to: trip.to, fromText: el.from.value, toText: el.to.value,
-        when: when.value, at: trip.at ? trip.at.getTime() : null, pax: trip.pax, bags: trip.bags, van: van, notes: notes.value,
+        when: when.value, at: trip.at.getTime(), until: trip.until.getTime(), minutes: trip.minutes, pax: trip.pax, bags: trip.bags, van: van, notes: notes.value,
         pay: !!pay, order: order ? { id: order.id, cents: order.cents, off: order.off, uid: order.uid } : null
       });
     }
@@ -1533,8 +1602,16 @@ if (top !== self) top.location = location;
       el.pax.value = s.pax;
       el.bags.value = s.bags;
       notes.value = s.notes || '';
-      trip = { kind: s.kind === 'live' ? 'live' : 'booking', from: s.from, to: s.to, at: s.at ? new Date(s.at) : null, pax: +s.pax || 1, bags: +s.bags || 0 };
-      if (trip.kind === 'booking' && !trip.at) { trip = null; return false; }
+      // A Live trip kept from before Today starts again; so does a Today window no longer offered.
+      // A booking kept by the page before Today has no window end: it gets its 2 hours.
+      if ((s.kind !== 'booking' && s.kind !== 'today') || !s.at) { trip = null; return false; }
+      trip = { kind: s.kind, from: s.from, to: s.to, at: new Date(s.at), until: new Date(s.until || s.at + WINDOW_MS), minutes: s.minutes, pax: +s.pax || 1, bags: +s.bags || 0 };
+      if (trip.kind === 'today') {
+        fillToday();
+        var r = $('.today-wins input[value="' + (+s.minutes) + '"]', f);
+        if (!r || !todayWindows(placeZone(s.from), new Date()).some(function (w) { return w.start.getTime() === s.at; })) { trip = null; return false; }
+        r.checked = true;
+      }
       prefer = s.van;
       fillPrice();
       reach = STEPS.price; // every question answered: the card opens on the summary
@@ -2295,19 +2372,24 @@ if (top !== self) top.location = location;
       return getSession();
     });
   }
-  // Signs out here at once, then ends the session at Supabase too. An expired access token
-  // would be refused there, so it is renewed first (the new one is used only for this call).
-  function logout() {
-    var s = getSession();
-    clearSession();
-    store.del(DRAFT); // a Join form started on this computer goes with the person
-    // So does a trip typed on the booking card, on this page and on a home page kept for Back
-    // (after clearSession, whose auth() saves the trip again for whoever signs in next).
+  // What the person typed on this computer goes with them (a shared computer), on Log out and
+  // Delete account alike: a Join form started here, and a trip typed on the booking card, on this
+  // page and on a home page kept for Back. Run after clearSession, whose auth() saves the trip
+  // again for whoever signs in next.
+  function forgetHere() {
+    store.del(DRAFT);
     tripStore.del();
     [page].concat(Object.keys(screens).map(function (k) { return screens[k].page; })).forEach(function (p) {
       var b = p && $('.deck > .book', p);
       if (b && b._bk) b._bk.forget();
     });
+  }
+  // Signs out here at once, then ends the session at Supabase too. An expired access token
+  // would be refused there, so it is renewed first (the new one is used only for this call).
+  function logout() {
+    var s = getSession();
+    clearSession();
+    forgetHere();
     if (!s) return;
     var stale = s.refresh_token && (!s.expires_at || s.expires_at - Date.now() / 1000 < 60);
     (stale ? renew(s).then(function (n) { return n.access_token; }) : Promise.resolve(s.access_token))
@@ -2655,7 +2737,7 @@ if (top !== self) top.location = location;
     // Cancel: while no transporter has accepted, all back but the cancellation charge once it is
     // paid. After that, until pickup, what comes back depends on how long before pickup: dt.cx says
     // how much now and until when (the database decides, migration 20261030110000_cancel_rule).
-    // One question first, with the amount.
+    // A note first: what comes back, why, and when it arrives (cxNote), with Keep my trip and Cancel trip.
     // From the agreed pickup time on, a Book ahead trip nobody picked up (dt.np: my_no_pickup(), migration
     // 20261101120000_no_pickup) also has "My transporter didn't come", and Cancel first asks whether the
     // transporter came, as in the app (src/components/trip-cancel.tsx). Once told, DomiVan's staff decide.
@@ -2671,10 +2753,13 @@ if (top !== self) top.location = location;
       if (!ask) return '<div class="t-cancel">' + (np && np.can_report ? '<button type="button" class="btn ghost t-nc">' + esc(L.nc_btn) + '</button>' : '')
         + '<button type="button" class="btn ghost danger t-ask">' + esc(L.cancel) + '</button>'
         + (cx ? '<small class="t-cx">' + esc(cxNow(cx)) + '</small>' : '') + msgHtml('cancel') + '</div>';
-      return '<div class="t-cancel"><p>' + esc(cx ? cxQuestion(cx) : L.cancel_q) + '</p>'
-        + (!open && cx && cx.fee_cents && !(np && np.can_report) ? '<small class="t-cx">' + esc(L.cx_late) + '</small>' : '')
+      var n = cx ? cxNote(o, cx) : null;
+      return '<div class="t-cancel"><p>' + esc(L.cx_title) + '</p>'
+        + (n && !n.unpaid ? '<p class="t-cx-back">' + esc(n.back > 0 ? fill(L.cx_back, { amount: money(n.back, L.lang) }) : L.cx_back_none) + '</p>' : '')
+        + (n ? '<small class="t-cx">' + esc(n.why + (n.back > 0 ? ' ' + L.cx_arrives : '')) + '</small>' : '')
+        + (!open && cx && cx.fee_cents && !(n && n.noShow) && !(np && np.can_report) ? '<small class="t-cx">' + esc(L.cx_late) + '</small>' : '')
         + '<div class="t-two"><button type="button" class="btn ghost t-keep">' + esc(L.cancel_no) + '</button>'
-        + '<button type="button" class="btn danger t-yes">' + esc(L.cancel_yes) + '</button></div>' + msgHtml('cancel') + '</div>';
+        + '<button type="button" class="btn danger t-yes">' + esc(L.cancel) + '</button></div>' + msgHtml('cancel') + '</div>';
     }
     function pct(x) {
       try { return new Intl.NumberFormat(locale(L.lang), { style: 'percent', maximumFractionDigits: 0 }).format(+x); } catch (e) { return Math.round(x * 100) + '%'; }
@@ -2689,10 +2774,22 @@ if (top !== self) top.location = location;
       if (!at || cx.next_refund_pct == null) return now;
       return now + ' ' + (+cx.next_refund_pct > 0 ? fill(L.cx_then_part, { pct: pct(cx.next_refund_pct), date: at }) : fill(L.cx_then_none, { date: at }));
     }
-    function cxQuestion(cx) {
-      if (!cx.fee_cents) return L.cancel_q;
-      if (chargeOnly(cx)) return fill(L.cx_q_charge, { amount: money(cx.refund_cents, L.lang), charge: money(cx.fee_cents, L.lang) });
-      return cx.refund_cents > 0 ? fill(L.cx_q_part, { amount: money(cx.refund_cents, L.lang), pct: pct(cx.refund_pct) }) : L.cx_q_none;
+    // The note before the final Cancel (batch 22, Martin 2026-10-28: "when people want to cancel, a
+    // information note has to be given for them before they really cancel"): what comes back and why.
+    // The same choice as the app's (src/lib/cancel-note.ts; scripts/app-tests/cancel-note.test.mjs runs
+    // both). The amounts are the database's (dt.cx); the hours and the share kept come from CANCEL_RULE.
+    function cxNote(o, cx) {
+      var accepted = o.status === 'accepted' || o.status === 'en_route', live = o.kind === 'live';
+      if (!o.bid_started_at) return { back: 0, unpaid: true, why: L.cx_note_unpaid };
+      var p = Math.round(+cx.refund_pct * 100), back = cx.refund_cents, charge = money(cx.fee_cents, L.lang);
+      if (cx.fee_cents <= 0) return { back: back, why: L.cx_note_full };
+      if (p >= 100) {
+        if (!accepted) return { back: back, why: fill(L.cx_note_not_accepted, { charge: charge }) };
+        return { back: back, why: live ? fill(L.cx_note_charge, { charge: charge }) : fill(L.cx_note_early, { hours: CANCEL_RULE.freeHours, charge: charge }) };
+      }
+      if (p <= 0) return { back: 0, noShow: true, why: L.cx_note_no_show };
+      var hours = p === CANCEL_RULE.midRefundPct ? CANCEL_RULE.freeHours : p === CANCEL_RULE.lateRefundPct ? CANCEL_RULE.midHours : null;
+      return { back: back, why: hours === null || live ? fill(L.cx_note_kept, { percent: 100 - p }) : fill(L.cx_note_late, { hours: hours, percent: 100 - p }) };
     }
     // A cancelled trip: why, and where the refund stands as the database knows it, as in the app
     // (src/lib/refund-notes.ts): "refunded" only once Stripe made the refund, never for a trip that
@@ -2868,9 +2965,87 @@ if (top !== self) top.location = location;
     };
   }
 
+  // ---------------------------------------------------------------- the phone number's code by SMS
+  //
+  // Batch 22 (migration 20261103140000_phone_verify, plans\phone-verification.md §3): the account's
+  // number is confirmed with a code by SMS (the function phone-code) in the account card's phone step
+  // (#login/phone). It comes right after signing in while the number isn't confirmed, with Later while
+  // Admin › Switches › Phone numbers is off (phones_required()); Profile and Personal details open it
+  // too. While the switch is on, Pay opens it first and goes on to Pay once the number is confirmed
+  // (create-order and the database refuse a trip without one: phone_unconfirmed).
+
+  // Whether the number is confirmed, as the database's phone_ok() decides it: phone_confirmed is the
+  // number's digits with a plus, for the app the account belongs to (phone_app, the role's words); a
+  // review account always counts. A copy of phoneConfirmed() in src/lib/phone-confirm.ts.
+  function phoneConfirmed(p) {
+    if (!p) return false;
+    if (p.is_reviewer) return true;
+    var digits = String(p.phone || '').replace(/\D/g, '');
+    return !!p.phone_confirmed && p.phone_confirmed === (digits ? '+' + digits : null)
+      && p.phone_app === (p.role == null ? p.phone_app : p.role);
+  }
+  // Admin › Switches › Phone numbers: whether a confirmed number is needed now. A failed read counts as off.
+  function phonesRequired(t) {
+    return rest('rpc/phones_required', t, {}).then(function (v) { return v === true; }, function () { return false; });
+  }
+  // What the page knows of the signed-in account's number: { uid, ok, required, role, reviewer, closed,
+  // at }, from the profile (Profile's own read, or phoneStatus). phoneAsk: why the phone step is open,
+  // until it closes: { from: 'signin' | 'pay' | 'details' | 'profile', then: what comes once confirmed,
+  // change: a new number for a confirmed one, phone: the number to start with }.
+  var phoneOf = null, phoneReq = null, phoneAsk = null;
+  function notePhone(u, row, required) {
+    if (!row) return null;
+    phoneOf = { uid: u, ok: phoneConfirmed(row), required: !!required, role: row.role || null, reviewer: !!row.is_reviewer,
+      closed: !!row.delete_on, at: Date.now() };
+    if (acct) acct.phoneSeen();
+    return phoneOf;
+  }
+  function phoneHere() { var s = getSession(), u = s && uidOf(s); return u && phoneOf && phoneOf.uid === u ? phoneOf : null; }
+  // The number's state now: a read at most 30 seconds old (unless force), or null when it can't be read.
+  function phoneStatus(force) {
+    var s = getSession(), u = s && uidOf(s), had = phoneHere();
+    if (!u) return Promise.resolve(null);
+    if (had && !force && Date.now() - had.at < 30000) return Promise.resolve(had);
+    if (phoneReq && phoneReq.uid === u) return phoneReq.p;
+    var p = refresh().then(function (s2) {
+      if (!s2 || uidOf(s2) !== u) return null;
+      return Promise.all([
+        rest('profiles?select=phone,role,phone_confirmed,phone_app,is_reviewer,delete_on&id=eq.' + u, s2.access_token),
+        phonesRequired(s2.access_token)
+      ]).then(function (r) { return uidOf(getSession()) === u ? notePhone(u, r[0] && r[0][0], r[1]) : null; });
+    });
+    phoneReq = { uid: u, p: p };
+    var done = function () { if (phoneReq && phoneReq.p === p) phoneReq = null; };
+    p.then(done, done);
+    return p;
+  }
+  // create-order or the database refused for want of a confirmed number: the switch is on.
+  function phoneRefused(u) {
+    if (phoneOf && phoneOf.uid === u) { phoneOf.ok = false; phoneOf.required = true; phoneOf.at = 0; }
+    else phoneOf = { uid: u, ok: false, required: true, role: null, reviewer: false, closed: false, at: 0 };
+    if (acct) acct.phoneSeen();
+  }
+  // Opens the phone step (o: see phoneAsk). The welcome after signing in stays on it.
+  function askPhone(o) {
+    phoneAsk = o;
+    cancelAutoClose();
+    openLogin({ view: '#login/phone' });
+  }
+  // phone-code's refusals ({ code, params }, supabase/functions/_shared/errors.ts) in the apps' words
+  // (src/lib/error-codes.ts); rate_limited is the booking card's (T.refusals), the rest errText's.
+  var PV_ERR = {
+    phone_invalid: 'pv_e_invalid', sms_country_closed: 'pv_e_closed', phone_wait: 'pv_e_wait', phone_too_many: 'pv_e_many',
+    phone_taken: 'pv_e_taken', sms_busy: 'pv_e_down', sms_unavailable: 'pv_e_down', sms_failed: 'pv_e_failed',
+    code_wrong: 'pv_e_wrong', code_expired: 'pv_e_expired', phone_unconfirmed: 'pv_need'
+  };
+  function phoneErr(e) {
+    var k = e && PV_ERR[e.code], text = k && T[k] ? fill(T[k], e.params || {}) : null;
+    return text && !/\{\w+\}/.test(text) ? text : refusalText(e) || errText(e);
+  }
+
   // ---------------------------------------------------------------- account card
 
-  var CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var CHEV ='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var CROSS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
   // Google's multicolour G and the Apple logo, as their sign-in guidelines ask.
   var GOOGLE = '<svg viewBox="0 0 48 48" aria-hidden="true">'
@@ -2890,6 +3065,7 @@ if (top !== self) top.location = location;
     globe: ico('M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM3 12h18M12 3c2.6 2.6 3.9 5.6 3.9 9s-1.3 6.4-3.9 9c-2.6-2.6-3.9-5.6-3.9-9S9.4 5.6 12 3z'),
     out: ico('M14 4.5H7.5A2.5 2.5 0 0 0 5 7v10a2.5 2.5 0 0 0 2.5 2.5H14M11 12h9.5M17 8.5l3.5 3.5-3.5 3.5'),
     trash: ico('M4.5 6.5h15M9.5 6.5v-2h5v2M6.5 6.5l1 13.5h9l1-13.5M10 10.5v6M14 10.5v6'),
+    phone: ico('M6.6 3.5h2.6l1.6 4.2-2 1.4a11 11 0 0 0 6.1 6.1l1.4-2 4.2 1.6v2.6a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z'),
     go: ico('M9.5 5.5 16 12l-6.5 6.5')
   };
   var cards = 0;
@@ -2926,9 +3102,14 @@ if (top !== self) top.location = location;
     return '<div class="pf-head"><div class="me-ava"><span class="ava big" aria-hidden="true"></span><i class="ok" aria-hidden="true"></i></div>'
       + '<div class="pf-who"><p class="me-hi">' + esc(T.welcome) + '</p><b class="me-name"></b><span class="me-mail"></span></div></div>'
       + '<div class="pf-more">'
+      // Asked to be deleted (delete-account): the day, and Keep my account (drawMe, keepAccount).
+      + '<div class="pf-closed" hidden><h3></h3><p class="pn-note">' + esc(T.pn_closed_p) + '</p><div class="msg" role="alert"></div>'
+      + '<button type="button" class="btn pf-keep">' + esc(T.pn_keep) + '</button></div>'
       + '<div class="pf-tiles">' + tile('#trips', IC.cal, T.my_trips) + tile('#login/invoices', PI.receipt, T.pn_invoices) + tile('#login/help', PI.help, T.pn_help) + '</div>'
       + '<h3 class="pf-sec">' + esc(T.pn_account) + '</h3><div class="mlist">'
       + menuItem('#login/details', PI.user, T.pn_details, '<span class="pf-phone"></span>')
+      // While the number isn't confirmed (batch 22): the phone step (drawMe).
+      + menuItem('#login/phone', PI.phone, T.pv_h, '', 'pf-pv')
       + menuItem('#login/invite', GIFT, T.pn_invite, '<span class="pf-until"></span>', 'pf-inv') + '</div>'
       + '<h3 class="pf-sec">' + esc(T.pn_site) + '</h3><div class="mlist">'
       + menuItem('#login/language', PI.globe, T.pn_language, lang)
@@ -2943,7 +3124,7 @@ if (top !== self) top.location = location;
   // stands on its own (#terms) or under Profile or Join Transporters (#login/terms, #join/terms),
   // so the back arrow returns there. auth: signed out, Log in shows first.
   var DOCS = ['terms', 'transporter-terms', 'privacy', 'delete-account'];
-  var PSTEPS = { details: 1, invoices: 1, invite: 1, delete: 1, language: 0, help: 0 }; // 1: needs an account
+  var PSTEPS = { details: 1, phone: 1, invoices: 1, invite: 1, delete: 1, language: 0, help: 0 }; // 1: needs an account
   var AUTH = { login: 1, create: 1, code: 1 };
   function viewOf(h) {
     h = String(h || '');
@@ -2993,7 +3174,7 @@ if (top !== self) top.location = location;
       + '<div class="code-links"><button type="button" class="link chg">' + esc(T.change_email) + '</button><button type="button" class="link rs"></button></div>'
       + '</form></div>'
       + '<div class="pane tv" data-pane="me">' + profileHtml() + '</div>'
-      + ['details', 'invoices', 'invite', 'delete', 'language', 'help', 'report', 'feedback', 'doc', 'join', 'trips', 'trip'].map(function (p) {
+      + ['details', 'phone', 'invoices', 'invite', 'delete', 'language', 'help', 'report', 'feedback', 'doc', 'join', 'trips', 'trip'].map(function (p) {
         return '<div class="pane tv" data-pane="' + p + '"></div>';
       }).join('')
       + '</div></div>'
@@ -3017,6 +3198,7 @@ if (top !== self) top.location = location;
       swap(panes, cur, to, dir, instant || !el.isConnected || el.classList.contains('off'), null, solo ? panes.offsetHeight : null);
       cur = to;
       if (name !== 'code') stopTimer();
+      if (name !== 'phone') stopPhoneTimer();
       if (name !== 'trip') trips.stop();
     }
     function msg(pane, text, name, action) {
@@ -3170,11 +3352,13 @@ if (top !== self) top.location = location;
       if (loginOpen && !gated()) el.classList.remove('gate');
     }, true);
     $('.out', P.me).addEventListener('click', function () { el.classList.remove('fresh'); logout(); });
+    $('.pf-keep', P.me).addEventListener('click', keepAccount);
+    $('.pf-pv', P.me).hidden = true; // until the profile says the number isn't confirmed
     $('.back-btn', el).addEventListener('click', accountBack);
     $('.x-btn', el).addEventListener('click', function () { closeLogin({ ui: true }); });
 
-    // ---- Profile and its steps. me: the profile row (name, phone, invoice details) and until
-    // when an invite code can still be added (referral_window(), null once it can't).
+    // ---- Profile and its steps. me: the profile row (name, phone and whether it is confirmed, invoice
+    // details) and until when an invite code can still be added (referral_window(), null once it can't).
     var me = null, meFor = null, meAt = 0, inviteUntil = null;
     function uid() { var s = getSession(); return s ? uidOf(s) : null; }
     function token() {
@@ -3196,19 +3380,23 @@ if (top !== self) top.location = location;
       meAt = Date.now();
       token().then(function (t) {
         return Promise.all([
-          rest('profiles?select=full_name,phone,billing_name,billing_vat_number,billing_address&id=eq.' + u, t),
-          rest('rpc/referral_window', t, {}).catch(nothing)
+          rest('profiles?select=full_name,phone,role,phone_confirmed,phone_app,is_reviewer,billing_name,billing_vat_number,billing_address,delete_on&id=eq.' + u, t),
+          rest('rpc/referral_window', t, {}).catch(nothing),
+          phonesRequired(t)
         ]);
       }).then(function (r) {
         if (uid() !== u) return;
         me = (r[0] && r[0][0]) || {}; meFor = u;
         inviteUntil = r[1] && Date.parse(r[1]) > Date.now() ? new Date(r[1]) : null;
+        notePhone(u, me, r[2]);
         drawMe();
         if (cur === P.details) details(); // a step that was waiting for it
         if (cur === P.invite) invite();
+        if (cur === P.phone) phonePane();
       }, function (e) {
         meAt = 0;
         if (!out(e) && cur === P.details && meFor !== u) oops(P.details, details);
+        if (!out(e) && cur === P.phone && !(meFor === u && phoneHere())) oops(P.phone, phonePane);
       });
     }
     function drawMe() {
@@ -3217,9 +3405,31 @@ if (top !== self) top.location = location;
       $('.me-name', P.me).textContent = nm || u.email || T.my_account;
       $('.me-mail', P.me).textContent = nm ? u.email || '' : '';
       $('.pf-phone', P.me).textContent = (meFor === uid() && me && me.phone) || '';
+      var ph = phoneHere();
+      $('.pf-pv', P.me).hidden = !ph || ph.ok || ph.closed;
       var inv = $('.pf-inv', P.me);
       inv.hidden = !(meFor === uid() && inviteUntil);
       $('.pf-until', P.me).textContent = inviteUntil ? fill(T.pn_invite_by, { date: clockText(inviteUntil, null, SOON, T.lang) }) : '';
+      var off = meFor === uid() && me && me.delete_on, box = $('.pf-closed', P.me);
+      box.hidden = !off;
+      $('h3', box).textContent = off ? fill(T.pn_closed, { date: dayText(me.delete_on) }) : '';
+    }
+    // A day the database keeps as YYYY-MM-DD (profiles.delete_on, delete-account's deleteOn), as a date here.
+    function dayText(day) {
+      var p = String(day).split('-');
+      return clockText(new Date(+p[0], p[1] - 1, +p[2]), null, DAY, T.lang);
+    }
+    // Keep my account: opens the closed account again as it was (keep_my_account()).
+    function keepAccount() {
+      var btn = this;
+      if (btn.disabled) return;
+      msg(P.me, '');
+      busy(btn, true);
+      token().then(function (t) { return rest('rpc/keep_my_account', t, {}); }).then(function () {
+        me.delete_on = null;
+        drawMe();
+        loadMe(true);
+      }, function (e) { if (!out(e)) msg(P.me, errText(e)); }).catch(noop).then(function () { busy(btn, false); });
     }
 
     function detailsHtml() {
@@ -3228,8 +3438,12 @@ if (top !== self) top.location = location;
           + (max ? ' maxlength="' + max + '"' : '')
           + (ph ? ' placeholder="' + esc(ph) + '"' : '') + (k === 'email' ? ' disabled' : '') + '></label>';
       };
+      // The number: typed here, or (confirmed, or while the switch is on) shown with Change number (detailsPhone).
       return '<form class="pn-form" novalidate>' + f('full_name', T.pn_name, 'text', 'name', null, TEXT_MAX.full_name)
-        + '<div><label for="pf-phone"><small>' + esc(T.pn_phone) + '</small></label>' + phoneHtml('pf-phone', { cc: null, number: '' }, T.lang) + '</div>'
+        + '<div><label for="pf-phone"><small>' + esc(T.pn_phone) + '</small></label>'
+        + '<div class="pf-ph-edit">' + phoneHtml('pf-phone', { cc: null, number: '' }, T.lang) + '</div>'
+        + '<div class="pf-ph-fixed" hidden><input class="pf-ph-shown" type="tel" disabled aria-label="' + esc(T.pn_phone) + '"></div></div>'
+        + '<p class="pn-note pf-ph-note"><b class="pf-ph-ok"></b> <button type="button" class="link pf-ph-go"></button></p>'
         + f('email', T.f_email, 'email', 'email')
         + '<h3 class="pf-sec">' + esc(T.pn_bill_h) + '</h3><p class="pn-note">' + esc(T.pn_bill_p) + '</p>'
         + f('billing_name', T.pn_bill_name, 'text', 'organization', null, TEXT_MAX.billing_name)
@@ -3242,6 +3456,7 @@ if (top !== self) top.location = location;
       if (!$('form', P.details)) {
         P.details.innerHTML = detailsHtml();
         $('form', P.details).addEventListener('submit', function (e) { e.preventDefault(); saveDetails(this); });
+        $('.pf-ph-go', P.details).addEventListener('click', function () { changePhone($('form', P.details)); });
       }
       var f = $('form', P.details), wait = $('.tload', P.details);
       if (meFor !== u) { // its fields come with the profile
@@ -3251,6 +3466,7 @@ if (top !== self) top.location = location;
       }
       if (wait) P.details.removeChild(wait);
       f.hidden = false;
+      detailsPhone(f);
       if (f._for === u && f._at > meAt) return;
       f._for = u; f._at = Date.now();
       ['full_name', 'billing_name', 'billing_vat_number', 'billing_address'].forEach(function (k) { f.elements[k].value = me[k] || ''; });
@@ -3258,11 +3474,33 @@ if (top !== self) top.location = location;
       f.elements.email.value = (getSession().user || {}).email || '';
       msg(f, '');
     }
+    // The number (batch 22): typed here as before while it isn't confirmed and the switch is off.
+    // Confirmed, or while the switch is on, it shows as it is, and Change number (or Confirm your
+    // phone number) opens the phone step: only a code by SMS changes it then (phone_guard_profile).
+    // A review account types it here always (no code for those).
+    function phoneFixed() { var ph = phoneHere(); return !!ph && !ph.reviewer && (ph.required || ph.ok); }
+    function detailsPhone(f) {
+      var ph = phoneHere(), fixed = phoneFixed(), go = $('.pf-ph-go', f);
+      $('.pf-ph-edit', f).hidden = fixed;
+      $('.pf-ph-fixed', f).hidden = !fixed;
+      $('.pf-ph-shown', f).value = (meFor === uid() && me && me.phone) || '';
+      $('.pf-ph-ok', f).textContent = ph && ph.ok && !ph.reviewer ? T.pv_done : '';
+      go.hidden = !ph || ph.reviewer || ph.closed;
+      go.textContent = ph && ph.ok ? T.pv_change : T.pv_h;
+      $('.pf-ph-note', f).hidden = go.hidden && !$('.pf-ph-ok', f).textContent;
+    }
+    function changePhone(f) {
+      var ph = phoneHere();
+      if (!ph) return;
+      // A number typed here and not saved yet is the one the code goes to.
+      askPhone({ from: 'details', change: ph.ok, phone: phoneFixed() ? undefined : phoneValue(readPhone(f)) || undefined });
+    }
     function saveDetails(f) {
       var btn = $('.go', f), v = function (k) { return f.elements[k].value.trim().replace(/\s+/g, ' '); };
-      var phone = readPhone(f), typed = /\d/.test(phone.number);
+      var fixed = phoneFixed(), phone = readPhone(f), typed = !fixed && /\d/.test(phone.number);
       var row = { full_name: v('full_name'), phone: typed ? phoneValue(phone) : '', billing_name: v('billing_name') || null,
         billing_vat_number: v('billing_vat_number').toUpperCase() || null, billing_address: v('billing_address') || null };
+      if (fixed) delete row.phone; // the database keeps it, confirmed or not
       if (row.full_name.length < 2) return msg(f, T.err_name, 'full_name');
       if (typed && !row.phone) return msg(f, phoneProblem(phone, T.lang), 'phone');
       if (btn.disabled) return;
@@ -3272,11 +3510,206 @@ if (top !== self) top.location = location;
       token().then(function (t) { return rest('profiles?id=eq.' + u, t, row, 'PATCH'); }).then(function () {
         if (uid() !== u) return;
         me = Object.assign({}, me, row); meFor = u;
+        var ph = phoneHere();
+        if (ph) notePhone(u, me, ph.required); // a changed number isn't the confirmed one any more
         store.set(NAME, JSON.stringify({ id: u, n: row.full_name })); // the header's first name
         authChanged(true);
         drawMe();
         msg(f, T.pn_saved, null, 'ok');
-      }, function (e) { if (!out(e)) msg(f, errText(e)); }).catch(noop).then(function () { busy(btn, false); });
+      }, function (e) {
+        if (out(e)) return;
+        // The switch went on meanwhile: the number changes only with a code now.
+        if (/phone_unconfirmed/.test(e.message)) { phoneRefused(u); return msg(f, T.pv_first); }
+        msg(f, errText(e));
+      }).catch(noop).then(function () { busy(btn, false); });
+    }
+
+    // ---- The phone step (#login/phone, batch 22): the number, the code by SMS (phone-code), then
+    // Confirmed, as the apps' phone field (src/components/phone-confirm.tsx). ps.stage: 'number',
+    // 'code' or 'done'; ps.phone: the number the code went to; ps.changing: a new number for a
+    // confirmed one, asked from Personal details.
+    var ps = { uid: null, stage: 'number', phone: null, changing: false }, psTimer = 0, psUntil = 0;
+    function phoneForms() {
+      if ($('.ps-num', P.phone)) return;
+      var id = 'ps-phone' + n, head = function (p) {
+        return '<div class="code-head"><span class="mail">' + PI.phone + '</span><div><h3>' + esc(T.pv_h) + '</h3>' + p + '</div></div>';
+      };
+      P.phone.innerHTML = '<div class="ps-num"><form class="cd" novalidate>' + head('<p class="ps-why"></p>')
+        + '<div><label for="' + id + '"><small>' + esc(T.pn_phone) + '</small></label>' + phoneHtml(id, { cc: null, number: '' }, T.lang) + '</div>'
+        + '<div class="msg" role="alert"></div>'
+        + '<button class="btn big go" type="submit">' + esc(T.pv_send) + '</button>'
+        + '<p class="pn-note ps-help" hidden>' + esc(T.pv_help) + ' <a href="mailto:support@domivan.com">support@domivan.com</a></p>'
+        + '<p class="pn-note">' + esc(T.pv_by) + ' <a href="#login/privacy">' + esc(T.pn_privacy) + '</a></p></form></div>'
+        + '<div class="ps-code" hidden><form class="cd" novalidate>' + head('<p class="sent"></p>')
+        + '<label><small>' + esc(T.pv_code) + '</small><input name="code" class="code-in" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••"></label>'
+        + '<div class="msg" role="alert"></div>'
+        + '<button class="btn big go" type="submit">' + esc(T.pv_confirm) + '</button>'
+        + '<div class="code-links"><button type="button" class="link ps-chg">' + esc(T.pv_change) + '</button><button type="button" class="link ps-rs"></button></div>'
+        + '<p class="pn-note">' + esc(T.pv_help) + ' <a href="mailto:support@domivan.com">support@domivan.com</a></p></form></div>'
+        + '<div class="ps-done" hidden><div class="tempty"><span class="tempty-ic" aria-hidden="true">' + IC.ok + '</span><h3>' + esc(T.pv_done) + '</h3>'
+        + '<p class="ps-is"></p><button type="button" class="link ps-chg">' + esc(T.pv_change) + '</button></div></div>'
+        + '<div class="ps-later" hidden><button type="button" class="btn ghost">' + esc(T.pv_later) + '</button></div>';
+      var nf = $('.ps-num form', P.phone), cf = $('.ps-code form', P.phone), codeIn = $('[name=code]', cf);
+      nf.addEventListener('submit', function (e) { e.preventDefault(); sendPhone(); });
+      cf.addEventListener('submit', function (e) { e.preventDefault(); checkPhone(); });
+      codeIn.addEventListener('input', function () {
+        var before = codeIn._len || 0, v = codeIn.value.replace(/\D/g, '').slice(0, 6);
+        if (v !== codeIn.value) codeIn.value = v;
+        codeIn._len = v.length;
+        if (v.length === 6 && v.length - before >= 4) checkPhone(); // pasted, or filled in from the SMS
+      });
+      $$('.ps-chg', P.phone).forEach(function (b) { b.addEventListener('click', changeNumber); });
+      $('.ps-rs', cf).addEventListener('click', resendPhone);
+      $('.ps-later button', P.phone).addEventListener('click', phoneLater);
+    }
+    // Shows the step as it stands; phoneAsk's change and phone are taken in once.
+    function phonePane() {
+      var u = uid(), ph = phoneHere(), ask = phoneAsk || {};
+      if (!u) return;
+      phoneForms();
+      var wait = $('.tload', P.phone);
+      if (ps.uid !== u) { stopPhoneTimer(); ps = { uid: u, stage: 'number', phone: null, changing: false }; $('.ps-num form', P.phone)._for = null; }
+      var nf = $('.ps-num form', P.phone), cf = $('.ps-code form', P.phone);
+      var stages = { number: $('.ps-num', P.phone), code: $('.ps-code', P.phone), done: $('.ps-done', P.phone) };
+      if (meFor !== u || !ph) { // the number and whether it is confirmed come with the profile
+        Object.keys(stages).forEach(function (k) { stages[k].hidden = true; });
+        $('.ps-later', P.phone).hidden = true;
+        if (!wait) P.phone.insertAdjacentHTML('afterbegin', spinner());
+        return loadMe(true);
+      }
+      if (wait) P.phone.removeChild(wait);
+      if (ask.change || ask.phone) {
+        ps.stage = 'number';
+        ps.changing = ps.changing || !!ask.change;
+        // A new number: the same country, typed afresh; or the one typed in Personal details.
+        setPhone(nf, ask.phone ? phoneParts(ask.phone, phoneGuess(T.lang)) : { cc: phoneParts(me.phone, phoneGuess(T.lang)).cc, number: '' });
+        nf._for = u;
+        msg(nf, '');
+        phoneAsk.change = false; phoneAsk.phone = undefined;
+      } else if (ph.ok && !ps.changing && ps.stage !== 'code') ps.stage = 'done';
+      else if (!ph.ok && ps.stage === 'done') ps.stage = 'number';
+      if (nf._for !== u) { // the saved number to start with (one saved without its code gets one here)
+        nf._for = u;
+        setPhone(nf, phoneParts(me.phone, phoneGuess(T.lang)));
+        msg(nf, '');
+      }
+      Object.keys(stages).forEach(function (k) { stages[k].hidden = k !== ps.stage; });
+      $('.ps-why', nf).textContent = (ph.required || ask.from === 'pay') && phoneApp() === 'client' ? T.pv_need : T.pv_text;
+      $('.sent', cf).innerHTML = esc(T.pv_sent).replace('{phone}', '<b>' + esc(ps.phone || '').replace(/ /g, '&nbsp;') + '</b>');
+      $('.ps-is', P.phone).textContent = me.phone || '';
+      // Later while the switch is off, for a number not confirmed yet (the apps' rule).
+      $('.ps-later', P.phone).hidden = ps.stage === 'done' || ph.ok || ph.required;
+      if (ps.stage === 'code') { phoneTick(); if (!psTimer && psUntil > Date.now()) psTimer = setInterval(phoneTick, 1000); }
+    }
+    // The app the number is confirmed for: domivan.com's accounts are the DomiVan app's, a
+    // transporter's the Driver app's (phone_code_send() refuses another app: not_allowed).
+    function phoneApp() { return (meFor === uid() && me && me.role) === 'carrier' ? 'carrier' : 'client'; }
+    function askCode(phone) {
+      return token().then(function (t) { return callFn('phone-code', { action: 'send', phone: phone, app: phoneApp(), lang: T.lang }, t); });
+    }
+    function sendPhone() {
+      var nf = $('.ps-num form', P.phone), btn = $('.go', nf), parts = readPhone(nf), phone = phoneValue(parts);
+      if (!phone) return msg(nf, phoneProblem(parts, T.lang), 'phone');
+      if (btn.disabled) return;
+      var u = uid();
+      msg(nf, '');
+      $('.ps-help', nf).hidden = true;
+      busy(btn, true, T.sending);
+      askCode(phone).then(function (r) {
+        if (uid() !== u) return;
+        if (r && r.phone) return phoneDone(r.phone); // confirmed already, or a review account (saved as it is)
+        if (!r || !r.sent) throw new Error('No code sent');
+        codeStage(phone, r.wait);
+      }, function (e) {
+        if (uid() !== u || out(e)) return;
+        // Back from Change number to the same number too soon: the code we sent still works.
+        if (e.code === 'phone_wait' && phone === ps.phone) { codeStage(phone, 60); return msg($('.ps-code form', P.phone), T.pv_e_wait); }
+        msg(nf, phoneErr(e), e.code === 'phone_invalid' || e.code === 'sms_country_closed' ? 'phone' : null);
+        // Codes cannot be sent right now: the support line shows on this stage too.
+        $('.ps-help', nf).hidden = !(e.code === 'sms_unavailable' || e.code === 'sms_busy');
+      }).catch(function () { if (uid() === u) msg(nf, T.err_generic); }).then(function () { busy(btn, false); });
+    }
+    function codeStage(phone, wait) {
+      var cf = $('.ps-code form', P.phone), codeIn = $('[name=code]', cf);
+      if (phone !== ps.phone || ps.stage !== 'code') { codeIn.value = ''; codeIn._len = 0; msg(cf, ''); }
+      ps.phone = phone; ps.stage = 'code';
+      phoneTimer(wait);
+      phonePane();
+      setTimeout(function () { if (cur === P.phone && ps.stage === 'code') codeIn.focus({ preventScroll: true }); }, 60);
+    }
+    function checkPhone() {
+      var cf = $('.ps-code form', P.phone), btn = $('.go', cf), c = $('[name=code]', cf).value.replace(/\D/g, '');
+      if (c.length !== 6) return msg(cf, T.pv_e_code, 'code');
+      if (btn.disabled) return;
+      var u = uid();
+      msg(cf, '');
+      busy(btn, true, T.verifying);
+      token().then(function (t) { return callFn('phone-code', { action: 'check', code: c }, t); }).then(function (r) {
+        if (uid() !== u) return;
+        if (!r || !r.phone) throw new Error('No number in the reply');
+        phoneDone(r.phone);
+      }, function (e) {
+        if (uid() !== u || out(e)) return;
+        msg(cf, phoneErr(e), e.code === 'code_wrong' ? 'code' : null);
+      }).catch(function () { if (uid() === u) msg(cf, T.err_generic); }).then(function () { busy(btn, false); });
+    }
+    // Confirmed: the profile as phone_code_check() left it, then on to what asked for it (Pay goes
+    // on), back to Personal details, or Book your trip again after signing in.
+    function phoneDone(phone) {
+      var u = uid(), ask = phoneAsk, ph = phoneHere(), digits = String(phone).replace(/\D/g, '');
+      phoneAsk = null;
+      stopPhoneTimer();
+      me = Object.assign({}, me, { phone: phone, phone_confirmed: '+' + digits, phone_app: phoneApp() }); meFor = u;
+      ps.stage = 'done'; ps.changing = false; ps.phone = null;
+      notePhone(u, me, ph && ph.required);
+      phonePane();
+      setTimeout(function () {
+        if (!ask || uid() !== u || cur !== P.phone || !loginOpen) return;
+        if (ask.then) { closeLogin({ ui: true, focus: false }); ask.then(); }
+        else if (ask.from === 'details') goAccount('#login/details');
+        else if (ask.from === 'signin') { if (deckOf(page)) closeLogin({ ui: true, focus: false }); else goAccount('#login'); }
+      }, 1200);
+    }
+    function changeNumber() {
+      var nf = $('.ps-num form', P.phone);
+      if (ps.stage === 'done' || ps.changing) setPhone(nf, { cc: readPhone(nf).cc, number: '' });
+      ps.changing = ps.changing || ps.stage === 'done';
+      ps.stage = 'number';
+      stopPhoneTimer();
+      msg(nf, '');
+      phonePane();
+      setTimeout(function () { if (cur === P.phone && ps.stage === 'number') nf.elements.phone.focus({ preventScroll: true }); }, 60);
+    }
+    function resendPhone() {
+      var b = this, cf = $('.ps-code form', P.phone), u = uid();
+      if (b.disabled || !ps.phone) return;
+      b.disabled = true;
+      askCode(ps.phone).then(function (r) {
+        if (uid() !== u) return;
+        if (r && r.phone) return phoneDone(r.phone);
+        msg(cf, T.resent, null, 'ok');
+        phoneTimer(r && r.wait);
+      }, function (e) {
+        if (uid() !== u || out(e)) return;
+        if (e.code === 'phone_wait') phoneTimer(60); else b.disabled = false; // count down to when it may be asked
+        msg(cf, phoneErr(e));
+      });
+    }
+    function phoneTimer(s) { stopPhoneTimer(); psUntil = Date.now() + (s || 60) * 1000; phoneTick(); psTimer = setInterval(phoneTick, 1000); }
+    function stopPhoneTimer() { clearInterval(psTimer); psTimer = 0; }
+    function phoneTick() {
+      var b = $('.ps-rs', P.phone), left = Math.ceil((psUntil - Date.now()) / 1000);
+      if (!b) return stopPhoneTimer();
+      b.disabled = left > 0;
+      b.textContent = left > 0 ? fill(T.pv_again_in, { seconds: left }) : T.pv_again;
+      if (left <= 0) stopPhoneTimer();
+    }
+    // Later (while the switch is off): Book your trip again after signing in, else where it came from.
+    function phoneLater() {
+      var ask = phoneAsk || {};
+      phoneAsk = null;
+      if (ask.from === 'signin' && deckOf(page)) closeLogin({ ui: true, focus: false });
+      else goAccount(ask.from === 'details' ? '#login/details' : '#login');
     }
 
     // Every invoice and credit note of this account, newest first (row security picks them).
@@ -3338,8 +3771,9 @@ if (top !== self) top.location = location;
     }
 
     // Delete account: the app's question, then delete-account (it waits while a trip, payout,
-    // refund or invoice is still to come, and says which). The login is gone then, so only this
-    // browser forgets it.
+    // refund or invoice is still to come, and says which). The account is closed then and every
+    // session ended, so this browser forgets it, with what was typed here (forgetHere, as Log out),
+    // and Log in says the day it goes for good (signing in before then shows Keep my account).
     function deletePane() {
       if ($('.pn-del', P.delete)) return msg(P.delete, '');
       P.delete.innerHTML = '<div class="pn-del"><span class="tempty-ic" aria-hidden="true">' + PI.trash + '</span>'
@@ -3352,9 +3786,11 @@ if (top !== self) top.location = location;
         if (btn.disabled) return;
         msg(P.delete, '');
         busy(btn, true, T.pn_deleting);
-        token().then(function (t) { return callFn('delete-account', {}, t); }).then(function () {
+        token().then(function (t) { return callFn('delete-account', {}, t); }).then(function (r) {
           clearSession();
-          store.del(DRAFT);
+          forgetHere();
+          // Closed: deleted for good on that day, unless they sign in and keep it.
+          if (r && r.deleteOn) msg(P[tab], fill(T.pn_deleted_p, { date: dayText(r.deleteOn) }), null, 'ok');
         }, function (e) { if (!out(e)) msg(P.delete, refusalText(e) || errText(e)); }).catch(noop).then(function () { busy(btn, false); });
       });
     }
@@ -3545,6 +3981,7 @@ if (top !== self) top.location = location;
       if (v.auth && !signed) return;
       if (name === 'me') loadMe();
       else if (name === 'details') details();
+      else if (name === 'phone') phonePane();
       else if (name === 'invoices') invoices();
       else if (name === 'invite') invite();
       else if (name === 'delete') deletePane();
@@ -3556,6 +3993,7 @@ if (top !== self) top.location = location;
       else if (name === 'join') join();
       else if (name === 'trips') trips.list();
       else if (name === 'trip') trips.open(v.id);
+      if (name !== 'phone' && name !== 'doc') { phoneAsk = null; ps.changing = false; } // the privacy page comes back to it
       h2.textContent = name === 'me' ? T.pn_profile : name === 'trips' ? T.my_trips : name === 'trip' ? T.trip_h : name === 'join' ? T.pn_join
         : name === 'doc' ? T[DOC_T[v.doc]] : T['pn_' + name];
       if (name === 'doc') docTitle();
@@ -3575,6 +4013,7 @@ if (top !== self) top.location = location;
         el.classList.remove('fresh');
         trips.user(null);
         me = meFor = inviteUntil = null; invRows = invFor = null;
+        phoneAsk = null; stopPhoneTimer(); ps.uid = null;
         var df = $('form', P.details);
         if (df) { df.reset(); df._for = null; }
       }
@@ -3608,6 +4047,13 @@ if (top !== self) top.location = location;
     return {
       el: el, lang: T.lang, sync: sync, callback: callback, used: used,
       reset: function () { $$('.sso-btn', el).forEach(function (b) { busy(b, false); }); },
+      // What the page knows of the number changed (notePhone): Profile's item and Personal details.
+      phoneSeen: function () {
+        if (!getSession()) return;
+        drawMe();
+        var df = $('form', P.details);
+        if (df && meFor === uid()) detailsPhone(df);
+      },
       // Shows the view for a panel address (see viewOf). Signed out, Log in shows first where the
       // view needs an account, and the view comes once signed in. The heading takes the focus when
       // the card slides to another view.
@@ -3953,6 +4399,7 @@ if (top !== self) top.location = location;
     o = o || {};
     if (!loginOpen) return;
     cancelAutoClose();
+    phoneAsk = null;
     // Escape, the back arrow or the header button: keyboard focus goes back to the header button.
     if (o.ui && o.focus !== false) { var b = $('.top .login'); if (b) b.focus({ preventScroll: true }); }
     if (o.ui && acctHash()) {
@@ -3985,17 +4432,28 @@ if (top !== self) top.location = location;
 
   // Signed in from the account card: on the home page, slide back to Book your trip after a
   // moment (not on the way to another view). Tapping anything in the card, or leaving the page,
-  // cancels that.
-  var autoClose = 0;
-  function cancelAutoClose() { clearTimeout(autoClose); autoClose = 0; }
+  // cancels that. A number not confirmed yet (batch 22) opens the phone step instead, with Later
+  // while the switch is off (as the apps ask once per start).
+  var autoClose = 0, signSeq = 0;
+  function cancelAutoClose() { clearTimeout(autoClose); autoClose = 0; signSeq++; }
   function signedIn() {
-    var s = getSession();
+    var s = getSession(), u = s && uidOf(s);
     if (s) fetchName(s);
     cancelAutoClose();
+    if (!u) return;
+    var seq = signSeq, checked = phoneStatus(true).catch(nothing);
+    checked.then(function (ph) {
+      if (seq !== signSeq || !ph || ph.ok || ph.closed || phoneAsk || uidOf(getSession() || {}) !== u) return;
+      if (loginOpen && (acctHash() || '#login') !== '#login') return; // on the way to another view
+      askPhone({ from: 'signin' });
+    });
     if (loginOpen && deckOf(page) && (acctHash() || '#login') === '#login') {
       autoClose = setTimeout(function () {
         autoClose = 0;
-        if (loginOpen && getSession() && deckOf(page)) closeLogin({ ui: true, focus: false });
+        checked.then(function (ph) { // the phone step stays, when it came; a closed account's Keep my account too
+          if (ph && ph.closed) return;
+          if (seq === signSeq && loginOpen && getSession() && deckOf(page)) closeLogin({ ui: true, focus: false });
+        });
       }, 1600);
     }
   }

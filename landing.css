@@ -122,7 +122,7 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 /* Segmented control: a white pill slides under the chosen side. */
 .kinds { position: relative; display: grid; grid-template-columns: 1fr 1fr; background: var(--tint); border: 1px solid rgba(255, 255, 255, .1); border-radius: 14px; padding: 4px; }
 .kinds::before { content: ""; position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 11px; background: rgba(255, 255, 255, .94); box-shadow: 0 2px 8px rgba(0, 0, 0, .25); transform: translateX(calc(var(--i, 0) * 100%)); transition: transform .38s cubic-bezier(.22, .8, .24, 1); }
-.book.is-live .kinds, .kinds:has(label:last-child input:checked) { --i: 1; }
+.book.is-today .kinds, .kinds:has(label:last-child input:checked) { --i: 1; }
 .kinds label { position: relative; z-index: 1; }
 .kinds input { position: absolute; opacity: 0; pointer-events: none; }
 .kinds span { display: block; text-align: center; padding: 8px; border-radius: 11px; font-weight: 700; font-size: 15px; color: var(--soft); cursor: pointer; transition: color .2s; }
@@ -137,8 +137,21 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .swap { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .2); background: var(--field); color: #fff; display: grid; place-items: center; cursor: pointer; margin-top: 18px; }
 .swap:hover { background: rgba(134, 140, 148, .4); }
 .swap svg { width: 20px; height: 20px; }
-.live-note { display: none; margin: 0; color: #FFE2A8; background: rgba(255, 176, 32, .14); border: 1px solid rgba(255, 176, 32, .3); border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 600; }
-.book.is-live .when { display: none; }
+/* Today (batch 22, in place of Live): the 3-hour windows still open today on the pickup's clock, as
+   chips like the picker's times (site.js fillToday); the date and time fields step aside. */
+.today { display: none; gap: 10px; }
+.book.is-today .today { display: grid; }
+.book.is-today .when { display: none; }
+.today-note, .today-none { margin: 0; color: var(--soft); font-size: 14px; }
+.today-wins { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; max-height: 232px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .22) transparent; }
+.today-wins:has(.today-none) { display: block; }
+.twin { position: relative; }
+.twin input { position: absolute; opacity: 0; pointer-events: none; }
+.twin span { display: block; text-align: center; padding: 10px 4px; border-radius: 12px; background: var(--field); border: 1.5px solid rgba(255, 255, 255, .14); color: #fff; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; cursor: pointer; }
+.twin span:hover { background: rgba(134, 140, 148, .4); }
+.twin input:checked + span { background: var(--primary); border-color: var(--primary); }
+.twin input:focus-visible + span { outline: 2px solid var(--sky); outline-offset: 2px; }
+.twin input[aria-invalid] + span { border-color: #FF9B8A; }
 /* The pickup's date and time (site.js WhenPicker, batch 19): two buttons like the fields, as in the apps,
    and a picker in the panel's navy, solid (what it covers must not show through): under its buttons on a
    computer, a sheet from the bottom on a phone. Every text on it reads at 4.5:1 or more. */
@@ -178,7 +191,6 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .wp-scroll { max-height: 288px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .22) transparent; margin: 0 -4px; padding: 0 4px; }
 .wp.as-sheet .wp-scroll { max-height: min(46vh, 340px); }
 .wp.as-sheet .wp-day { height: 44px; }
-.book.is-live .live-note { display: block; }
 .counts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .stepper { display: grid; grid-template-columns: 40px 1fr 40px; background: var(--field); border: 1.5px solid rgba(255, 255, 255, .14); border-radius: 12px; overflow: hidden; }
 .stepper button { border: 0; background: transparent; color: #fff; font-size: 22px; font-weight: 700; cursor: pointer; }
@@ -432,6 +444,8 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .t-cancel { display: grid; gap: 10px; margin-top: 2px; }
 .t-cancel p { margin: 0; color: #fff; font-weight: 700; text-align: center; text-wrap: pretty; }
 .t-cancel .t-cx { display: block; margin: 0; color: var(--soft); font-size: 14px; font-weight: 400; line-height: 1.45; text-align: center; text-wrap: pretty; }
+/* The note before the final Cancel (batch 22): what comes back, large. */
+.t-cancel .t-cx-back { font-size: 20px; font-weight: 800; }
 .t-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .btn.danger { border: 0; background: #E5484D; font: inherit; font-weight: 800; font-size: 16px; padding: 12px 16px; border-radius: 16px; cursor: pointer; }
 .btn.danger:hover { background: #CC3339; }
@@ -498,6 +512,12 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .pf-tile:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
 .pf-tile svg { width: 24px; height: 24px; }
 .pf-tile span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A closed account (its deletion asked): the day and Keep my account. */
+.pf-closed { display: grid; gap: 10px; padding: 14px 16px; border-radius: 22px 8px 22px 8px; background: rgba(255, 107, 111, .14); border: 1px solid rgba(255, 107, 111, .34); }
+.pf-closed[hidden] { display: none; }
+.pf-closed h3 { margin: 0; color: #fff; font-size: 17px; line-height: 1.35; text-wrap: pretty; }
+.pf-closed .btn { border: 0; cursor: pointer; font: inherit; font-weight: 800; text-align: center; }
+.pf-closed .btn:disabled { opacity: .74; cursor: default; }
 .pf-sec { margin: 6px 0 -6px 2px; font-size: 17px; font-weight: 800; color: #fff; letter-spacing: -0.01em; }
 .mlist { display: grid; grid-template-columns: minmax(0, 1fr); border-radius: 24px 8px 24px 8px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .14); overflow: hidden; }
 .mi { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 10px 14px; border: 0; background: none; color: #fff; font: inherit; font-size: 16px; text-align: left; text-decoration: none; cursor: pointer; transition: background .15s; }
@@ -571,7 +591,7 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .band .tile { background: var(--tint-low); }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
 .tag { display: inline-block; font-size: 13px; font-weight: 700; border-radius: 999px; padding: 3px 10px; background: var(--sky-soft); color: var(--sky-text); margin-bottom: 12px; }
-.tag.live { background: var(--amber-soft); color: var(--amber-text); }
+.tag.today { background: var(--amber-soft); color: var(--amber-text); }
 
 /* Van classes: a photo card per class */
 .van { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
