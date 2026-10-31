@@ -600,7 +600,7 @@ if (top !== self) top.location = location;
   // ---------------------------------------------------------------- payments (Stripe)
 
   // Stripe's public key, the apps' one: scripts/build-site.py writes it here from src/lib/stripe-key.json.
-  var STRIPE_PK = 'pk_test_51USkYXBQ58pih65E3U9JgtzJPXb0VOpqTMhlb4Ui5ajjJ2pDU8pntJlb97HAkHWuK2CFEeDrvK5rUZoWll2Dam1G00RNAqvZsm';
+  var STRIPE_PK = 'pk_live_51USkYXBQ58pih65EmjrqNqkCKquUFGTTS7hbYjfHkdkIFfUJXDHrkVyTcQfPo5aCkeyO8lBzXZsl4W8WqnbSEXiQ00N5xobJgV';
   // Stripe's Payment Element in the card's colours: dark fields, the site's blue.
   var APPEARANCE = {
     theme: 'night',
