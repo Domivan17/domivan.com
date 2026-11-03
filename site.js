@@ -107,14 +107,14 @@ if (top !== self) top.location = location;
   function headerH() { var h = $('.top'); return h ? h.offsetHeight : 64; }
   function readT(doc) { try { return JSON.parse(doc.getElementById('dv-t').textContent); } catch (e) { return {}; } }
   var T = readT(d);
-  // The DomiVan Driver app's store pages, from the page (DRIVER_STORES in scripts/build-site.py): both
-  // empty until they are public, and until then every Transporters button keeps /join.
+  // The DomiVan Driver app's store pages, from the page (DRIVER_STORES in scripts/build-site.py): each
+  // empty until that store has the app, and until then that store's phones keep /join on every
+  // Transporters button. Each store goes live on its own (WEB-2).
   var DRIVER_APP = { ios: T.drv_ios || '', android: T.drv_android || '' };
-  DRIVER_APP.live = !!(DRIVER_APP.ios && DRIVER_APP.android);
-  // /get, what the Join Transporters QR codes open: once the app is in both stores an iPhone or iPad
-  // goes on to the App Store and an Android phone or tablet to Google Play, before anything else
-  // (the language card included). Other devices, and every device until then, see the page.
-  var TO_STORE = /^\/(?:(?:ro|pl|bg|hu|es|fr|de|nl|pt)\/)?get(?:\.html)?$/.test(location.pathname) && DRIVER_APP.live && storeFor();
+  // /get, what the Join Transporters QR codes open: an iPhone or iPad goes on to the App Store once the
+  // app is there, an Android phone or tablet to Google Play once it is there, before anything else
+  // (the language card included). Other devices, and a phone whose store has no app yet, see the page.
+  var TO_STORE = /^\/(?:(?:ro|pl|bg|hu|es|fr|de|nl|pt)\/)?get(?:\.html)?$/.test(location.pathname) && storeFor();
   if (TO_STORE) { location.replace(TO_STORE); return; }
 
   // ---------------------------------------------------------------- slides
@@ -211,15 +211,17 @@ if (top !== self) top.location = location;
   // A copy of supabase/functions/_shared/pricing.ts. create-order prices the trip again on the
   // server and that is what the client pays; this is the preview. Change both together.
 
-  // The 27 EU members, the UK and Switzerland, either end, the same country included (except NO_DOMESTIC_CC).
+  // The 27 EU members, the UK and Switzerland, at every stop, but never every stop in one country (domesticClosed).
   var SERVED_CC = ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT',
     'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'GB', 'CH'];
-  // No trip may start and end inside these (NO_DOMESTIC_TRIPS): the Netherlands needs a taxi licence for it.
-  var NO_DOMESTIC_CC = ['NL'];
+  // No stop in these (CLOSED_COUNTRIES): none since 2026-11-02, when France was served again; kept for a later closure.
+  var CLOSED_CC = [];
   // CVR_COUNTRIES: a trip across a border that starts or ends in one of them is subject to the CVR (Geneva, 1973),
   // and the done screen and the trip page say so (L.t_cvr).
   var CVR_CC = ['HR', 'CZ', 'LV', 'SK'];
   var MIN_KM = 100;
+  // MAX_TRIP_KM: create-order refuses longer (route_too_long), so the card says so before a price (CC-8).
+  var MAX_KM = 5000;
   var RATES = { road: 1.28, surcharge: { GB: 30, CH: 10 }, bag: 10, round: 5, fee: 359 };
   var VANS = ['standard', 'large', 'luxury'];
   var VAN = { standard: { km: 0.11 }, large: { km: 0.12 }, luxury: { km: 0.17 } };
@@ -228,31 +230,49 @@ if (top !== self) top.location = location;
   var PEOPLE = { max: 7, maxLong: 6, longKm: 1000 };
   function maxPax(km) { return km > PEOPLE.longKm ? PEOPLE.maxLong : PEOPLE.max; }
 
+  // A trip may have up to 3 pickups and 3 drop-offs, every pickup first (batch 24 G3; MAX_PICKUPS,
+  // MAX_DROPOFFS): a is the first pickup, b the last drop-off, via the stops between them in order.
+  var MAX_STOPS = 3;
+  function points(a, b, via) { return [a].concat(via || [], [b]); }
   function inList(list, c) { return list.indexOf(String(c).toUpperCase()) >= 0; }
-  function routeOk(a, b) { return inList(SERVED_CC, a.country) && inList(SERVED_CC, b.country); }
-  function cvrApplies(a, b) {
+  function routeOk(a, b, via) { return points(a, b, via).every(function (p) { return inList(SERVED_CC, p.country); }); }
+  // stops: every stop's country; the trip crosses a border when any two differ.
+  function cvrApplies(a, b, stops) {
     var x = String(a).toUpperCase(), y = String(b).toUpperCase();
-    return x !== y && (inList(CVR_CC, x) || inList(CVR_CC, y));
+    var crosses = x !== y || (stops || []).some(function (c) { return String(c).toUpperCase() !== x; });
+    return crosses && (inList(CVR_CC, x) || inList(CVR_CC, y));
   }
-  function domesticClosed(a, b) {
+  function viaCountries(via) { return (via || []).map(function (p) { return p.country; }); }
+  // A stop in a closed country.
+  function countryClosed(a, b, via) { return points(a, b, via).some(function (p) { return inList(CLOSED_CC, p.country); }); }
+  // Every stop in one country, whichever it is (routeProblem's route_domestic_closed).
+  function domesticClosed(a, b, via) {
     var x = String(a.country).toUpperCase();
-    return x === String(b.country).toUpperCase() && inList(NO_DOMESTIC_CC, x);
+    return points(a, b, via).every(function (p) { return String(p.country).toUpperCase() === x; });
   }
   function toRad(x) { return (x * Math.PI) / 180; }
-  function roadKm(a, b) {
+  function flatKm(a, b) {
     var dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
     var sLat = Math.sin(dLat / 2), sLng = Math.sin(dLng / 2); // not **: older Safari can't parse it
     var h = sLat * sLat + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sLng * sLng;
-    return Math.round(2 * 6371 * Math.asin(Math.sqrt(h)) * RATES.road);
+    return 2 * 6371 * Math.asin(Math.sqrt(h));
   }
-  // UK and Switzerland cost extra at either end, but not for a trip inside one of them.
-  function surcharge(a, b) {
-    var x = String(a.country).toUpperCase(), y = String(b.country).toUpperCase();
-    return x === y ? 0 : Math.max(RATES.surcharge[x] || 0, RATES.surcharge[y] || 0);
+  // Road km along the stops in order, rounded once (routeKm).
+  function routeKm(list) {
+    var km = 0;
+    for (var i = 1; i < list.length; i++) km += flatKm(list[i - 1], list[i]);
+    return Math.round(km * RATES.road);
   }
-  function quote(a, b, pax, bags, van) {
-    var km = roadKm(a, b);
-    var per = VAN[van].km * km + surcharge(a, b);
+  function roadKm(a, b, via) { return routeKm(points(a, b, via)); }
+  // UK and Switzerland cost extra at any stop, but not for a trip inside one of them.
+  function surcharge(list) {
+    var cc = list.map(function (p) { return String(p.country).toUpperCase(); });
+    if (cc.every(function (c) { return c === cc[0]; })) return 0;
+    return Math.max.apply(null, cc.map(function (c) { return RATES.surcharge[c] || 0; }));
+  }
+  function quote(a, b, pax, bags, van, via) {
+    var list = points(a, b, via), km = routeKm(list);
+    var per = VAN[van].km * km + surcharge(list);
     var raw = per * pax + RATES.bag * bags;
     return { km: km, cents: Math.max(RATES.round, Math.round(raw / RATES.round) * RATES.round) * 100 + RATES.fee };
   }
@@ -405,7 +425,7 @@ if (top !== self) top.location = location;
   // the visitor picks the row, becomes the address Photon finds there. A vague position (over
   // 200 m: try again, or type) or one outside Europe goes nowhere; Photon gets the point rounded
   // to about 10 m. The place fills the field like a picked suggestion, and the price checks it
-  // like any other (routeOk, domesticClosed). Nothing keeps the position, except that a booked
+  // like any other (routeOk, countryClosed, domesticClosed). Nothing keeps the position, except that a booked
   // trip keeps that point as its pickup or destination. Browsers give it only on https (and
   // localhost). Answers { place } or { problem }, never fails.
   var HERE_OK = !!(window.isSecureContext && navigator.geolocation);
@@ -703,7 +723,7 @@ if (top !== self) top.location = location;
   var CANCEL_RULE = { chargeCents: 359, freeHours: 48, midHours: 24, midRefundPct: 75, lateRefundPct: 50 };
   // The terms this page's checkout shows (supabase/functions/_shared/terms.ts TERMS_VERSION, held equal by
   // scripts/app-tests/cancel-rule.test.mjs): create-order keeps the trip on that version's cancellation steps.
-  var TERMS_VERSION = '2026-10-30';
+  var TERMS_VERSION = '2026-11-03';
 
   // ---------------------------------------------------------------- booking card (home)
   //
@@ -1197,6 +1217,80 @@ if (top !== self) top.location = location;
     });
     Suggest(el.from);
     Suggest(el.to);
+    // A trip with several addresses (batch 24 G3, as in the apps): a + under the pickup adds a
+    // pickup line and a + under the destination a destination line (MAX_STOPS of each in all),
+    // each an address field like the first with its own remove button. The route runs the
+    // pickups first, then the destinations.
+    var more = { from: [], to: [] }, routeBox = $('.route', f);
+    function addBtn(side) {
+      var b = d.createElement('button');
+      b.type = 'button';
+      b.className = 'add-stop';
+      b.innerHTML = '<span aria-hidden="true">+</span>' + esc(side === 'from' ? L.bk_add_from : L.bk_add_to);
+      b.addEventListener('click', function () {
+        var input = addStop(side, '', null);
+        edited('where');
+        msg(f, '');
+        input.focus({ preventScroll: true });
+      });
+      return b;
+    }
+    var adds = { from: addBtn('from'), to: addBtn('to') };
+    el.from.closest('.af').after(adds.from);
+    el.to.closest('.af').after(adds.to);
+    function drawStops() {
+      ['from', 'to'].forEach(function (side) {
+        more[side].forEach(function (input, i) {
+          $('small', input.closest('label')).textContent = fill(side === 'from' ? L.bk_from_n : L.bk_to_n, { n: i + 2 });
+        });
+        adds[side].hidden = more[side].length >= MAX_STOPS - 1;
+      });
+      routeBox.classList.toggle('more', more.from.length + more.to.length > 0);
+    }
+    function addStop(side, text, place) {
+      var line = d.createElement('div'), label = d.createElement('label'), input = d.createElement('input'), rm = d.createElement('button');
+      var list = more[side], before = list.length ? list[list.length - 1].closest('.xline') : el[side].closest('.af');
+      line.className = 'xline';
+      label.appendChild(d.createElement('small'));
+      input.placeholder = el.from.placeholder;
+      input.value = text;
+      label.appendChild(input);
+      line.appendChild(label);
+      rm.type = 'button';
+      rm.className = 'rm-stop';
+      rm.setAttribute('aria-label', L.bk_rm_stop);
+      rm.title = L.bk_rm_stop;
+      rm.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+      rm.addEventListener('click', function () {
+        list.splice(list.indexOf(input), 1);
+        line.remove();
+        drawStops();
+        edited('where');
+        msg(f, '');
+      });
+      line.appendChild(rm);
+      before.after(line);
+      list.push(input);
+      Suggest(input);
+      input._place = place;
+      drawStops();
+      return input;
+    }
+    function clearStops() {
+      ['from', 'to'].forEach(function (side) {
+        more[side].forEach(function (input) { input.closest('.xline').remove(); });
+        more[side] = [];
+      });
+      drawStops();
+    }
+    // Every address line in route order, and the trip's ends and stops from their places.
+    function lines() { return [el.from].concat(more.from, [el.to], more.to); }
+    function asStop(kind) { return function (p) { return Object.assign({}, p, { kind: kind }); }; }
+    function routeOf(places) {
+      var n = 1 + more.from.length, ups = places.slice(0, n), downs = places.slice(n);
+      return { a: ups[0], b: downs[downs.length - 1], via: ups.slice(1).map(asStop('pickup')).concat(downs.slice(0, -1).map(asStop('dropoff'))) };
+    }
+    function routeText(t) { return [t.from].concat(t.via || [], [t.to]).map(function (x) { return x.city; }).join(' → '); }
     // My location could not fill a field: why, where the form's messages go.
     f.addEventListener('dv-here', function (e) { msg(f, e.detail); });
     // Picked the pickup: on to the destination if it is still empty.
@@ -1211,6 +1305,8 @@ if (top !== self) top.location = location;
       var at = step, upTo = STEPS[at], a = el.from.value.trim(), b = el.to.value.trim(), today = el.kind.value === 'today', wall = null;
       if (!a) return problem('where', L.err_from, el.from);
       if (!b) return problem('where', L.err_to, el.to);
+      var gap = more.from.concat(more.to).filter(function (i) { return !i.value.trim(); })[0];
+      if (gap) return problem('where', L.bk_stop_missing, gap);
       if (upTo >= STEPS.when && !today) {
         wall = parseDT(when.value);
         if (!wall) return problem('when', L.err_when, when);
@@ -1221,24 +1317,30 @@ if (top !== self) top.location = location;
         if (!(pax >= 1 && pax <= PEOPLE.max && pax % 1 === 0)) return problem('who', L.err_pax, el.pax);
         if (!(bags >= 0 && bags <= 40 && bags % 1 === 0)) return problem('who', L.err_bags, el.bags);
       }
-      var e0 = ed, look = !el.from._place || !el.to._place;
+      var all = lines(), e0 = ed, look = all.some(function (i) { return !i._place; });
       // Edited, or gone, while the addresses were looked up: that answer is for an older trip.
       var stale = function () { return ed !== e0 || step !== at || !card.isConnected; };
       msg(f, '');
       busy = true;
       if (look) busyBtn(tripBtn, true, L.checking);
-      Promise.all([el.from._place || findPlace(a), el.to._place || findPlace(b)]).then(function (r) {
+      Promise.all(all.map(function (i) { return i._place || findPlace(i.value.trim()); })).then(function (found) {
         if (stale()) return;
-        if (!r[0]) return problem('where', fill(L.err_not_found, { q: a }), el.from);
-        if (!r[1]) return problem('where', fill(L.err_not_found, { q: b }), el.to);
-        if (!routeOk(r[0], r[1])) return problem('where', L.err_route);
-        if (domesticClosed(r[0], r[1])) return problem('where', L.err_domestic);
-        if (roadKm(r[0], r[1]) < MIN_KM) return problem('where', fill(L.err_short, { n: MIN_KM }));
-        el.from._place = r[0];
-        el.to._place = r[1];
+        for (var k = 0; k < all.length; k++) {
+          if (!found[k]) return problem('where', fill(L.err_not_found, { q: all[k].value.trim() }), all[k]);
+        }
+        // r: the first pickup and the last destination; via: the stops between, in order.
+        var route = routeOf(found), r = [route.a, route.b], via = route.via;
+        if (!routeOk(r[0], r[1], via)) return problem('where', L.err_route);
+        if (countryClosed(r[0], r[1], via)) return problem('where', L.err_closed);
+        if (domesticClosed(r[0], r[1], via)) return problem('where', L.err_domestic);
+        if (roadKm(r[0], r[1], via) < MIN_KM) return problem('where', fill(L.err_short, { n: MIN_KM }));
+        if (roadKm(r[0], r[1], via) > MAX_KM) {
+          return problem('where', refusalText({ code: 'route_too_long', params: { km: MAX_KM } }) || L.err_route);
+        }
+        all.forEach(function (i, k) { i._place = found[k]; });
         clockNote(); // the pickup's clock is known now
         // The counter stops at this trip's number; more is refused with why.
-        el.pax.max = maxPax(roadKm(r[0], r[1]));
+        el.pax.max = maxPax(roadKm(r[0], r[1], via));
         if (upTo >= STEPS.who && pax > +el.pax.max) {
           return problem('who', refusalText({ code: 'too_many_passengers', params: { max: PEOPLE.max, maxLong: PEOPLE.maxLong, longKm: PEOPLE.longKm } }) || L.err_pax, el.pax);
         }
@@ -1255,8 +1357,8 @@ if (top !== self) top.location = location;
           if (!win) return problem('when', picked === null ? L.today_pick : L.today_gone, $('.today-wins input', f));
         }
         if (at !== 'who') return forward(BK_QS[upTo + 1]);
-        trip = today ? { kind: 'today', from: r[0], to: r[1], at: win.start, until: win.until, minutes: win.minutes, pax: pax, bags: bags }
-          : { kind: 'booking', from: r[0], to: r[1], at: t, until: new Date(t.getTime() + WINDOW_MS), pax: pax, bags: bags };
+        trip = today ? { kind: 'today', from: r[0], to: r[1], via: via, at: win.start, until: win.until, minutes: win.minutes, pax: pax, bags: bags }
+          : { kind: 'booking', from: r[0], to: r[1], via: via, at: t, until: new Date(t.getTime() + WINDOW_MS), pax: pax, bags: bags };
         order = null;
         fillPrice();
         forward('van');
@@ -1280,10 +1382,12 @@ if (top !== self) top.location = location;
     }
 
     // ---- the van and the summary: each van's price for this trip, then the trip in short and Pay
-    function cents() { return quote(trip.from, trip.to, trip.pax, trip.bags, van).cents; }
+    function cents() { return quote(trip.from, trip.to, trip.pax, trip.bags, van, trip.via).cents; }
     function fillPrice() {
-      var p = P.price, A = trip.from, B = trip.to;
-      [['a', A], ['b', B]].forEach(function (x) {
+      var p = P.price, A = trip.from, B = trip.to, V = trip.via || [];
+      // The stops between, each on its own line with a small dot.
+      $('.legs', p).innerHTML = leg('a', 'start') + V.map(function (x, i) { return leg('v' + i, 'mid'); }).join('') + leg('b', 'ring');
+      [['a', A]].concat(V.map(function (x, i) { return ['v' + i, x]; }), [['b', B]]).forEach(function (x) {
         $('.' + x[0] + '-city', p).textContent = x[1].city + ', ' + countryName(x[1].country, L.lang);
         $('.' + x[0] + '-addr', p).textContent = x[1].address !== x[1].city ? x[1].address : '';
       });
@@ -1293,10 +1397,10 @@ if (top !== self) top.location = location;
       };
       $('.facts', p).innerHTML = fact(IC.cal, pickupText(trip.at, trip.until, placeZone(trip.from), L.lang))
         + fact(IC.pax, trip.pax, L.f_pax) + (trip.bags ? fact(IC.bag, trip.bags, L.f_bags) : '')
-        + fact(IC.km, fill(L.km, { n: quote(A, B, 1, 0, 'standard').km }));
+        + fact(IC.km, fill(L.km, { n: quote(A, B, 1, 0, 'standard', V).km }));
       // Every class takes a booking's people (at most 7): a van with room for them gets it.
       VANS.forEach(function (v) {
-        $('.vprice', $('.vopt.' + v, P.van)).textContent = money(quote(A, B, trip.pax, trip.bags, v).cents, L.lang);
+        $('.vprice', $('.vopt.' + v, P.van)).textContent = money(quote(A, B, trip.pax, trip.bags, v, V).cents, L.lang);
       });
       setVan(prefer || van);
     }
@@ -1323,8 +1427,9 @@ if (top !== self) top.location = location;
       else priceBtn.textContent = label;
       if (!agreedNow()) { agree.checked = false; agreedTo = null; }
       if (priceBtn._label == null) priceBtn.disabled = !agree.checked; // busy: busyBtn keeps it off
-      // One short cancellation line with a link to the rules (Martin 2026-10-28: not too much text).
-      $('.fine', P.price).innerHTML = esc(L.bk_rule).replace('{charge}', esc(money(CANCEL_RULE.chargeCents, L.lang)))
+      // Who sells the trip (batch 24, platform model), then one short cancellation line with a link
+      // to the rules (Martin 2026-10-28: not too much text).
+      $('.fine', P.price).innerHTML = esc(L.bk_who) + ' ' + esc(L.bk_rule).replace('{charge}', esc(money(CANCEL_RULE.chargeCents, L.lang)))
         .replace('{rules}', '<a href="#terms">' + esc(L.bk_rules) + '</a>')
         + (van === 'luxury' ? ' ' + esc(L.lux_note) : '') + ' ' + esc(L.shared);
       fillSum();
@@ -1342,6 +1447,8 @@ if (top !== self) top.location = location;
       var place = function (x) { return { address: x.address, city: x.city, country: x.country, lat: x.lat, lng: x.lng }; };
       return {
         kind: trip.kind, pickup: place(trip.from), dropoff: place(trip.to),
+        // The stops between, in order (none: not sent, as before).
+        via: trip.via && trip.via.length ? trip.via.map(function (x) { return Object.assign(place(x), { kind: x.kind }); }) : undefined,
         pickupAt: trip.at.toISOString(),
         passengers: trip.pax, extraBags: trip.bags, vanClass: van, notes: notes.value.trim() || undefined,
         payCountry: browserCountry(), // which local payment methods to show
@@ -1434,7 +1541,7 @@ if (top !== self) top.location = location;
     function mountPayment() {
       var p = P.pay, price = money(order.cents, L.lang);
       dropPayment();
-      $('.ps-route', p).textContent = trip.from.city + ' → ' + trip.to.city;
+      $('.ps-route', p).textContent = routeText(trip);
       $('.ps-price', p).textContent = price;
       // An invite voucher: the price and the voucher under the total to pay.
       var off = $('.ps-off', p);
@@ -1507,9 +1614,9 @@ if (top !== self) top.location = location;
       if (paid) { trip = paid.trip; van = paid.van; order = paid.order; }
       var p = P.done, t = trip, rows = [];
       $('.done-p', p).textContent = how === 'wait' ? L.done_wait : (t && t.kind === 'today' ? L.done_p_today : L.done_p)
-        + (t && cvrApplies(t.from.country, t.to.country) ? ' ' + L.t_cvr : '');
+        + (t && cvrApplies(t.from.country, t.to.country, viaCountries(t.via)) ? ' ' + L.t_cvr : '');
       if (t) {
-        rows.push([L.s_route, t.from.city + ' → ' + t.to.city],
+        rows.push([L.s_route, routeText(t)],
           [L.s_pickup, pickupText(t.at, t.until, placeZone(t.from), L.lang)],
           [L.s_van, L['v_' + van]]);
       }
@@ -1532,6 +1639,7 @@ if (top !== self) top.location = location;
       reach = 0;
       el.from.value = el.to.value = notes.value = '';
       el.from._place = el.to._place = null;
+      clearStops();
       clockNote();
       msg(f, '');
       tripStore.del();
@@ -1611,6 +1719,7 @@ if (top !== self) top.location = location;
       if (!trip) return;
       tripStore.set({
         t: Date.now(), lang: L.lang, kind: trip.kind, from: trip.from, to: trip.to, fromText: el.from.value, toText: el.to.value,
+        via: trip.via || [], more: ['from', 'to'].map(function (side) { return more[side].map(function (i) { return { text: i.value, place: i._place }; }); }),
         when: when.value, at: trip.at.getTime(), until: trip.until.getTime(), minutes: trip.minutes, pax: trip.pax, bags: trip.bags, van: van, notes: notes.value,
         pay: !!pay, order: order ? { id: order.id, cents: order.cents, off: order.off, uid: order.uid } : null
       });
@@ -1624,6 +1733,11 @@ if (top !== self) top.location = location;
       el.to.value = s.toText || s.to.address;
       el.from._place = s.from;
       el.to._place = s.to;
+      // The extra lines as they were; a kept trip whose stops don't add up starts again.
+      var keptMore = s.more || [[], []], keptVia = s.via || [];
+      clearStops();
+      if (keptVia.length !== keptMore[0].length + keptMore[1].length || !keptVia.every(placeOk)) { trip = null; return false; }
+      keptMore.forEach(function (list, k) { list.forEach(function (x) { addStop(k ? 'to' : 'from', x.text || '', placeOk(x.place) ? x.place : null); }); });
       if (s.when) when.value = s.when;
       clockNote();
       el.pax.value = s.pax;
@@ -1632,7 +1746,7 @@ if (top !== self) top.location = location;
       // A Live trip kept from before Today starts again; so does a Today window no longer offered.
       // A booking kept by the page before Today has no window end: it gets its 2 hours.
       if ((s.kind !== 'booking' && s.kind !== 'today') || !s.at) { trip = null; return false; }
-      trip = { kind: s.kind, from: s.from, to: s.to, at: new Date(s.at), until: new Date(s.until || s.at + WINDOW_MS), minutes: s.minutes, pax: +s.pax || 1, bags: +s.bags || 0 };
+      trip = { kind: s.kind, from: s.from, to: s.to, via: keptVia, at: new Date(s.at), until: new Date(s.until || s.at + WINDOW_MS), minutes: s.minutes, pax: +s.pax || 1, bags: +s.bags || 0 };
       if (trip.kind === 'today') {
         fillToday();
         var r = $('.today-wins input[value="' + (+s.minutes) + '"]', f);
@@ -2413,7 +2527,7 @@ if (top !== self) top.location = location;
   // (20261024100000_client_vouchers).
   var ORDER_COLS = 'id,client_id,kind,status,van_class,pickup_address,pickup_city,pickup_country,dropoff_address,dropoff_city,dropoff_country,'
     + 'pickup_at,pickup_until,pickup_tz,passengers,extra_bags,notes,fare_cents,bid_started_at,cancel_reason,cancel_fee_cents,payout_on_hold,payout_release_at,payout_sent,'
-    + 'refund_state,refunded_cents,discount_cents,planning,planned_pickup_at,planned_dropoff_at,dropoff_tz';
+    + 'refund_state,refunded_cents,discount_cents,planning,planned_pickup_at,planned_dropoff_at,dropoff_tz,platform';
   var DONE = ['completed', 'cancelled'], ASSIGNED = ['accepted', 'en_route', 'picked_up'];
   // A client can cancel these in My trips (cancel-order); my_cancellation_terms says what comes back.
   var CANCELLABLE = ['pending_payment', 'bidding', 'accepted', 'en_route'];
@@ -2543,10 +2657,14 @@ if (top !== self) top.location = location;
             rest('invoices?select=id,kind,number,total_cents,file_path&order_id=eq.' + tid + '&kind=in.(trip,credit_note)&file_path=not.is.null&order=created_at.asc', t).catch(nothing),
             CANCELLABLE.indexOf(o.status) >= 0 ? rest('rpc/my_cancellation_terms', t, { p_order: tid }).catch(nothing) : null,
             o.status === 'bidding' && o.kind === 'booking' ? rest('rpc/my_trip_search', t, { p_order: tid }).catch(nothing) : null,
-            (o.status === 'accepted' || o.status === 'en_route') && o.kind === 'booking' ? rest('rpc/my_no_pickup', t, { p_order: tid }).catch(nothing) : null
+            (o.status === 'accepted' || o.status === 'en_route') && o.kind === 'booking' ? rest('rpc/my_no_pickup', t, { p_order: tid }).catch(nothing) : null,
+            // A trip with several addresses: every stop in order (none for one of each).
+            rest('order_stops?select=seq,kind,address,city,country&order_id=eq.' + tid + '&order=seq.asc', t).catch(nothing),
+            // Who sells and carries it, once a transporter took it (trip_company(), the platform model's P4).
+            o.status !== 'bidding' && o.status !== 'pending_payment' ? rest('rpc/trip_company', t, { p_order: tid }).catch(nothing) : null
           ]).then(function (x) {
             return { o: o, who: x[0] && x[0][0], code: x[1] && x[1][0] && x[1][0].code, inv: x[2] || [], cx: x[3] && x[3][0], srch: x[4] || null,
-              np: x[5] && x[5][0] };
+              np: x[5] && x[5][0], stops: x[6] || [], co: x[7] && x[7][0] };
           });
         });
       }).then(function (r) {
@@ -2570,6 +2688,7 @@ if (top !== self) top.location = location;
     function msgHtml(where) { return '<div class="msg" role="alert">' + (note && note.where === where ? esc(note.text) : '') + '</div>'; }
     function drawTrip() {
       var o = dt.o, who = dt.who, at = new Date(o.pickup_at), opens = new Date(at.getTime() - 864e5), now = Date.now(), say = '', tone = '';
+      var mid = (dt.stops || []).slice(1, -1);
       var facts = [[L.s_pickup, pickupText(at, o.pickup_until ? new Date(o.pickup_until) : null, tripZoneOf(o), L.lang)]];
       // A taken run's planned times (20261105150000_bundles_v2), the arrival on the drop-off's clock.
       if (o.planned_pickup_at) facts.push([L.s_planned_pickup, pickupText(new Date(o.planned_pickup_at), null, tripZoneOf(o), L.lang)]);
@@ -2583,7 +2702,9 @@ if (top !== self) top.location = location;
       if (+o.discount_cents > 0) facts.push([L.s_price, money(o.fare_cents + o.discount_cents, L.lang)], [L.s_voucher, '−' + money(o.discount_cents, L.lang)]);
       facts.push([L.s_paid, money(o.fare_cents, L.lang)]);
       var h = '<div class="t-top">' + badges(o) + '</div>'
-        + '<div class="legs">' + leg('start', o.pickup_city, o.pickup_country, o.pickup_address) + leg('ring', o.dropoff_city, o.dropoff_country, o.dropoff_address) + '</div>'
+        + '<div class="legs">' + leg('start', o.pickup_city, o.pickup_country, o.pickup_address)
+        + mid.map(function (x) { return leg('mid', x.city, x.country, x.address); }).join('')
+        + leg('ring', o.dropoff_city, o.dropoff_country, o.dropoff_address) + '</div>'
         + '<dl class="done-sum">' + facts.map(function (r) { return '<div><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('')
         + (o.notes ? '<div class="wide"><dt>' + esc(L.t_note) + '</dt><dd>' + esc(o.notes) + '</dd></div>' : '') + '</dl>';
       // What happens next.
@@ -2602,10 +2723,21 @@ if (top !== self) top.location = location;
           + (who.phone && telHref(who.phone) ? '<a class="btn big t-call" href="' + esc(telHref(who.phone)) + '">' + IC.call + '<span>' + esc(fill(L.call, { phone: who.phone })) + '</span></a>' : '')
           + '</section>';
       }
-      // Who carries a paid trip (art. 8:1166 BW): DomiVan's company, and the transporter's once contact opens.
+      // Who sells and carries a paid trip (the platform model's P4): the contract is with the transporter (t_carrier),
+      // whose company, numbers and address show as soon as they take it, as the app's trip page shows them (trip_company(),
+      // the copy kept with the trip); phone and chat still open 24 hours before pickup. A trip under the CVR says so.
+      // A trip booked before the platform model (platform false) keeps DomiVan's own sentence (t_carrier_before).
+      var co = dt.co;
+      if (co && (co.company_name || co.company_number || co.vat_number || co.company_address)) {
+        var cf = [[L.tc_number, co.company_number], [L.tc_vat, co.vat_number], [L.tc_addr, co.company_address]]
+          .filter(function (r) { return r[1]; });
+        h += '<section class="t-sec"><h3>' + esc(L.tc_h) + '</h3>' + (co.company_name ? '<p><b>' + esc(co.company_name) + '</b></p>' : '')
+          + (cf.length ? '<dl class="done-sum">' + cf.map(function (r) { return '<div><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('') + '</dl>' : '')
+          + '</section>';
+      }
       if (o.bid_started_at) {
-        h += '<p class="t-note t-carrier">' + esc(L.t_carrier + (who && who.company_name ? ' ' + fill(L.t_carried_by, { company: who.company_name }) : '')
-          + (cvrApplies(o.pickup_country, o.dropoff_country) ? ' ' + L.t_cvr : '')) + '</p>';
+        h += '<p class="t-note t-carrier">' + esc((o.platform === false ? L.t_carrier_before : L.t_carrier)
+          + (cvrApplies(o.pickup_country, o.dropoff_country, viaCountries(dt.stops)) ? ' ' + L.t_cvr : '')) + '</p>';
       }
       if (dt.code && (o.status === 'accepted' || o.status === 'en_route')) {
         h += '<section class="t-sec"><h3>' + esc(L.pc_h) + '</h3><b class="t-digits">' + esc(dt.code) + '</b><p>' + esc(L.pc_p) + '</p></section>';
@@ -4619,10 +4751,11 @@ if (top !== self) top.location = location;
   }
 
   // The DomiVan Driver app's page in the store this phone uses, or '' (computers, tablets in the
-  // two-column layout and other phones keep Join Transporters).
-  function driverStore() { return DRIVER_APP.live && HANDHELD.matches ? storeFor() : ''; }
-  // The store of this device: iPhones and iPads (an iPad asking for the desktop site says Macintosh,
-  // but has a touch screen), Android phones and tablets; '' for anything else.
+  // two-column layout, other phones and phones whose store has no app yet keep Join Transporters).
+  function driverStore() { return HANDHELD.matches ? storeFor() : ''; }
+  // The app's page in the store of this device: iPhones and iPads (an iPad asking for the desktop
+  // site says Macintosh, but has a touch screen), Android phones and tablets; '' for anything else,
+  // and while that store has no app yet.
   function storeFor() {
     var ua = navigator.userAgent || '';
     if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return DRIVER_APP.ios;

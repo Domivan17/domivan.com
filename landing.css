@@ -137,6 +137,20 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .swap { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .2); background: var(--field); color: #fff; display: grid; place-items: center; cursor: pointer; margin-top: 18px; }
 .swap:hover { background: rgba(134, 140, 148, .4); }
 .swap svg { width: 20px; height: 20px; }
+/* A trip with several addresses (batch 24 G3): the + under the pickup and under the destination, the extra
+   lines with their remove button, and a small dot for each stop between; swapping is for two addresses only. */
+.add-stop { display: inline-flex; align-items: center; gap: 6px; justify-self: start; padding: 2px 0; border: 0; background: none; color: var(--sky-text); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.add-stop span { font-size: 19px; line-height: 1; }
+.add-stop:hover { color: #fff; }
+.add-stop:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; border-radius: 6px; }
+.add-stop[hidden] { display: none; }
+.xline { display: grid; grid-template-columns: minmax(0, 1fr) 34px; gap: 6px; align-items: end; }
+.rm-stop { width: 34px; height: 34px; margin-bottom: 7px; padding: 0; border: 1px solid rgba(255, 255, 255, .2); border-radius: 50%; background: var(--field); color: var(--soft); display: grid; place-items: center; cursor: pointer; }
+.rm-stop:hover { color: #fff; }
+.rm-stop:focus-visible { outline: 2px solid var(--sky); }
+.rm-stop svg { width: 18px; height: 18px; }
+.route.more .swap { visibility: hidden; }
+.route.more .road { grid-template-rows: auto 1fr auto; align-content: stretch; }
 /* Today (batch 22, in place of Live): the 3-hour windows still open today on the pickup's clock, as
    chips like the picker's times (site.js fillToday); the date and time fields step aside. */
 .today { display: none; gap: 10px; }
@@ -258,6 +272,7 @@ h1 { font-size: clamp(40px, 7vw, 64px); margin: 0 0 18px; letter-spacing: -0.035
 .leg .start, .leg .ring { justify-self: center; margin-top: 7px; border-radius: 50%; }
 .leg .start { width: 10px; height: 10px; background: var(--sky); box-shadow: 0 0 10px var(--sky); }
 .leg .ring { width: 8px; height: 8px; margin-top: 8px; border: 3px solid var(--amber); box-shadow: 0 0 10px var(--amber); box-sizing: content-box; }
+.leg .mid { justify-self: center; width: 6px; height: 6px; margin-top: 9px; border-radius: 50%; background: var(--sky); }
 .leg:first-child::after { content: ""; position: absolute; left: 6px; top: 22px; bottom: -6px; border-left: 2px dotted rgba(255, 255, 255, .45); }
 .leg p { margin: 0; min-width: 0; line-height: 1.35; }
 .leg b { display: block; font-size: 17px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
