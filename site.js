@@ -214,8 +214,8 @@ if (top !== self) top.location = location;
   // The 27 EU members, the UK and Switzerland, at every stop, but never every stop in one country (domesticClosed).
   var SERVED_CC = ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT',
     'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'GB', 'CH'];
-  // No stop in these (CLOSED_COUNTRIES): none since 2026-11-02, when France was served again; kept for a later closure.
-  var CLOSED_CC = [];
+  // No stop in these for now (CLOSED_COUNTRIES): France, closed again on 2026-11-07 (Martin: no declaration as a booking platform there).
+  var CLOSED_CC = ['FR'];
   // CVR_COUNTRIES: a trip across a border that starts or ends in one of them is subject to the CVR (Geneva, 1973),
   // and the done screen and the trip page say so (L.t_cvr).
   var CVR_CC = ['HR', 'CZ', 'LV', 'SK'];
@@ -341,8 +341,9 @@ if (top !== self) top.location = location;
   }
   // Today (batch 22, in place of Live; Martin 2026-10-28): a 3-hour pickup window later today on
   // the pickup's clock, booked as a Book ahead trip. The same numbers and windows as the apps
-  // (supabase/functions/_shared/today.ts, which create-order checks); scripts/app-tests/today.test.mjs
-  // holds the copies equal. A window: its start in minutes after midnight, its start and end.
+  // (supabase/functions/_shared/today.ts, which create-order checks);
+  // scripts/app-tests/today-refunds.test.mjs holds the copies equal. A window: its start in minutes
+  // after midnight, its start and end.
   var TODAY = { windowHours: 3, minAheadHours: 3, stepMinutes: 30, lastStartHour: 21 };
   function todayWindows(zone, now) {
     var day = wallOf(now, zone), soonest = now.getTime() + TODAY.minAheadHours * 3600e3, out = [];
@@ -941,7 +942,7 @@ if (top !== self) top.location = location;
       pop.setAttribute('role', 'dialog');
       pop.setAttribute('aria-modal', 'true');
       pop.setAttribute('aria-label', which === 'date' ? L.wp_date : L.wp_time);
-      pop.addEventListener('click', onClick);
+      pop.addEventListener('click', onPick);
       pop.addEventListener('keydown', onKey);
       scrim.addEventListener('click', function () { close(true); });
       d.body.appendChild(scrim);
@@ -971,7 +972,7 @@ if (top !== self) top.location = location;
     function away() { close(); }
     function outside(e) { if (pop && !pop.contains(e.target) && !btns.contains(e.target) && e.target !== scrim) close(); }
 
-    function onClick(e) {
+    function onPick(e) {
       var b = e.target.closest('button');
       if (!b || b.disabled) return;
       if (b.classList.contains('wp-x')) return close(true);
@@ -2083,7 +2084,8 @@ if (top !== self) top.location = location;
     }
     tabMem[k] = v;
   }
-  function statsOn() { return !statsApp && store.get(STATS_OFF) !== '1' && !!window.fetch; }
+  // A browser that sends Global Privacy Control objects as "do not count my visits" does (final review 5, WEB-8).
+  function statsOn() { return !statsApp && store.get(STATS_OFF) !== '1' && navigator.globalPrivacyControl !== true && !!window.fetch; }
   function beacon(b) {
     try {
       fetch(SB + '/functions/v1/site-beacon', {
@@ -2558,6 +2560,18 @@ if (top !== self) top.location = location;
   }
   function nothing() { return null; }
 
+  // Shared by My trips (Trips) and the account panel (final review 5, WEB-6): the session's
+  // access token, refreshed when needed (401 when signed out); out() takes a 401 as signed out,
+  // so the panel asks to log in again and then comes back to the view; and the loading spinner.
+  function token() {
+    return refresh().then(function (s) {
+      if (!s) { var e = new Error('Signed out'); e.status = 401; throw e; }
+      return s.access_token;
+    });
+  }
+  function out(e) { if (e && e.status === 401) { clearSession(); return true; } return false; }
+  function spinner() { return '<div class="tload"><span class="spin" aria-hidden="true"></span></div>'; }
+
   function Trips(listPane, tripPane) {
     var L = T, uid = null, rows = null, byId = {}, listN = 0, listAt = 0;
     // The trip shown: its id, what was loaded for it (order, transporter, pickup code, invoices, what
@@ -2567,15 +2581,6 @@ if (top !== self) top.location = location;
     var id = null, dt = null, tripN = 0, tripAt = 0, ask = false, rep = false, repText = '', note = null, busy = false, tick = 0,
       sAsk = false, came = false, ncAsk = false;
 
-    function token() {
-      return refresh().then(function (s) {
-        if (!s) { var e = new Error('Signed out'); e.status = 401; throw e; }
-        return s.access_token;
-      });
-    }
-    // Refused as signed out: Log in again (the card then comes back to this view).
-    function out(e) { if (e && e.status === 401) { clearSession(); return true; } return false; }
-    function spinner() { return '<div class="tload"><span class="spin" aria-hidden="true"></span></div>'; }
     function oops(text, retry) {
       return '<div class="tempty"><p>' + esc(text) + '</p>' + (retry ? '<button type="button" class="btn ghost t-retry">' + esc(L.retry) + '</button>'
         : '<a class="btn ghost" href="#trips">' + esc(L.my_trips) + '</a>') + '</div>';
@@ -2637,14 +2642,14 @@ if (top !== self) top.location = location;
         tripPane.scrollTop = 0;
         if (byId[tid]) { dt = { o: byId[tid] }; drawTrip(); } else tripPane.innerHTML = spinner();
       }
-      if (Date.now() - tripAt > 1000) load();
+      if (Date.now() - tripAt > 1000) loadTrip();
       stop();
       tick = setInterval(function () {
-        if (!busy && !ask && !rep && !sAsk && !came && !ncAsk && !d.hidden && tripPane.isConnected && !tripPane.closest('.off')) load();
+        if (!busy && !ask && !rep && !sAsk && !came && !ncAsk && !d.hidden && tripPane.isConnected && !tripPane.closest('.off')) loadTrip();
       }, 60000);
     }
     function stop() { clearInterval(tick); tick = 0; }
-    function load() {
+    function loadTrip() {
       var tid = id, n = ++tripN;
       tripAt = Date.now();
       return (uid ? token() : Promise.reject(new Error('No user'))).then(function (t) {
@@ -2826,8 +2831,8 @@ if (top !== self) top.location = location;
     }
     // The note before the final Cancel (batch 22, Martin 2026-10-28: "when people want to cancel, a
     // information note has to be given for them before they really cancel"): what comes back and why.
-    // The same choice as the app's (src/lib/cancel-note.ts; scripts/app-tests/cancel-note.test.mjs runs
-    // both). The amounts are the database's (dt.cx); the hours and the share kept come from CANCEL_RULE.
+    // The same choice as the app's (src/lib/cancel-note.ts; scripts/app-tests/today-refunds.test.mjs
+    // runs both). The amounts are the database's (dt.cx); the hours and the share kept come from CANCEL_RULE.
     function cxNote(o, cx) {
       var accepted = o.status === 'accepted' || o.status === 'en_route', live = o.kind === 'live';
       if (!o.bid_started_at) return { back: 0, unpaid: true, why: L.cx_note_unpaid };
@@ -2897,7 +2902,7 @@ if (top !== self) top.location = location;
       var b = e.target.closest('button');
       if (!b || busy || !dt && !b.classList.contains('t-retry')) return;
       var c = b.classList;
-      if (c.contains('t-retry')) load();
+      if (c.contains('t-retry')) loadTrip();
       else if (c.contains('t-ask')) { note = null; if (dt.np && dt.np.can_report) { came = true; redraw('.t-came'); } else { ask = true; redraw('.t-keep'); } }
       else if (c.contains('t-came')) { came = false; ask = true; note = null; redraw('.t-keep'); }
       else if (c.contains('t-nc')) { ncAsk = true; note = null; redraw('.t-nc-back'); }
@@ -2925,7 +2930,7 @@ if (top !== self) top.location = location;
         if (e.status === 409) ask = false;
         note = { where: 'cancel', text: e.status !== 409 ? errText(e) : e.code === 'refund_changed' ? L.err_cx_changed
           : e.code === 'not_cancellable' ? L.err_cx_started : L.err_cancel };
-      }).then(function () { return tid === id ? load() : null; }).then(function () {
+      }).then(function () { return tid === id ? loadTrip() : null; }).then(function () {
         busy = false; // the button says Cancelling… until the trip shows how it is now
         listAt = 0;   // the list reads it again too
         if (tid === id && dt) { drawTrip(); into(note ? '.msg:not(:empty)' : '.t-note'); }
@@ -2943,7 +2948,7 @@ if (top !== self) top.location = location;
         if (out(e)) return;
         came = ncAsk = false;
         note = { where: 'cancel', text: /not_reportable/.test(e.message) ? L.err_nc : errText(e) };
-      }).then(function () { return tid === id ? load() : null; }).then(function () {
+      }).then(function () { return tid === id ? loadTrip() : null; }).then(function () {
         busy = false;
         listAt = 0; // the list reads it again too
         if (tid === id && dt) { drawTrip(); into(note ? '.msg:not(:empty)' : '.t-done'); }
@@ -2963,7 +2968,7 @@ if (top !== self) top.location = location;
         if (out(e)) return;
         sAsk = false;
         note = { where: 'srch', text: /search_closed/.test(e.message) ? L.sr_closed : errText(e) };
-      }).then(function () { return tid === id ? load() : null; }).then(function () {
+      }).then(function () { return tid === id ? loadTrip() : null; }).then(function () {
         busy = false;
         listAt = 0; // the list reads it again too
         if (tid === id && dt) { drawTrip(); into(note ? '.msg:not(:empty)' : '.t-note'); }
@@ -2981,7 +2986,7 @@ if (top !== self) top.location = location;
       }, function (e) {
         if (out(e)) return;
         note = { where: 'rep', text: /report_window_closed/.test(e.message) ? L.err_report_closed : /empty_report/.test(e.message) ? L.err_report_empty : errText(e) };
-      }).then(function () { return !note && tid === id ? load() : null; }).then(function () {
+      }).then(function () { return !note && tid === id ? loadTrip() : null; }).then(function () {
         busy = false;
         if (tid === id && dt) { drawTrip(); into(note ? '.msg:not(:empty)' : '.t-done'); } // keeps the text when it didn't go
       });
@@ -3413,15 +3418,6 @@ if (top !== self) top.location = location;
     // details) and until when an invite code can still be added (referral_window(), null once it can't).
     var me = null, meFor = null, meAt = 0, inviteUntil = null;
     function uid() { var s = getSession(); return s ? uidOf(s) : null; }
-    function token() {
-      return refresh().then(function (s) {
-        if (!s) { var e = new Error('Signed out'); e.status = 401; throw e; }
-        return s.access_token;
-      });
-    }
-    // Refused as signed out: Log in again (the panel then comes back to this view).
-    function out(e) { if (e && e.status === 401) { clearSession(); return true; } return false; }
-    function spinner() { return '<div class="tload"><span class="spin" aria-hidden="true"></span></div>'; }
     function oops(pane, again) {
       pane.innerHTML = '<div class="tempty"><p>' + esc(T.err_generic) + '</p><button type="button" class="btn ghost pn-retry">' + esc(T.retry) + '</button></div>';
       $('.pn-retry', pane).onclick = again;

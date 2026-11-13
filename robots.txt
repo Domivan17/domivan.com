@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://domivan.com/sitemap.xml
