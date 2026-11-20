@@ -1,0 +1,20 @@
+DomiVan: reporting a security problem
+
+DomiVan (StepsNest B.V., the Netherlands) runs domivan.com and the DomiVan, DomiVan Driver and
+DomiVan Admin apps. If you think you found a security problem in any of them, tell us.
+
+How to report
+- Email security@domivan.com: what you found, the steps to see it, and the page, app and version.
+- Write in English or in any language of domivan.com.
+- We aim to answer within 5 working days and tell you when it is fixed.
+
+While you look
+- Use only accounts of your own. Do not open, change or delete other people's data; if you reach
+  any by accident, stop and tell us, and keep none of it.
+- No denial of service, spam, social engineering, or scans that load our systems.
+- Make no payments you do not mean to make, and do not test against our payment providers.
+- Give us reasonable time to fix a problem before you publish anything about it.
+
+We will not take legal action against good-faith reports that follow these rules.
+
+DomiVan has no paid bug bounty.

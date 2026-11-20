@@ -7,6 +7,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/"/>
@@ -21,6 +23,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/"/>
@@ -35,6 +39,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/"/>
@@ -49,6 +55,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/"/>
@@ -63,6 +71,40 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://domivan.com/nl/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://domivan.com/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://domivan.com/"/>
+  </url>
+  <url>
+    <loc>https://domivan.com/lt/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://domivan.com/"/>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://domivan.com/ro/"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/"/>
+    <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://domivan.com/nl/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://domivan.com/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://domivan.com/"/>
+  </url>
+  <url>
+    <loc>https://domivan.com/lv/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://domivan.com/"/>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://domivan.com/ro/"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/"/>
+    <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/"/>
@@ -77,6 +119,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/"/>
@@ -91,6 +135,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/"/>
@@ -105,6 +151,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/"/>
@@ -119,6 +167,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/"/>
@@ -133,6 +183,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/"/>
@@ -147,6 +199,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/join"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/join"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/join"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/join"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/join"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/join"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/join"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/join"/>
@@ -161,6 +215,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/join"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/join"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/join"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/join"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/join"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/join"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/join"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/join"/>
@@ -175,6 +231,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/join"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/join"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/join"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/join"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/join"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/join"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/join"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/join"/>
@@ -189,6 +247,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/join"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/join"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/join"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/join"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/join"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/join"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/join"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/join"/>
@@ -203,6 +263,40 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/join"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/join"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/join"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/join"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/join"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/join"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/join"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/join"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://domivan.com/nl/join"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://domivan.com/pt/join"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://domivan.com/join"/>
+  </url>
+  <url>
+    <loc>https://domivan.com/lt/join</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://domivan.com/join"/>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://domivan.com/ro/join"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/join"/>
+    <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/join"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/join"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/join"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/join"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/join"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/join"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/join"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://domivan.com/nl/join"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://domivan.com/pt/join"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://domivan.com/join"/>
+  </url>
+  <url>
+    <loc>https://domivan.com/lv/join</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://domivan.com/join"/>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://domivan.com/ro/join"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/join"/>
+    <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/join"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/join"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/join"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/join"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/join"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/join"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/join"/>
@@ -217,6 +311,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/join"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/join"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/join"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/join"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/join"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/join"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/join"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/join"/>
@@ -231,6 +327,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/join"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/join"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/join"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/join"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/join"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/join"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/join"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/join"/>
@@ -245,6 +343,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/join"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/join"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/join"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/join"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/join"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/join"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/join"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/join"/>
@@ -259,6 +359,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/join"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/join"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/join"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/join"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/join"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/join"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/join"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/join"/>
@@ -273,6 +375,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/join"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/join"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/join"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/join"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/join"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/join"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/join"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/join"/>
@@ -287,6 +391,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/get"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/get"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/get"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/get"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/get"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/get"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/get"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/get"/>
@@ -301,6 +407,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/get"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/get"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/get"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/get"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/get"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/get"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/get"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/get"/>
@@ -315,6 +423,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/get"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/get"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/get"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/get"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/get"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/get"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/get"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/get"/>
@@ -329,6 +439,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/get"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/get"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/get"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/get"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/get"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/get"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/get"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/get"/>
@@ -343,6 +455,40 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/get"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/get"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/get"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/get"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/get"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/get"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/get"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/get"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://domivan.com/nl/get"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://domivan.com/pt/get"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://domivan.com/get"/>
+  </url>
+  <url>
+    <loc>https://domivan.com/lt/get</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://domivan.com/get"/>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://domivan.com/ro/get"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/get"/>
+    <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/get"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/get"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/get"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/get"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/get"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/get"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/get"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://domivan.com/nl/get"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://domivan.com/pt/get"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://domivan.com/get"/>
+  </url>
+  <url>
+    <loc>https://domivan.com/lv/get</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://domivan.com/get"/>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://domivan.com/ro/get"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/get"/>
+    <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/get"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/get"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/get"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/get"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/get"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/get"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/get"/>
@@ -357,6 +503,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/get"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/get"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/get"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/get"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/get"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/get"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/get"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/get"/>
@@ -371,6 +519,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/get"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/get"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/get"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/get"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/get"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/get"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/get"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/get"/>
@@ -385,6 +535,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/get"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/get"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/get"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/get"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/get"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/get"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/get"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/get"/>
@@ -399,6 +551,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/get"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/get"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/get"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/get"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/get"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/get"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/get"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/get"/>
@@ -413,6 +567,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/get"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/get"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/get"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/get"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/get"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/get"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/get"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/get"/>
@@ -427,6 +583,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/terms"/>
@@ -441,6 +599,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/terms"/>
@@ -455,6 +615,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/terms"/>
@@ -469,6 +631,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/terms"/>
@@ -483,6 +647,40 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/terms"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/terms"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/terms"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/terms"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://domivan.com/nl/terms"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://domivan.com/pt/terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://domivan.com/terms"/>
+  </url>
+  <url>
+    <loc>https://domivan.com/lt/terms</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://domivan.com/terms"/>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://domivan.com/ro/terms"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/terms"/>
+    <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/terms"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/terms"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/terms"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/terms"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/terms"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://domivan.com/nl/terms"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://domivan.com/pt/terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://domivan.com/terms"/>
+  </url>
+  <url>
+    <loc>https://domivan.com/lv/terms</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://domivan.com/terms"/>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://domivan.com/ro/terms"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/terms"/>
+    <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/terms"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/terms"/>
@@ -497,6 +695,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/terms"/>
@@ -511,6 +711,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/terms"/>
@@ -525,6 +727,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/terms"/>
@@ -539,6 +743,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/terms"/>
@@ -553,6 +759,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/terms"/>
@@ -567,6 +775,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/transporter-terms"/>
@@ -581,6 +791,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/transporter-terms"/>
@@ -595,6 +807,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/transporter-terms"/>
@@ -609,6 +823,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/transporter-terms"/>
@@ -623,6 +839,40 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://domivan.com/nl/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://domivan.com/pt/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://domivan.com/transporter-terms"/>
+  </url>
+  <url>
+    <loc>https://domivan.com/lt/transporter-terms</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://domivan.com/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://domivan.com/ro/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://domivan.com/nl/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://domivan.com/pt/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://domivan.com/transporter-terms"/>
+  </url>
+  <url>
+    <loc>https://domivan.com/lv/transporter-terms</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://domivan.com/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://domivan.com/ro/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/transporter-terms"/>
@@ -637,6 +887,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/transporter-terms"/>
@@ -651,6 +903,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/transporter-terms"/>
@@ -665,6 +919,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/transporter-terms"/>
@@ -679,6 +935,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/transporter-terms"/>
@@ -693,6 +951,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/transporter-terms"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/transporter-terms"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/transporter-terms"/>
@@ -707,6 +967,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/privacy"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/privacy"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/privacy"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/privacy"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/privacy"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/privacy"/>
@@ -721,6 +983,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/privacy"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/privacy"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/privacy"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/privacy"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/privacy"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/privacy"/>
@@ -735,6 +999,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/privacy"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/privacy"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/privacy"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/privacy"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/privacy"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/privacy"/>
@@ -749,6 +1015,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/privacy"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/privacy"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/privacy"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/privacy"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/privacy"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/privacy"/>
@@ -763,6 +1031,40 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/privacy"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/privacy"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/privacy"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/privacy"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/privacy"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/privacy"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://domivan.com/nl/privacy"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://domivan.com/pt/privacy"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://domivan.com/privacy"/>
+  </url>
+  <url>
+    <loc>https://domivan.com/lt/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://domivan.com/privacy"/>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://domivan.com/ro/privacy"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/privacy"/>
+    <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/privacy"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/privacy"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/privacy"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/privacy"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/privacy"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://domivan.com/nl/privacy"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://domivan.com/pt/privacy"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://domivan.com/privacy"/>
+  </url>
+  <url>
+    <loc>https://domivan.com/lv/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://domivan.com/privacy"/>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://domivan.com/ro/privacy"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/privacy"/>
+    <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/privacy"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/privacy"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/privacy"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/privacy"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/privacy"/>
@@ -777,6 +1079,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/privacy"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/privacy"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/privacy"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/privacy"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/privacy"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/privacy"/>
@@ -791,6 +1095,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/privacy"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/privacy"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/privacy"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/privacy"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/privacy"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/privacy"/>
@@ -805,6 +1111,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/privacy"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/privacy"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/privacy"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/privacy"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/privacy"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/privacy"/>
@@ -819,6 +1127,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/privacy"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/privacy"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/privacy"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/privacy"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/privacy"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/privacy"/>
@@ -833,6 +1143,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/privacy"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/privacy"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/privacy"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/privacy"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/privacy"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/privacy"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/privacy"/>
@@ -847,6 +1159,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/delete-account"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/delete-account"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/delete-account"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/delete-account"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/delete-account"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/delete-account"/>
@@ -861,6 +1175,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/delete-account"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/delete-account"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/delete-account"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/delete-account"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/delete-account"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/delete-account"/>
@@ -875,6 +1191,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/delete-account"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/delete-account"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/delete-account"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/delete-account"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/delete-account"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/delete-account"/>
@@ -889,6 +1207,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/delete-account"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/delete-account"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/delete-account"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/delete-account"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/delete-account"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/delete-account"/>
@@ -903,6 +1223,40 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/delete-account"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/delete-account"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://domivan.com/nl/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://domivan.com/pt/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://domivan.com/delete-account"/>
+  </url>
+  <url>
+    <loc>https://domivan.com/lt/delete-account</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://domivan.com/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://domivan.com/ro/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://domivan.com/nl/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://domivan.com/pt/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://domivan.com/delete-account"/>
+  </url>
+  <url>
+    <loc>https://domivan.com/lv/delete-account</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://domivan.com/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="ro" href="https://domivan.com/ro/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/delete-account"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/delete-account"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/delete-account"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/delete-account"/>
@@ -917,6 +1271,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/delete-account"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/delete-account"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/delete-account"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/delete-account"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/delete-account"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/delete-account"/>
@@ -931,6 +1287,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/delete-account"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/delete-account"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/delete-account"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/delete-account"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/delete-account"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/delete-account"/>
@@ -945,6 +1303,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/delete-account"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/delete-account"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/delete-account"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/delete-account"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/delete-account"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/delete-account"/>
@@ -959,6 +1319,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/delete-account"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/delete-account"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/delete-account"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/delete-account"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/delete-account"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/delete-account"/>
@@ -973,6 +1335,8 @@
     <xhtml:link rel="alternate" hreflang="pl" href="https://domivan.com/pl/delete-account"/>
     <xhtml:link rel="alternate" hreflang="bg" href="https://domivan.com/bg/delete-account"/>
     <xhtml:link rel="alternate" hreflang="hu" href="https://domivan.com/hu/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lt" href="https://domivan.com/lt/delete-account"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://domivan.com/lv/delete-account"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://domivan.com/es/delete-account"/>
     <xhtml:link rel="alternate" hreflang="fr" href="https://domivan.com/fr/delete-account"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://domivan.com/de/delete-account"/>

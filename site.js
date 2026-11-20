@@ -26,7 +26,7 @@
  * card slides over it when a signed-out visitor goes to pay.
  *
  * Page modules: the booking card (home), started once for each page as it is shown. Join
- * Transporters has no form since batch 23 (F10): two QR codes to /get, where transporters get
+ * Transporters has no form since batch 23 (F10): one QR code to /get, where transporters get
  * the DomiVan Driver app and register in it.
  *
  * Invite links: a VIT partner's QR code (domivan.com/r/CODE, sent home as ?r=CODE by 404.html)
@@ -40,9 +40,14 @@
  * scripts/build-site.py from scripts/account_strings.py, book_strings.py and trips_strings.py).
  */
 // Never inside another site's frame (clickjacking): GitHub Pages can't send frame-ancestors.
-if (top !== self) top.location = location;
+// A framed page asks to be the whole tab; where the browser refuses (a sandboxed frame), the
+// script stops here, so the booking card, sign-in and payment never work inside the frame.
 (function () {
   'use strict';
+  if (top !== self) {
+    try { top.location = location; } catch (e) { /* refused: stay inert */ }
+    return;
+  }
 
   var SB = 'https://htegjzxfspdaclcvfjfl.supabase.co';
   var KEY = 'sb_publishable_2spxK11Ldq3pj2EjJeoPbw_TVsZuKnL'; // public key, same as the apps
@@ -114,7 +119,7 @@ if (top !== self) top.location = location;
   // /get, what the Join Transporters QR codes open: an iPhone or iPad goes on to the App Store once the
   // app is there, an Android phone or tablet to Google Play once it is there, before anything else
   // (the language card included). Other devices, and a phone whose store has no app yet, see the page.
-  var TO_STORE = /^\/(?:(?:ro|pl|bg|hu|es|fr|de|nl|pt)\/)?get(?:\.html)?$/.test(location.pathname) && storeFor();
+  var TO_STORE = /^\/(?:(?:ro|pl|bg|hu|lt|lv|es|fr|de|nl|pt)\/)?get(?:\.html)?$/.test(location.pathname) && storeFor();
   if (TO_STORE) { location.replace(TO_STORE); return; }
 
   // ---------------------------------------------------------------- slides
@@ -1431,7 +1436,7 @@ if (top !== self) top.location = location;
       // Who sells the trip (batch 24, platform model), then one short cancellation line with a link
       // to the rules (Martin 2026-10-28: not too much text).
       $('.fine', P.price).innerHTML = esc(L.bk_who) + ' ' + esc(L.bk_rule).replace('{charge}', esc(money(CANCEL_RULE.chargeCents, L.lang)))
-        .replace('{rules}', '<a href="#terms">' + esc(L.bk_rules) + '</a>')
+        .replace('{rules}', '<a href="#terms" data-at="cancel">' + esc(L.bk_rules) + '</a>')
         + (van === 'luxury' ? ' ' + esc(L.lux_note) : '') + ' ' + esc(L.shared);
       fillSum();
     }
@@ -1781,13 +1786,22 @@ if (top !== self) top.location = location;
         if (!intent || intent.id !== pi[1]) throw new Error('No payment');
         return intent.status;
       }).then(function (status) {
-        if (status === 'succeeded' || status === 'processing') {
-          if (!had) { trip = null; order = null; }
-          booked(status === 'processing' ? 'wait' : 'ok', { instant: true });
-        } else {
-          msg(where, L.err_pay);
-        }
-      }, function () { msg(where, L.err_pay_check); }).then(function () {
+        if (status !== 'succeeded' && status !== 'processing') return msg(where, L.err_pay);
+        if (had) return booked(status === 'processing' ? 'wait' : 'ok', { instant: true });
+        // Not this tab's order (review 7, WEB-1): a payment's secret alone shows nothing. The trip
+        // must be the signed-in visitor's in my_trips; booked ('ok', counted as paid) only once it
+        // is paid there and Stripe said succeeded, else "still confirming" ('wait', not counted).
+        var me = signedInAs();
+        if (!me || !/^[0-9a-f-]{36}$/i.test(sb.id || '')) throw new Error('Not this visitor trip');
+        return token().then(function (t) {
+          return rest('rpc/my_trips?select=id,bid_started_at&id=eq.' + sb.id + '&client_id=eq.' + me, t);
+        }).then(function (r) {
+          var o = r && r[0];
+          if (!o) throw new Error('Not this visitor trip');
+          trip = null; order = null;
+          booked(status === 'succeeded' && o.bid_started_at ? 'ok' : 'wait', { instant: true });
+        });
+      }).then(null, function () { msg(where, L.err_pay_check); }).then(function () {
         busy = false;
         busyBtn(priceBtn, false);
         busyBtn($('.go', f), false);
@@ -1911,7 +1925,7 @@ if (top !== self) top.location = location;
     { cc: 'UA', dial: '380', min: 9, max: 9 },
     { cc: 'XK', dial: '383', min: 8, max: 9 }
   ];
-  var LANGUAGE_COUNTRY = { ro: 'RO', pl: 'PL', bg: 'BG', hu: 'HU', es: 'ES', fr: 'FR', de: 'DE', nl: 'NL', pt: 'PT' };
+  var LANGUAGE_COUNTRY = { ro: 'RO', pl: 'PL', bg: 'BG', hu: 'HU', lt: 'LT', lv: 'LV', es: 'ES', fr: 'FR', de: 'DE', nl: 'NL', pt: 'PT' };
   function dialCode(cc) {
     for (var i = 0; i < DIAL_CODES.length; i++) if (DIAL_CODES[i].cc === cc) return DIAL_CODES[i];
     return undefined;
@@ -3181,6 +3195,13 @@ if (top !== self) top.location = location;
   // stands on its own (#terms) or under Profile or Join Transporters (#login/terms, #join/terms),
   // so the back arrow returns there. auth: signed out, Log in shows first.
   var DOCS = ['terms', 'transporter-terms', 'privacy', 'delete-account'];
+  // A link to a legal page can name the section it opens at (data-at, an id on that page: the
+  // card's "Cancellation rules" opens the terms at 6, #cancel). Any other link forgets it.
+  var docAt = null;
+  d.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href^="#"]');
+    if (a) docAt = a.getAttribute('data-at') || null;
+  }, true);
   var PSTEPS = { details: 1, phone: 1, invoices: 1, invite: 1, delete: 1, language: 0, help: 0 }; // 1: needs an account
   var AUTH = { login: 1, create: 1, code: 1 };
   function viewOf(h) {
@@ -3300,7 +3321,10 @@ if (top !== self) top.location = location;
     function otp(em, t, nm) {
       var body = { email: em, create_user: t === 'create' };
       if (t === 'create') body.data = { full_name: nm };
-      return api('/auth/v1/otp', body);
+      // Log in with an address that has no account reads exactly like one with a code on its
+      // way (code_sent_login: "If ... has a DomiVan account"), so the page tells nobody which
+      // addresses have an account (review 7, PRV-4).
+      return api('/auth/v1/otp', body).catch(function (e) { if (t === 'login' && noUser(e)) return null; throw e; });
     }
     // Log in with an email that has no account yet.
     function noUser(e) {
@@ -3319,19 +3343,13 @@ if (top !== self) top.location = location;
       otp(em, t, nm).then(function () {
         email = em; fullName = nm; codeTab = t;
         // A narrow phone breaks a long address before the @, not inside the domain.
-        $('.sent', P.code).innerHTML = esc(T.code_sent).replace('{email}', '<b>' + esc(em).replace('@', '<wbr>@') + '</b>');
+        $('.sent', P.code).innerHTML = esc(t === 'login' ? T.code_sent_login : T.code_sent).replace('{email}', '<b>' + esc(em).replace('@', '<wbr>@') + '</b>');
         codeIn.value = ''; codeIn._len = 0;
         msg(P.code, '');
         show('code', 1);
         startTimer();
         setTimeout(function () { if (cur === P.code) codeIn.focus({ preventScroll: true }); }, 480);
       }, function (e) {
-        if (t === 'login' && noUser(e)) {
-          return msg(pane, T.no_account, 'email', { label: T.create_instead, fn: function () {
-            setTab('create');
-            setTimeout(function () { $('[name=full_name]', P.create).focus({ preventScroll: true }); }, 480);
-          } });
-        }
         if (badEmail(e)) return msg(pane, T.err_email, 'email');
         // Back from Change email to the same address too soon: the code we sent still works.
         if (rateLimited(e) && em === email && t === codeTab) {
@@ -3992,7 +4010,7 @@ if (top !== self) top.location = location;
     // A legal page, or Join Transporters: its own page's content, fetched once per language.
     function doc(name) {
       var key = T.home + name;
-      if (P.doc._key === key) return docTitle();
+      if (P.doc._key === key) { docTitle(); requestAnimationFrame(docJump); return; }
       P.doc._key = key;
       P.doc.innerHTML = spinner();
       P.doc.scrollTop = 0;
@@ -4003,7 +4021,16 @@ if (top !== self) top.location = location;
         P.doc.innerHTML = '';
         P.doc.appendChild(a);
         docTitle();
+        requestAnimationFrame(docJump);
       }).catch(function () { P.doc._key = null; oops(P.doc, function () { doc(name); }); });
+    }
+    // To the section a link named (docAt), once the page is in the pane; the pane scrolls.
+    function docJump() {
+      var t = docAt && $('[id="' + docAt + '"]', P.doc);
+      if (!t) return;
+      docAt = null;
+      if (P.doc.scrollHeight > P.doc.clientHeight) P.doc.scrollTop += t.getBoundingClientRect().top - P.doc.getBoundingClientRect().top - 8;
+      else t.scrollIntoView({ block: 'start' }); // a phone's sheet: the card's body scrolls instead
     }
     function docTitle() {
       var h = $('article.legal h1', P.doc), v = viewOf(view);
@@ -4541,7 +4568,7 @@ if (top !== self) top.location = location;
   // A link to Join Transporters or a legal page opens its panel; under Profile or Join
   // Transporters a legal page is one of their steps, so the back arrow returns there.
   function panelOf(u) {
-    var m = /^\/(?:(ro|pl|bg|hu|es|fr|de|nl|pt)\/)?(join|terms|privacy|transporter-terms|delete-account)(?:\.html)?$/.exec(u.pathname);
+    var m = /^\/(?:(ro|pl|bg|hu|lt|lv|es|fr|de|nl|pt)\/)?(join|terms|privacy|transporter-terms|delete-account)(?:\.html)?$/.exec(u.pathname);
     if (!m || (m[1] ? '/' + m[1] + '/' : '/') !== T.home) return '';
     if (m[2] === 'join') return '#join';
     var top = loginOpen && inSheet() ? (acctHash() || '').split('/')[0] : '';
@@ -4551,7 +4578,7 @@ if (top !== self) top.location = location;
   // ---------------------------------------------------------------- router
 
   // Home, /join and the legal pages, in every language (/ro/, /ro/join, /ro/terms, ...).
-  var SITE = /^\/(?:(?:ro|pl|bg|hu|es|fr|de|nl|pt)\/)?(?:index\.html|(?:join|terms|privacy|transporter-terms|delete-account)(?:\.html)?)?$/;
+  var SITE = /^\/(?:(?:ro|pl|bg|hu|lt|lv|es|fr|de|nl|pt)\/)?(?:index\.html|(?:join|terms|privacy|transporter-terms|delete-account)(?:\.html)?)?$/;
   var routing = !!(window.fetch && window.DOMParser && history.pushState && window.URLSearchParams);
   var htmlCache = {}, screens = {}, ys = {}, meta = null, curKey = '', hIdx = 0, navSeq = 0;
 
@@ -4769,7 +4796,7 @@ if (top !== self) top.location = location;
 
   // Every visit: before anything else a visitor who is not signed in picks a language, like the
   // apps at each start (src/components/language-sheet.tsx). A card in the middle of the page,
-  // under it a white veil that softens the page; the ten languages in their own words (the
+  // under it a white veil that softens the page; the twelve languages in their own words (the
   // header's language menu: same order, flags and links), the kept choice first and highlighted
   // (else the browser's own), and the question in that language (T.gate_q). Nothing behind it
   // can be clicked, scrolled or reached with the keyboard, and Escape doesn't close it. The pick
@@ -4788,7 +4815,7 @@ if (top !== self) top.location = location;
   // link) gets that page in their language; a /xx/ address stays as it is.
   var LANG_KEY = 'domivan.language';
   var LANG_ASKED = 'domivan.language-asked';
-  var LANG_CODES = ['en', 'ro', 'pl', 'bg', 'hu', 'es', 'fr', 'de', 'nl', 'pt'];
+  var LANG_CODES = ['en', 'ro', 'pl', 'bg', 'hu', 'lt', 'lv', 'es', 'fr', 'de', 'nl', 'pt'];
   var LANG_PATH = new RegExp('^/(' + LANG_CODES.slice(1).join('|') + ')/');
   var gate = null;
   function keptLang() { var v = store.get(LANG_KEY); return LANG_CODES.indexOf(v) >= 0 ? v : null; }
