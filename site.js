@@ -116,11 +116,22 @@
   // empty until that store has the app, and until then that store's phones keep /join on every
   // Transporters button. Each store goes live on its own (WEB-2).
   var DRIVER_APP = { ios: T.drv_ios || '', android: T.drv_android || '' };
+  // The ad a visitor came from (driver sign-up tracking A, Martin 2026-11-22): utm_source, utm_campaign
+  // and utm_content from this page's address (adTags). Kept in memory for this visit of the page only:
+  // no cookie, no storage, never sent to DomiVan. The DomiVan Driver app's store links carry them
+  // (storeLink), so Play Console and App Store Connect count installs per ad. null: no ad tags.
+  var AD = adTags(location.search);
+  // DomiVan's provider token for App Store campaign links (App Store Connect › App Analytics ›
+  // Campaigns, the link generator; not a secret). Empty: the App Store links carry no campaign.
+  var APPLE_PT = '';
+  var GET_PATH = /^\/(?:(?:ro|pl|bg|hu|lt|lv|es|fr|de|nl|pt)\/)?get(?:\.html)?$/;
   // /get, what the Join Transporters QR codes open: an iPhone or iPad goes on to the App Store once the
   // app is there, an Android phone or tablet to Google Play once it is there, before anything else
-  // (the language card included). Other devices, and a phone whose store has no app yet, see the page.
-  var TO_STORE = /^\/(?:(?:ro|pl|bg|hu|lt|lv|es|fr|de|nl|pt)\/)?get(?:\.html)?$/.test(location.pathname) && storeFor();
-  if (TO_STORE) { location.replace(TO_STORE); return; }
+  // (the language card included), with the ad's tags when /get was opened with them (the Join page's
+  // buttons pass them on; the QR codes have none). Other devices, and a phone whose store has no app
+  // yet, see the page.
+  var TO_STORE = GET_PATH.test(location.pathname) && storeFor();
+  if (TO_STORE) { location.replace(storeLink(TO_STORE, AD, '', APPLE_PT)); return; }
 
   // ---------------------------------------------------------------- slides
 
@@ -2239,12 +2250,12 @@
       already_booked: T.inv_booked, own_code: T.inv_own }[res] || T.err_generic;
   }
 
-  // A store link that carries the kept code: Google Play hands &referrer= to the app after the
-  // install. The App Store can't, so there the tap copies the invite link (onClick, onInvite).
+  // A store link that carries the kept code and the ad's tags (storeLink): Google Play hands
+  // &referrer= to the app after the install. The App Store can't hand over the code, so there the
+  // tap copies the invite link (onClick, onInvite).
   function toStore(url) {
     var r = keptRef();
-    if (!r || !/^https:\/\/play\.google\.com\//.test(url)) return url;
-    return url + (url.indexOf('?') < 0 ? '?' : '&') + 'referrer=' + encodeURIComponent('vit=' + r.code);
+    return storeLink(url, AD, r ? r.code : '', APPLE_PT);
   }
   function copyRef() {
     var r = keptRef();
@@ -4727,6 +4738,16 @@
       setTimeout(function () { a.setAttribute('href', href); });
       return;
     }
+    // From an ad: the DomiVan Driver store buttons (home, /get) and the Join page's buttons to /get
+    // carry its tags; the address goes back right after, like the Transporters buttons'.
+    var was = a.getAttribute('href'), r = AD && keptRef();
+    var tagged = adHref(was, AD, DRIVER_APP, r ? r.code : '', APPLE_PT);
+    if (tagged && tagged !== was) {
+      cancelAutoClose();
+      a.setAttribute('href', tagged);
+      setTimeout(function () { a.setAttribute('href', was); });
+      return;
+    }
     if (a.hasAttribute('data-login')) { e.preventDefault(); accountButton(); return; }
     if (a.dataset.tab === 'new') { e.preventDefault(); newTrip(); return; }
     var u = sitePage(a);
@@ -4784,6 +4805,48 @@
     if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return DRIVER_APP.ios;
     if (/Android/.test(ua)) return DRIVER_APP.android;
     return '';
+  }
+
+  // The ad's tags in a page address ('?utm_source=meta&utm_campaign=ro-drivers&utm_content=v1'): each
+  // of the three only when it is 1 to 40 letters, digits, - or _; anything else is dropped. null when
+  // none is left. scripts/app-tests/ad-tags.test.mjs runs adTags, storeLink and adHref.
+  function adTags(search) {
+    if (typeof URLSearchParams !== 'function') return null;
+    var q = new URLSearchParams(search || ''), tags = null;
+    ['utm_source', 'utm_campaign', 'utm_content'].forEach(function (k) {
+      var v = q.get(k);
+      if (v && /^[A-Za-z0-9_-]{1,40}$/.test(v)) (tags = tags || {})[k] = v;
+    });
+    return tags;
+  }
+  // A DomiVan Driver store link with the ad's tags and an invite code. Google Play: one referrer=
+  // value, 'utm_source=..&utm_campaign=..&utm_content=..&vit=CODE' (Play Console counts the utm_
+  // fields; the app reads vit=, src/lib/referral.ts). The App Store: Apple's campaign fields
+  // pt=<provider token>&ct=<campaign>&mt=8; ct is utm_campaign, with -utm_content while it fits in
+  // Apple's 40 characters. No tags and no code: the link as it is.
+  function storeLink(url, tags, code, pt) {
+    var sep = url.indexOf('?') < 0 ? '?' : '&';
+    tags = tags || {};
+    if (/^https:\/\/play\.google\.com\//.test(url)) {
+      var ref = ['utm_source', 'utm_campaign', 'utm_content'].filter(function (k) { return tags[k]; })
+        .map(function (k) { return k + '=' + tags[k]; });
+      if (code) ref.push('vit=' + code);
+      return ref.length ? url + sep + 'referrer=' + encodeURIComponent(ref.join('&')) : url;
+    }
+    var ct = tags.utm_campaign || '';
+    if (ct && tags.utm_content && ct.length + 1 + tags.utm_content.length <= 40) ct += '-' + tags.utm_content;
+    if (pt && ct && /^https:\/\/apps\.apple\.com\//.test(url)) return url + sep + 'pt=' + encodeURIComponent(pt) + '&ct=' + encodeURIComponent(ct) + '&mt=8';
+    return url;
+  }
+  // Where a tapped link goes when the page came from an ad, or '' to leave it as it is: a DomiVan
+  // Driver store page gets the tags and the kept code (storeLink), /get gets the tags in its address
+  // for its own way on to the store. apps: DRIVER_APP.
+  function adHref(href, tags, apps, code, pt) {
+    if (!tags || !href) return '';
+    if (href === apps.ios || href === apps.android) return storeLink(href, tags, code, pt);
+    if (!GET_PATH.test(href)) return '';
+    return href + '?' + ['utm_source', 'utm_campaign', 'utm_content'].filter(function (k) { return tags[k]; })
+      .map(function (k) { return k + '=' + tags[k]; }).join('&');
   }
 
   // Fetches a page as soon as a pointer or finger lands on its link.
