@@ -3112,16 +3112,25 @@
     openLogin({ view: '#login/phone' });
   }
   // phone-code's refusals ({ code, params }, supabase/functions/_shared/errors.ts) in the apps' words
-  // (src/lib/error-codes.ts); rate_limited is the booking card's (T.refusals), the rest errText's.
+  // (src/lib/error-codes.ts); rate_limited (older servers) is the booking card's (T.refusals), the rest errText's.
   var PV_ERR = {
     phone_invalid: 'pv_e_invalid', sms_country_closed: 'pv_e_closed', phone_wait: 'pv_e_wait', phone_too_many: 'pv_e_many',
+    phone_day_limit: 'pv_e_day', phone_other_number: 'pv_e_other', phone_number_limit: 'pv_e_number', phone_hour_limit: 'pv_e_hour',
     phone_taken: 'pv_e_taken', sms_busy: 'pv_e_down', sms_unavailable: 'pv_e_down', sms_failed: 'pv_e_failed',
     code_wrong: 'pv_e_wrong', code_expired: 'pv_e_expired', phone_unconfirmed: 'pv_need'
   };
+  // Refusals that hold codes back for hours (phone_send_refusal(), migration 20261125100000_phone_refusal_wait):
+  // the support line shows too, as in the apps (src/components/phone-confirm.tsx).
+  var PV_LIMITS = ['phone_too_many', 'phone_day_limit', 'phone_other_number', 'phone_number_limit', 'phone_hour_limit'];
   function phoneErr(e) {
     var ph = phoneHere();
     // Phone numbers off: Later is offered, and the words for codes that cannot be sent say the number can wait.
-    var k = e && (e.code === 'sms_unavailable' || e.code === 'sms_busy') && ph && !ph.required ? 'pv_e_down_later' : e && PV_ERR[e.code], text = k && T[k] ? fill(T[k], e.params || {}) : null;
+    var k = e && (e.code === 'sms_unavailable' || e.code === 'sms_busy') && ph && !ph.required ? 'pv_e_down_later' : e && PV_ERR[e.code];
+    var p = {}, n, text;
+    for (n in (e && e.params) || {}) p[n] = e.params[n];
+    // {when}: from when a code may go again, on the visitor's own clock, as the apps show it.
+    if (typeof p.when === 'string' && !isNaN(Date.parse(p.when))) p.when = dateText(new Date(p.when), T.lang);
+    text = k && T[k] ? fill(T[k], p) : null;
     return text && !/\{\w+\}/.test(text) ? text : refusalText(e) || errText(e);
   }
 
@@ -3703,7 +3712,7 @@
         if (e.code === 'phone_wait' && phone === ps.phone) { codeStage(phone, 60); return msg($('.ps-code form', P.phone), T.pv_e_wait); }
         msg(nf, phoneErr(e), e.code === 'phone_invalid' || e.code === 'sms_country_closed' ? 'phone' : null);
         // Codes cannot be sent right now: the support line shows on this stage too.
-        $('.ps-help', nf).hidden = !(e.code === 'sms_unavailable' || e.code === 'sms_busy');
+        $('.ps-help', nf).hidden = !(e.code === 'sms_unavailable' || e.code === 'sms_busy' || PV_LIMITS.indexOf(e.code) >= 0);
       }).catch(function () { if (uid() === u) msg(nf, T.err_generic); }).then(function () { busy(btn, false); });
     }
     function codeStage(phone, wait) {
